@@ -44,19 +44,17 @@
                     StackPanel LogBrew
                     -->
                     <StackPanel  x:Name="PanelLogBrew" Grid.Row="0" Margin="0,0,0,10" >
-                        <TextBlock Text="Connect Acaia scale and Testo 549i"  Margin="0,10,0,10" Style="{StaticResource SampleHeaderTextStyle}"/>
-                        <TextBlock TextWrapping="Wrap"   Margin="0,10,0,10" >
-                Enumerate nearby Bluetooth Low Energy devices, then select one with name "PROCH" or "ACAIA" and another with "T549i"
-                        </TextBlock>
-                        <TextBlock TextWrapping="Wrap"   Margin="0,10,0,10" >
-                Once the connection is established, enable notification for the weight measurements
-                        </TextBlock>
                         <StackPanel  Margin="0,10,0,0" Orientation="Horizontal">
                             <StackPanel x:Name="PanelConnectDisconnect" HorizontalAlignment="Stretch" Height="100" Margin="0,0,0,0" VerticalAlignment="Stretch" Width="10"/>                            
                             <Button x:Name="BtnConnect" Content="Connect" Margin="20,10,10,10" FontSize="24" Click="BtnConnect_Click" />
                             <Button x:Name="BtnDisconnect" Content="Disconnect" Margin="10,10,10,10" IsEnabled="False" FontSize="24" Click="BtnDisconnect_Click" />
                             <ToggleSwitch x:Name="ChkTesto" Header="Testo 549i" HorizontalAlignment="Stretch" Margin="10,10,10,10" VerticalAlignment="Stretch" FontSize="18" Toggled="ChkTesto_Toggled"/>
                         </StackPanel>
+
+                        <Grid Margin="0,0,0,0" >
+                            <TextBlock x:Name="TxtDe1Status" Margin="0,10,0,10" FontSize="22" >DE1 status: Ready</TextBlock>
+                            <TextBlock x:Name="TxtWaterLevel" Margin="0,10,10,10" FontSize="22" HorizontalAlignment="Right">Water level: 20mm</TextBlock>
+                        </Grid>
 
                         <TextBlock Text="Log a brew"  Margin="0,30,0,10" Style="{StaticResource SampleHeaderTextStyle}"/>
                         <StackPanel Margin="0,10,0,0" Orientation="Horizontal">
@@ -184,7 +182,7 @@
                     </ToggleButton.Content>
                 </ToggleButton>
             </Border>
-            <TextBlock x:Name="Header" Text="Acaia scale logger with Testo 549i support" Style="{StaticResource TagLineTextStyle}" Margin="0,15,0,0" FontSize="22" />
+            <TextBlock x:Name="Header" Text="DE1 Win10" Style="{StaticResource TagLineTextStyle}" Margin="0,15,0,0" FontSize="22" />
         </StackPanel>
     </Grid>
 </Page>

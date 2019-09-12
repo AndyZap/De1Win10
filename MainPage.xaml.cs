@@ -19,6 +19,8 @@ namespace De1Win10
 {
     public sealed partial class MainPage : Page
     {
+        private string appVersion = "1.1";
+
         private string deviceIdAcaia = String.Empty;
         private string deviceIdTesto = String.Empty;
 
@@ -67,6 +69,8 @@ namespace De1Win10
 
             val = localSettings.Values["EnableTesto"] as string;
             ChkTesto.IsOn = val == null ? false : val == "true";
+
+            Header.Text = "DE1 Win10     App version " + appVersion + "   DE1 BLE version 3.4.5"; // and add BLE verson from DE1
         }
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
