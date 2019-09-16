@@ -7,6 +7,8 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Windows.Security.Cryptography;
 using Windows.Storage.Streams;
+using Windows.Devices.Bluetooth;
+using Windows.Devices.Enumeration;
 
 namespace De1Win10
 {
@@ -40,6 +42,75 @@ namespace De1Win10
         GattCharacteristic chrDe1OtherSetn = null;
         //GattCharacteristic chrDe1ShotInfo = null;
         GattCharacteristic chrDe1StateInfo = null;
+
+        private async Task<string> CreateDe1Characteristics()
+        {
+            try
+            {
+                if (bleDeviceDe1 == null)
+                {
+                    try
+                    {
+                        bleDeviceDe1 = await BluetoothLEDevice.FromIdAsync(deviceIdDe1);
+                    }
+                    catch (Exception) { }
+                }
+
+                if (bleDeviceDe1 == null) { return "Failed to create DE1 bleDevice"; }
+
+                // Service
+                var result_service = await bleDeviceDe1.GetGattServicesForUuidAsync(new Guid(SrvDe1String), bleCacheMode);
+
+                if (result_service.Status != GattCommunicationStatus.Success) { return "Failed to get DE1 service " + result_service.Status.ToString(); }
+                if (result_service.Services.Count != 1) { return "Error, expected to find one DE1 service"; }
+
+                var service = result_service.Services[0];
+
+                var accessStatus = await service.RequestAccessAsync();
+                if (accessStatus != DeviceAccessStatus.Allowed) { return "Do not have access to the DE1 service"; }
+
+                // Characteristic   A001 Versions R/-/-
+                var result_charact = await service.GetCharacteristicsForUuidAsync(new Guid(ChrDe1VersionString), bleCacheMode);
+
+                if (result_charact.Status != GattCommunicationStatus.Success) { return "Failed to get DE1 characteristic " + result_charact.Status.ToString(); }
+                if (result_charact.Characteristics.Count != 1) { return "Error, expected to find one DE1 characteristics"; }
+
+                chrDe1Version = result_charact.Characteristics[0];
+
+                var de1_version_result = await chrDe1Version.ReadValueAsync(bleCacheMode);
+                if (de1_version_result.Status != GattCommunicationStatus.Success) { return "Failed to read DE1 characteristic " + de1_version_result.Status.ToString(); }
+
+                string de1_version = DecodeDe1Version(de1_version_result.Value);
+                if (de1_version == "") { return "Failed to decode DE1 version"; }
+                Header.Text = appVersion + "DE1 version: " + de1_version;
+
+
+                // Characteristic   A00E State Info  R/-/N
+                result_charact = await service.GetCharacteristicsForUuidAsync(new Guid(ChrDe1StateInfoString), bleCacheMode);
+
+                if (result_charact.Status != GattCommunicationStatus.Success) { return "Failed to get DE1 characteristic " + result_charact.Status.ToString(); }
+                if (result_charact.Characteristics.Count != 1) { return "Error, expected to find one DE1 characteristics"; }
+
+                chrDe1StateInfo = result_charact.Characteristics[0];
+
+                chrDe1StateInfo.ValueChanged += CharacteristicDe1StateInfo_ValueChanged;
+                await chrDe1StateInfo.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.Notify);
+                notifDe1StateInfo = true;
+
+
+
+
+
+
+
+            }
+            catch (Exception ex)
+            {
+                return "Exception when accessing De1 service or its characteristics: " + ex.Message;
+            }
+            return "";
+        }
+
 
         Dictionary<byte, De1StateEnum> De1StateMapping = new Dictionary<byte, De1StateEnum>();
         Dictionary<byte, De1SubStateEnum> De1SubStateMapping = new Dictionary<byte, De1SubStateEnum>();

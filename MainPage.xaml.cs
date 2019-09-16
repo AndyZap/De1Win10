@@ -19,7 +19,7 @@ namespace De1Win10
 {
     public sealed partial class MainPage : Page
     {
-        private string appVersion = "DE1 Win10     App version 1.2   ";
+        private string appVersion = "DE1 Win10     App version 1.3   ";
 
         private string deviceIdAcaia = String.Empty;
         private string deviceIdDe1 = String.Empty;
@@ -313,7 +313,7 @@ namespace De1Win10
             heartBeatTimer.Start();
         }
 
-        async void dispatcherTimer_Tick(object sender, object e)
+        private async void dispatcherTimer_Tick(object sender, object e)
         {
             heartBeatTimer.Stop();
 
@@ -351,62 +351,19 @@ namespace De1Win10
             }
             else if (statusAcaia == StatusEnum.Discovered)
             {
-                try
-                {
-                    if (bleDeviceAcaia == null)
-                    {
-                        try
-                        {
-                            bleDeviceAcaia = await BluetoothLEDevice.FromIdAsync(deviceIdAcaia);
-                        }
-                        catch (Exception) { }
-                    }
+                var result = await CreateAcaiaCharacteristics();
+                if (result != "") { FatalError(result); return; }
 
-                    if (bleDeviceAcaia == null) { FatalError("Failed to create Acaia bleDevice"); return; }
+                statusAcaia = StatusEnum.CharacteristicConnected;
 
-                    // Service
-                    var result_service = await bleDeviceAcaia.GetGattServicesForUuidAsync(new Guid(SrvAcaiaString), bleCacheMode);
+                message_acaia = "Connected to Acaia ";
 
-                    if (result_service.Status != GattCommunicationStatus.Success) { FatalError("Failed to get Acaia service " + result_service.Status.ToString()); return; }
-                    if (result_service.Services.Count != 1) { FatalError("Error, expected to find one Acaia service"); return; }
+                PanelConnectDisconnect.Background = new SolidColorBrush(Windows.UI.Colors.Green);
 
-                    var service = result_service.Services[0];
-
-                    var accessStatus = await service.RequestAccessAsync();
-                    if (accessStatus != DeviceAccessStatus.Allowed) { FatalError("Do not have access to the Acaia service"); return; }
-
-                    // Characteristics
-                    var result_charact = await service.GetCharacteristicsForUuidAsync(new Guid(ChrAcaiaString), bleCacheMode);
-
-                    if (result_charact.Status != GattCommunicationStatus.Success) { FatalError("Failed to get Acaia characteristic " + result_charact.Status.ToString()); return; }
-                    if (result_charact.Characteristics.Count != 1) { FatalError("Error, expected to find one Acaia characteristics"); return; }
-
-                    chrAcaia = result_charact.Characteristics[0];
-
-                    chrAcaia.ValueChanged += CharacteristicAcaia_ValueChanged;
-                    await chrAcaia.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.Notify);
-                    notifAcaia = true;
-
-                    // in order to start receiving weights
-                    var result = await WriteAppIdentity(); 
-                    if(result != "") { FatalError(result); return; }
-
-                    statusAcaia = StatusEnum.CharacteristicConnected;
-
-                    message_acaia = "Connected to Acaia ";
-
-                    PanelConnectDisconnect.Background = new SolidColorBrush(Windows.UI.Colors.Green);
-
-                    BtnBeansWeight.IsEnabled = true;
-                    BtnTare.IsEnabled = true;
-                    BtnStartLog.IsEnabled = true;
-                    BtnStopLog.IsEnabled = false;
-                }
-                catch (Exception ex)
-                {
-                    FatalError("Exception when accessing Acaia service or its characteristics: " + ex.Message);
-                    return;
-                }
+                BtnBeansWeight.IsEnabled = true;
+                BtnTare.IsEnabled = true;
+                BtnStartLog.IsEnabled = true;
+                BtnStopLog.IsEnabled = false;
             }
             else if (statusAcaia == StatusEnum.CharacteristicConnected)
             {
@@ -446,79 +403,19 @@ namespace De1Win10
             }
             else if (statusDe1 == StatusEnum.Discovered)
             {
-                try
-                {
-                    if (bleDeviceDe1 == null)
-                    {
-                        try
-                        {
-                            bleDeviceDe1 = await BluetoothLEDevice.FromIdAsync(deviceIdDe1);
-                        }
-                        catch (Exception) { }
-                    }
+                var result = await CreateDe1Characteristics();
+                if (result != "") { FatalError(result); return; }
 
-                    if (bleDeviceDe1 == null) { FatalError("Failed to create DE1 bleDevice"); return; }
+                statusDe1 = StatusEnum.CharacteristicConnected;
 
-                    // Service
-                    var result_service = await bleDeviceDe1.GetGattServicesForUuidAsync(new Guid(SrvDe1String), bleCacheMode);
+                message_de1 = "Connected to DE1 ";
 
-                    if (result_service.Status != GattCommunicationStatus.Success) { FatalError("Failed to get DE1 service " + result_service.Status.ToString()); return; }
-                    if (result_service.Services.Count != 1) { FatalError("Error, expected to find one DE1 service"); return; }
+                PanelConnectDisconnect.Background = new SolidColorBrush(Windows.UI.Colors.Green);
 
-                    var service = result_service.Services[0];
-
-                    var accessStatus = await service.RequestAccessAsync();
-                    if (accessStatus != DeviceAccessStatus.Allowed) { FatalError("Do not have access to the DE1 service"); return; }
-
-                    // Characteristic   Version
-                    var result_charact = await service.GetCharacteristicsForUuidAsync(new Guid(ChrDe1VersionString), bleCacheMode);
-
-                    if (result_charact.Status != GattCommunicationStatus.Success) { FatalError("Failed to get DE1 characteristic " + result_charact.Status.ToString()); return; }
-                    if (result_charact.Characteristics.Count != 1) { FatalError("Error, expected to find one DE1 characteristics"); return; }
-
-                    chrDe1Version = result_charact.Characteristics[0];
-
-                    var de1_version_result = await chrDe1Version.ReadValueAsync(bleCacheMode);
-                    if (de1_version_result.Status != GattCommunicationStatus.Success) { FatalError("Failed to read DE1 characteristic " + de1_version_result.Status.ToString()); return; }
-
-                    string de1_version = DecodeDe1Version(de1_version_result.Value);
-                    if (de1_version == "")  { FatalError("Failed to decode DE1 version"); return; }
-                    Header.Text = appVersion  + "DE1 version: " + de1_version;
-
-
-                    // Characteristic   StateInfo
-                    result_charact = await service.GetCharacteristicsForUuidAsync(new Guid(ChrDe1StateInfoString), bleCacheMode);
-
-                    if (result_charact.Status != GattCommunicationStatus.Success) { FatalError("Failed to get DE1 characteristic " + result_charact.Status.ToString()); return; }
-                    if (result_charact.Characteristics.Count != 1) { FatalError("Error, expected to find one DE1 characteristics"); return; }
-
-                    chrDe1StateInfo = result_charact.Characteristics[0];
-
-                    chrDe1StateInfo.ValueChanged += CharacteristicDe1StateInfo_ValueChanged;
-                    await chrDe1StateInfo.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.Notify);
-                    notifDe1StateInfo = true;
-
-
-
-
-
-
-                    statusDe1 = StatusEnum.CharacteristicConnected;
-
-                    message_de1 = "Connected to DE1 ";
-
-                    PanelConnectDisconnect.Background = new SolidColorBrush(Windows.UI.Colors.Green);
-
-                    BtnBeansWeight.IsEnabled = true;
-                    BtnTare.IsEnabled = true;
-                    BtnStartLog.IsEnabled = true;
-                    BtnStopLog.IsEnabled = false;
-                }
-                catch (Exception ex)
-                {
-                    FatalError("Exception when accessing De1 service or its characteristics: " + ex.Message);
-                    return;
-                }
+                BtnBeansWeight.IsEnabled = true;
+                BtnTare.IsEnabled = true;
+                BtnStartLog.IsEnabled = true;
+                BtnStopLog.IsEnabled = false;
             }
             else if (statusDe1 == StatusEnum.CharacteristicConnected)
             {

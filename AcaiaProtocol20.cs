@@ -4,6 +4,8 @@ using Windows.UI.Xaml.Controls;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Linq;
 using System.Threading.Tasks;
+using Windows.Devices.Bluetooth;
+using Windows.Devices.Enumeration;
 
 namespace De1Win10
 {
@@ -13,6 +15,56 @@ namespace De1Win10
         string ChrAcaiaString = "00002a80-0000-1000-8000-00805f9b34fb"; // Age		                         0x2A80
 
         private GattCharacteristic chrAcaia = null;
+
+        private async Task<string> CreateAcaiaCharacteristics()
+        {
+            try
+            {
+                if (bleDeviceAcaia == null)
+                {
+                    try
+                    {
+                        bleDeviceAcaia = await BluetoothLEDevice.FromIdAsync(deviceIdAcaia);
+                    }
+                    catch (Exception) { }
+                }
+
+                if (bleDeviceAcaia == null) { return "Failed to create Acaia bleDevice"; }
+
+                // Service
+                var result_service = await bleDeviceAcaia.GetGattServicesForUuidAsync(new Guid(SrvAcaiaString), bleCacheMode);
+
+                if (result_service.Status != GattCommunicationStatus.Success) { return "Failed to get Acaia service " + result_service.Status.ToString(); }
+                if (result_service.Services.Count != 1) { return "Error, expected to find one Acaia service"; }
+
+                var service = result_service.Services[0];
+
+                var accessStatus = await service.RequestAccessAsync();
+                if (accessStatus != DeviceAccessStatus.Allowed) { return "Do not have access to the Acaia service"; }
+
+                // Characteristics
+                var result_charact = await service.GetCharacteristicsForUuidAsync(new Guid(ChrAcaiaString), bleCacheMode);
+
+                if (result_charact.Status != GattCommunicationStatus.Success) { return "Failed to get Acaia characteristic " + result_charact.Status.ToString(); }
+                if (result_charact.Characteristics.Count != 1) { return "Error, expected to find one Acaia characteristic"; }
+
+                chrAcaia = result_charact.Characteristics[0];
+
+                chrAcaia.ValueChanged += CharacteristicAcaia_ValueChanged;
+                await chrAcaia.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.Notify);
+                notifAcaia = true;
+
+                // in order to start receiving weights
+                var result = await WriteAppIdentity();
+                if (result != "") { return result; }
+            }
+            catch (Exception ex)
+            {
+                return "Exception when accessing Acaia service or its characteristics: " + ex.Message;
+            }
+
+            return "";
+        }
 
         private Task<string> WriteHeartBeat()
         {
