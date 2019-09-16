@@ -19,29 +19,25 @@ namespace De1Win10
 {
     public sealed partial class MainPage : Page
     {
-        private string appVersion = "1.1";
+        private string appVersion = "1.2";
 
         private string deviceIdAcaia = String.Empty;
-        private string deviceIdTesto = String.Empty;
+        private string deviceIdDe1 = String.Empty;
 
-        private BluetoothCacheMode bluetoothCacheMode = BluetoothCacheMode.Cached;
+        private BluetoothCacheMode bleCacheMode = BluetoothCacheMode.Cached;
 
-        private BluetoothLEDevice bluetoothDeviceScale = null;
-        private BluetoothLEDevice bluetoothDeviceTesto = null;
-
-        private GattCharacteristic characteristicScale = null;
-        private GattCharacteristic characteristicTestoWrite = null;
-        private GattCharacteristic characteristicTestoNotif = null;
+        private BluetoothLEDevice bleDeviceAcaia = null;
+        private BluetoothLEDevice bleDeviceDe1 = null;
 
         private DispatcherTimer heartBeatTimer;
 
         private enum StatusEnum { Disabled, Disconnected, Discovered, CharacteristicConnected }
 
-        private StatusEnum statusScale = StatusEnum.Disconnected;
-        private StatusEnum statusTesto = StatusEnum.Disconnected;
+        private StatusEnum statusAcaia = StatusEnum.Disconnected;
+        private StatusEnum statusDe1 = StatusEnum.Disconnected;
 
-        private bool subscribedForNotificationsScale = false;
-        private bool subscribedForNotificationsTesto = false;
+        private bool notifAcaia = false;
+        private bool notifDe1 = false;
 
         public MainPage()
         {
@@ -58,8 +54,8 @@ namespace De1Win10
             var val = localSettings.Values["DeviceIdAcaia"] as string;
             deviceIdAcaia = val == null? "" : val;
 
-            val = localSettings.Values["DeviceIdTesto"] as string;
-            deviceIdTesto = val == null ? "" : val;
+            val = localSettings.Values["DeviceIdDe1"] as string;
+            deviceIdDe1 = val == null ? "" : val;
 
             val = localSettings.Values["DetailBeansName"] as string;
             DetailBeansName.Text = val == null ? "" : val;
@@ -67,23 +63,21 @@ namespace De1Win10
             val = localSettings.Values["DetailGrind"] as string;
             DetailGrind.Text = val == null ? "" : val;
 
-            val = localSettings.Values["EnableTesto"] as string;
-            ChkTesto.IsOn = val == null ? false : val == "true";
+            val = localSettings.Values["ChkAcaia"] as string;
+            ChkAcaia.IsOn = val == null ? false : val == "true";
 
             Header.Text = "DE1 Win10     App version " + appVersion + "   DE1 BLE version 3.4.5"; // and add BLE verson from DE1
         }
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
         {
-            List<string> scenarios = new List<string> { ">  Log A Brew", ">  Brew details", ">  Brew history" };
+            List<string> scenarios = new List<string> { ">  Espresso", ">  Water & Steam", ">  Save record" };
 
             ScenarioControl.ItemsSource = scenarios;
             if (Window.Current.Bounds.Width < 640)
                 ScenarioControl.SelectedIndex = -1;
             else
                 ScenarioControl.SelectedIndex = 0;
-
-            LoadLog();
 
             ResultsListView.ItemsSource = BrewLog;
 
@@ -93,19 +87,19 @@ namespace De1Win10
         private void ScenarioControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             ListBox scenarioListBox = sender as ListBox;
-            if (scenarioListBox.SelectedIndex == 0)  // >  Log A Brew
+            if (scenarioListBox.SelectedIndex == 0)  // >  Espresso
             {
                 PanelBrewDetails.Visibility = Visibility.Collapsed;
                 ScrollViewerBrewList.Visibility = Visibility.Collapsed;
                 PanelLogBrew.Visibility = Visibility.Visible;
             }
-            else if (scenarioListBox.SelectedIndex == 1) // >  Brew details
+            else if (scenarioListBox.SelectedIndex == 1) // >   Water & Steam
             {
                 PanelLogBrew.Visibility = Visibility.Collapsed;
                 ScrollViewerBrewList.Visibility = Visibility.Collapsed;
                 PanelBrewDetails.Visibility = Visibility.Visible;
             }
-            else if (scenarioListBox.SelectedIndex == 2)  // >  Brew history
+            else if (scenarioListBox.SelectedIndex == 2)  // >  Save record
             {
                 PanelLogBrew.Visibility = Visibility.Collapsed;
                 PanelBrewDetails.Visibility = Visibility.Collapsed;
@@ -262,53 +256,53 @@ namespace De1Win10
 
             //  ===========   ACAIA  ==================
 
-            statusScale = StatusEnum.Disconnected;
+            statusAcaia = ChkAcaia.IsOn ? StatusEnum.Disconnected : StatusEnum.Disabled;
 
-            if(true)  // scale is always enabled (but testo could be disabled)
+            if (statusAcaia != StatusEnum.Disabled)  // Acaia could be disabled
             {
                 if (deviceIdAcaia != String.Empty) // try to connect if we already know the DeviceID
                 {
                     try
                     {
-                        bluetoothDeviceScale = await BluetoothLEDevice.FromIdAsync(deviceIdAcaia);
+                        bleDeviceAcaia = await BluetoothLEDevice.FromIdAsync(deviceIdAcaia);
                     }
                     catch (Exception) { }
                 }
 
-                if (bluetoothDeviceScale == null) // Failed to connect with the device ID, need to search for the scale
+                if (bleDeviceAcaia == null) // Failed to connect with the device ID, need to search for the scale
                 {
                     if (deviceWatcher == null)
                         need_device_watcher = true;
                 }
                 else // we have bluetoothLeDevice, connect to the characteristic
                 {
-                    statusScale = StatusEnum.Discovered;
+                    statusAcaia = StatusEnum.Discovered;
                 }
             }
 
-            //  ===========   TESTO  ==================
+            //  ===========   DE1  ==================
 
-            statusTesto = ChkTesto.IsOn ? StatusEnum.Disconnected : StatusEnum.Disabled;
+            statusDe1 = StatusEnum.Disconnected;
 
-            if (statusTesto != StatusEnum.Disabled)
+            if (statusDe1 != StatusEnum.Disabled)  // De1 is always enabled
             {
-                if (deviceIdTesto != String.Empty) // try to connect if we already know the DeviceID
+                if (deviceIdDe1 != String.Empty) // try to connect if we already know the DeviceID
                 {
                     try
                     {
-                        bluetoothDeviceTesto = await BluetoothLEDevice.FromIdAsync(deviceIdTesto);
+                        bleDeviceDe1 = await BluetoothLEDevice.FromIdAsync(deviceIdDe1);
                     }
                     catch (Exception) { }
                 }
 
-                if (bluetoothDeviceTesto == null) // Failed to connect with the device ID, need to search for testo
+                if (bleDeviceDe1 == null) // Failed to connect with the device ID, need to search for DE1
                 {
                     if (deviceWatcher == null)
                         need_device_watcher = true;
                 }
                 else // we have bluetoothLeDevice, connect to the characteristic
                 {
-                    statusTesto = StatusEnum.Discovered;
+                    statusDe1 = StatusEnum.Discovered;
                 }
             }
 
@@ -327,16 +321,16 @@ namespace De1Win10
 
             // Commmon actions from scale and testo
             bool device_watcher_needs_stopping = false;
-            string message_scale = "";
-            string message_testo = "";
+            string message_acaia = "";
+            string message_de1 = "";
 
             //  ===========   ACAIA  ==================
 
-            if (statusScale == StatusEnum.Disabled)
+            if (statusAcaia == StatusEnum.Disabled)
             {
                 // do nothing
             }
-            else if (statusScale == StatusEnum.Disconnected)
+            else if (statusAcaia == StatusEnum.Disconnected)
             {
                 foreach (var d in KnownDevices)
                 {
@@ -347,91 +341,61 @@ namespace De1Win10
                         ApplicationDataContainer localSettings = ApplicationData.Current.LocalSettings;
                         localSettings.Values["DeviceIdAcaia"] = deviceIdAcaia;
 
-                        statusScale = StatusEnum.Discovered;
+                        statusAcaia = StatusEnum.Discovered;
 
                         device_watcher_needs_stopping = true;
 
-                        message_scale = "Discovered " + deviceIdAcaia + " ";
+                        message_acaia = "Discovered " + deviceIdAcaia + " ";
 
                         break;
                     }
                 }
             }
-            else if (statusScale == StatusEnum.Discovered)
+            else if (statusAcaia == StatusEnum.Discovered)
             {
                 try
                 {
-                    if (bluetoothDeviceScale == null)
+                    if (bleDeviceAcaia == null)
                     {
                         try
                         {
-                            bluetoothDeviceScale = await BluetoothLEDevice.FromIdAsync(deviceIdAcaia);
+                            bleDeviceAcaia = await BluetoothLEDevice.FromIdAsync(deviceIdAcaia);
                         }
                         catch (Exception) { }
                     }
 
-                    if (bluetoothDeviceScale == null)
-                    {
-                        FatalError("Failed to create Acaia BluetoothLEDevice");
-                        return;
-                    }
+                    if (bleDeviceAcaia == null) { FatalError("Failed to create Acaia bleDevice"); return; }
 
-                    GattDeviceServicesResult result_service = await bluetoothDeviceScale.GetGattServicesForUuidAsync(
-                    new Guid(ScaleServiceGuid), bluetoothCacheMode);
+                    // Service
+                    var result_service = await bleDeviceAcaia.GetGattServicesForUuidAsync(new Guid(SrvAcaiaString), bleCacheMode);
 
-                    if (result_service.Status != GattCommunicationStatus.Success)
-                    {
-                        FatalError("Failed to get Scale service 0x1820 " + result_service.Status.ToString());
-                        return;
-                    }
-
-                    if (result_service.Services.Count != 1)
-                    {
-                        FatalError("Error, expected to find one Scale service 0x1820");
-                        return;
-                    }
+                    if (result_service.Status != GattCommunicationStatus.Success) { FatalError("Failed to get Acaia service " + result_service.Status.ToString()); return; }
+                    if (result_service.Services.Count != 1) { FatalError("Error, expected to find one Acaia service"); return; }
 
                     var service = result_service.Services[0];
 
-                    // Ensure we have access to the device.
                     var accessStatus = await service.RequestAccessAsync();
+                    if (accessStatus != DeviceAccessStatus.Allowed) { FatalError("Do not have access to the Acaia service"); return; }
 
-                    if (accessStatus != DeviceAccessStatus.Allowed)
-                    {
-                        FatalError("Do not have access to the Scale service 0x1820");
-                        return;
-                    }
+                    // Characteristics
+                    var result_charact = await service.GetCharacteristicsForUuidAsync(new Guid(ChrAcaiaString), bleCacheMode);
 
-                    // BT_Code: Get all the child characteristics of a service. Use the cache mode to specify uncached characterstics only 
-                    // and the new Async functions to get the characteristics of unpaired devices as well. 
+                    if (result_charact.Status != GattCommunicationStatus.Success) { FatalError("Failed to get Acaia characteristic " + result_charact.Status.ToString()); return; }
+                    if (result_charact.Characteristics.Count != 1) { FatalError("Error, expected to find one Acaia characteristics"); return; }
 
-                    GattCharacteristicsResult result_charact = await service.GetCharacteristicsForUuidAsync(new Guid(ScaleCharactGuid), bluetoothCacheMode);
+                    chrAcaia = result_charact.Characteristics[0];
+                    chrAcaia.ValueChanged += CharacteristicScale_ValueChanged;
 
-                    if (result_charact.Status != GattCommunicationStatus.Success)
-                    {
-                        FatalError("Failed to get Scale service characteristics 0x2A80 " + result_charact.Status.ToString());
-                        return;
-                    }
+                    // Enable notifications
+                    await chrAcaia.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.Notify);
+                    notifAcaia = true;
 
-                    if (result_charact.Characteristics.Count != 1)
-                    {
-                        FatalError("Error, expected to find one Scale service characteristics 0x2A80");
-                        return;
-                    }
+                    var result = await WriteAppIdentity(); // in order to start receiving weights
+                    if(result != "") { FatalError(result); return; }
 
-                    characteristicScale = result_charact.Characteristics[0];
+                    statusAcaia = StatusEnum.CharacteristicConnected;
 
-                    characteristicScale.ValueChanged += CharacteristicScale_ValueChanged;
-
-                    // enable notifications
-                    var result = await characteristicScale.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.Notify);
-                    subscribedForNotificationsScale = true;
-
-                    WriteAppIdentity(); // in order to start receiving weights
-
-                    statusScale = StatusEnum.CharacteristicConnected;
-
-                    message_scale = "Connected to Acaia ";
+                    message_acaia = "Connected to Acaia ";
 
                     PanelConnectDisconnect.Background = new SolidColorBrush(Windows.UI.Colors.Green);
 
@@ -446,44 +410,45 @@ namespace De1Win10
                     return;
                 }
             }
-            else if (statusScale == StatusEnum.CharacteristicConnected)
+            else if (statusAcaia == StatusEnum.CharacteristicConnected)
             {
-                WriteHeartBeat();
+                var result = await WriteHeartBeat();
+                if (result != "") { FatalError(result); return; }
             }
             else
             {
-                FatalError("Unknown Status for Acaia scale" + statusScale.ToString());
+                FatalError("Unknown Status for Acaia scale" + statusAcaia.ToString());
                 return;
             }
 
 
 
-            //  ===========   TESTO  ==================
+            //  ===========   DE1  ==================
 
-            if (statusTesto == StatusEnum.Disabled)
+            if (statusDe1 == StatusEnum.Disabled)
             {
                 // do nothing
             }
-            else if (statusTesto == StatusEnum.Disconnected)
+            else if (statusDe1 == StatusEnum.Disconnected)
             {
                 foreach (var d in KnownDevices)
                 {
-                    if (d.Name.StartsWith("T549i"))
+                    if (d.Name.StartsWith("DE1"))
                     {
-                        deviceIdTesto = d.Id;
+                        deviceIdDe1 = d.Id;
 
                         ApplicationDataContainer localSettings = ApplicationData.Current.LocalSettings;
-                        localSettings.Values["DeviceIdTesto"] = deviceIdTesto;
+                        localSettings.Values["DeviceIdDe1"] = deviceIdDe1;
 
-                        statusTesto = StatusEnum.Discovered;
+                        statusDe1 = StatusEnum.Discovered;
 
                         device_watcher_needs_stopping = true;
 
-                        message_testo = "Discovered " + deviceIdTesto + " ";
+                        message_de1 = "Discovered " + deviceIdDe1 + " ";
                     }
                 }
             }
-            else if (statusTesto == StatusEnum.Discovered)
+            else if (statusDe1 == StatusEnum.Discovered)
             {
                 /*
                 try
@@ -499,7 +464,7 @@ namespace De1Win10
 
                     if (bluetoothDeviceTesto == null)
                     {
-                        FatalError("Failed to create Testo BluetoothLEDevice");
+                        FatalError("Failed to create DE1 BluetoothLEDevice");
                         return;
                     }
 
@@ -508,13 +473,13 @@ namespace De1Win10
 
                     if (result_service.Status != GattCommunicationStatus.Success)
                     {
-                        FatalError("Failed to get Testo service 0xfff0 " + result_service.Status.ToString());
+                        FatalError("Failed to get DE1 service 0xfff0 " + result_service.Status.ToString());
                         return;
                     }
 
                     if (result_service.Services.Count != 1)
                     {
-                        FatalError("Error, expected to find one Testo service 0xfff0");
+                        FatalError("Error, expected to find one DE1 service 0xfff0");
                         return;
                     }
 
@@ -525,7 +490,7 @@ namespace De1Win10
 
                     if (accessStatus != DeviceAccessStatus.Allowed)
                     {
-                        FatalError("Do not have access to the Testo service 0xfff0");
+                        FatalError("Do not have access to the DE1 service 0xfff0");
                         return;
                     }
 
@@ -538,13 +503,13 @@ namespace De1Win10
 
                     if (result_charact.Status != GattCommunicationStatus.Success)
                     {
-                        FatalError("Failed to get Testo service characteristics 0xfff2 " + result_charact.Status.ToString());
+                        FatalError("Failed to get DE1 service characteristics 0xfff2 " + result_charact.Status.ToString());
                         return;
                     }
 
                     if (result_charact.Characteristics.Count != 1)
                     {
-                        FatalError("Error, expected to find one Testo service characteristics 0xfff2");
+                        FatalError("Error, expected to find one DE1 service characteristics 0xfff2");
                         return;
                     }
 
@@ -563,13 +528,13 @@ namespace De1Win10
 
                     if (result_charact.Status != GattCommunicationStatus.Success)
                     {
-                        FatalError("Failed to get Testo service characteristics fff1 " + result_charact.Status.ToString());
+                        FatalError("Failed to get DE1 service characteristics fff1 " + result_charact.Status.ToString());
                         return;
                     }
 
                     if (result_charact.Characteristics.Count != 1)
                     {
-                        FatalError("Error, expected to find one Testo service characteristics fff1");
+                        FatalError("Error, expected to find one DE1 service characteristics fff1");
                         return;
                     }
 
@@ -589,9 +554,6 @@ namespace De1Win10
                     BtnTare.IsEnabled = true;
                     BtnStartLog.IsEnabled = true;
                     BtnStopLog.IsEnabled = false;
-
-                    if(ChkTesto.IsOn)
-                        BtnZeroPressure.IsEnabled = true;
                 }
                 catch (Exception ex)
                 {
@@ -600,23 +562,23 @@ namespace De1Win10
                 }
                 */
             }
-            else if (statusTesto == StatusEnum.CharacteristicConnected)
+            else if (statusDe1 == StatusEnum.CharacteristicConnected)
             {
                 // do nothing
             }
             else
             {
-                FatalError("Unknown Status for Testo" + statusTesto.ToString());
+                FatalError("Unknown Status for DE1" + statusDe1.ToString());
                 return;
             }
 
             // Do not need device watcher anymore
-            if (statusScale != StatusEnum.Disconnected && statusTesto != StatusEnum.Disconnected && device_watcher_needs_stopping)
+            if (statusAcaia != StatusEnum.Disconnected && statusDe1 != StatusEnum.Disconnected && device_watcher_needs_stopping)
                 StopBleDeviceWatcher();
 
             // Notify
-            if (message_scale != "" || message_testo != "")
-                NotifyUser(message_scale + message_testo, NotifyType.StatusMessage);
+            if (message_acaia != "" || message_de1 != "")
+                NotifyUser(message_acaia + message_de1, NotifyType.StatusMessage);
 
 
             heartBeatTimer.Start();
@@ -628,26 +590,31 @@ namespace De1Win10
 
             StopBleDeviceWatcher();
 
-            if (subscribedForNotificationsScale)
+            if (notifAcaia)
             {
-                await characteristicScale.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.None);
+                await chrAcaia.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.None);
 
-                characteristicScale.ValueChanged -= CharacteristicScale_ValueChanged;
+                chrAcaia.ValueChanged -= CharacteristicScale_ValueChanged;
 
-                subscribedForNotificationsScale = false;
+                notifAcaia = false;
             }
 
-            if (subscribedForNotificationsTesto)
+            if (notifDe1)
             {
+                /*
                 await characteristicTestoNotif.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.None);
 
                 characteristicTestoNotif.ValueChanged -= CharacteristicTesto_ValueChanged;
+                */
 
-                subscribedForNotificationsTesto = false;
+                notifDe1 = false;
             }
 
-            bluetoothDeviceScale?.Dispose();
-            bluetoothDeviceScale = null;
+            bleDeviceDe1?.Dispose();
+            bleDeviceDe1 = null;
+
+            bleDeviceAcaia?.Dispose();
+            bleDeviceAcaia = null;
 
             BtnConnect.IsEnabled = true;
             BtnDisconnect.IsEnabled = false;
@@ -656,11 +623,9 @@ namespace De1Win10
             BtnTare.IsEnabled = false;
             BtnStartLog.IsEnabled = false;
             BtnStopLog.IsEnabled = false;
-            BtnZeroPressure.IsEnabled = false;
 
-            statusScale = StatusEnum.Disconnected;
-
-            statusTesto = ChkTesto.IsOn ? StatusEnum.Disconnected : StatusEnum.Disabled;
+            statusDe1 = StatusEnum.Disconnected;
+            statusAcaia  = ChkAcaia.IsOn ? StatusEnum.Disconnected : StatusEnum.Disabled;
 
             LogBrewWeight.Text = "---";
             LogBrewTime.Text = "---";
@@ -706,9 +671,11 @@ namespace De1Win10
             Disconnect();
         }
 
-        private void BtnTare_Click(object sender, RoutedEventArgs e)
+        private async void BtnTare_Click(object sender, RoutedEventArgs e)
         {
-            WriteTare();
+            var result = await WriteTare();
+            if (result != "") { FatalError(result); return; }
+
             LogBrewTime.Text = "---";
             NotifyUser("Tare", NotifyType.StatusMessage);
         }
@@ -719,15 +686,19 @@ namespace De1Win10
             NotifyUser("Bean weight saved", NotifyType.StatusMessage);
         }
 
-        private void BtnStartLog_Click(object sender, RoutedEventArgs e)
+        private async void BtnStartLog_Click(object sender, RoutedEventArgs e)
         {
+            if (LogBrewWeight.Text != "0.0") // tare, as I always forget to do this
+            {
+                var result = await WriteTare();
+                if (result != "") { FatalError(result); return; }
+            }
+
             BtnBeansWeight.IsEnabled = false;
             BtnTare.IsEnabled = false;
             BtnStartLog.IsEnabled = false;
             BtnStopLog.IsEnabled = true;
 
-            if(LogBrewWeight.Text != "0.0")
-                WriteTare(); // tare, as I always forget to do this
 
             startTimeWeight = DateTime.Now;
             weightEverySec.Start();
@@ -865,16 +836,10 @@ namespace De1Win10
             catch (Exception) { }
         }
 
-        private void ChkTesto_Toggled(object sender, RoutedEventArgs e)
+        private void ChkAcaia_Toggled(object sender, RoutedEventArgs e)
         {
             ApplicationDataContainer localSettings = ApplicationData.Current.LocalSettings;
-            localSettings.Values["EnableTesto"] = ChkTesto.IsOn ? "true" : "false";
-        }
-
-        private void BtnZeroPressure_Click(object sender, RoutedEventArgs e)
-        {
-            //WriteZeroPressure();
-            //NotifyUser("Zero pressure sensor", NotifyType.StatusMessage);
+            localSettings.Values["ChkAcaia"] = ChkAcaia.IsOn ? "true" : "false";
         }
     }
 

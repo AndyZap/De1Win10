@@ -3,49 +3,53 @@ using Windows.Devices.Bluetooth.GenericAttributeProfile;
 using Windows.UI.Xaml.Controls;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace De1Win10
 {
     public sealed partial class MainPage : Page
     {
-        string ScaleServiceGuid = "00001820-0000-1000-8000-00805f9b34fb"; // Internet Protocol Support Service 0x1820
-        string ScaleCharactGuid = "00002a80-0000-1000-8000-00805f9b34fb"; // Age		                       0x2A80
+        string SrvAcaiaString = "00001820-0000-1000-8000-00805f9b34fb"; // Internet Protocol Support Service 0x1820
+        string ChrAcaiaString = "00002a80-0000-1000-8000-00805f9b34fb"; // Age		                         0x2A80
 
-        private void WriteHeartBeat()
+        private GattCharacteristic chrAcaia = null;
+
+        private Task<string> WriteHeartBeat()
         {
             // Heartbeat message needs to be send to scale every 3 sec to continue receiving weight measurements
             byte[] payload = new byte[] { 0xef, 0xdd, 0x00, 0x02, 0x00, 0x02, 0x00 };
-            writeToScale(payload);
+            return writeToAcaia(payload);
         }
 
-        private void WriteAppIdentity()
+        private Task<string> WriteAppIdentity()
         {
             // send app ID to start getting weight notifications
             byte[] payload = new byte[] { 0xef, 0xdd, 0x0b, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x9a, 0x6d };
-            writeToScale(payload);
+            return writeToAcaia(payload);
         }
 
-        private void WriteTare()
+        private Task<string> WriteTare()
         {
             // tare command
             byte[] payload = new byte[] { 0xef, 0xdd, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-            writeToScale(payload);
+            return writeToAcaia(payload);
         }
 
-        private async void writeToScale(byte[] payload)
+        private async Task<string> writeToAcaia(byte[] payload)
         {
             try
             {
-                // BT_Code: Writes the value from the buffer to the characteristic.
-                var result = await characteristicScale.WriteValueWithResultAsync(payload.AsBuffer());
+                var result = await chrAcaia.WriteValueWithResultAsync(payload.AsBuffer());
 
                 if (result.Status != GattCommunicationStatus.Success)
-                    FatalError("Failed to write to scale characteristic");
+                    return "Failed to write to scale characteristic";
             }
             catch (Exception ex)
             {
-                FatalError("Failed to write to scale characteristic " + ex.Message);
+                return "Failed to write to scale characteristic " + ex.Message;
             }
+
+            return "";
         }
 
         private bool DecodeWeight(byte[] data, ref double weight_gramm, ref bool is_stable)

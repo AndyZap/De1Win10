@@ -81,23 +81,6 @@ namespace De1Win10
 
             BtnSaveLog.IsEnabled = false;
         }
-
-        private async void LoadLog()
-        {
-            StorageFolder storageFolder = ApplicationData.Current.RoamingFolder;
-            StorageFile file = await storageFolder.CreateFileAsync(LogFileName, CreationCollisionOption.OpenIfExists);
-
-            var lines = await FileIO.ReadLinesAsync(file);
-
-            BrewLog.Clear();
-            foreach(var line in lines)
-            {
-                if (line.StartsWith("date,beanName,beanWeight,")) // header line
-                    continue;
-
-                BrewLog.Add(new LogEntry(line));
-            }
-        }
     }
 
     public class LogEntry
