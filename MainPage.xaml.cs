@@ -406,7 +406,7 @@ namespace De1Win10
                 }
                 catch (Exception ex)
                 {
-                    FatalError("Exception when accessing service or its characteristics: " + ex.Message);
+                    FatalError("Exception when accessing Acaia service or its characteristics: " + ex.Message);
                     return;
                 }
             }
@@ -420,8 +420,6 @@ namespace De1Win10
                 FatalError("Unknown Status for Acaia scale" + statusAcaia.ToString());
                 return;
             }
-
-
 
             //  ===========   DE1  ==================
 
@@ -450,56 +448,49 @@ namespace De1Win10
             }
             else if (statusDe1 == StatusEnum.Discovered)
             {
-                /*
                 try
                 {
-                    if (bluetoothDeviceTesto == null)
+                    if (bleDeviceDe1 == null)
                     {
                         try
                         {
-                            bluetoothDeviceTesto = await BluetoothLEDevice.FromIdAsync(deviceIdTesto);
+                            bleDeviceDe1 = await BluetoothLEDevice.FromIdAsync(deviceIdDe1);
                         }
                         catch (Exception) { }
                     }
 
-                    if (bluetoothDeviceTesto == null)
-                    {
-                        FatalError("Failed to create DE1 BluetoothLEDevice");
-                        return;
-                    }
+                    if (bleDeviceDe1 == null) { FatalError("Failed to create DE1 bleDevice"); return; }
 
-                    GattDeviceServicesResult result_service = await bluetoothDeviceTesto.GetGattServicesForUuidAsync(
-                    new Guid(TestoServiceGuid), bluetoothCacheMode);
+                    // Service
+                    var result_service = await bleDeviceDe1.GetGattServicesForUuidAsync(new Guid(SrvDe1String), bleCacheMode);
 
-                    if (result_service.Status != GattCommunicationStatus.Success)
-                    {
-                        FatalError("Failed to get DE1 service 0xfff0 " + result_service.Status.ToString());
-                        return;
-                    }
-
-                    if (result_service.Services.Count != 1)
-                    {
-                        FatalError("Error, expected to find one DE1 service 0xfff0");
-                        return;
-                    }
+                    if (result_service.Status != GattCommunicationStatus.Success) { FatalError("Failed to get DE1 service " + result_service.Status.ToString()); return; }
+                    if (result_service.Services.Count != 1) { FatalError("Error, expected to find one DE1 service"); return; }
 
                     var service = result_service.Services[0];
 
-                    // Ensure we have access to the device.
                     var accessStatus = await service.RequestAccessAsync();
+                    if (accessStatus != DeviceAccessStatus.Allowed) { FatalError("Do not have access to the DE1 service"); return; }
 
-                    if (accessStatus != DeviceAccessStatus.Allowed)
-                    {
-                        FatalError("Do not have access to the DE1 service 0xfff0");
-                        return;
-                    }
+                    // Characteristic De1Version
+                    var result_charact = await service.GetCharacteristicsForUuidAsync(new Guid(ChrDe1VersionString), bleCacheMode);
 
-                    // BT_Code: Get all the child characteristics of a service. Use the cache mode to specify uncached characterstics only 
-                    // and the new Async functions to get the characteristics of unpaired devices as well. 
+                    if (result_charact.Status != GattCommunicationStatus.Success) { FatalError("Failed to get DE1 characteristic " + result_charact.Status.ToString()); return; }
+                    if (result_charact.Characteristics.Count != 1) { FatalError("Error, expected to find one DE1 characteristics"); return; }
 
-                    //  ====  NOTIF characteristics  =====
+                    chrDe1Version = result_charact.Characteristics[0];
 
-                    GattCharacteristicsResult result_charact = await service.GetCharacteristicsForUuidAsync(new Guid(TestoCharactNotifGuid), bluetoothCacheMode);
+                    var de1_version_result = await chrDe1Version.ReadValueAsync(bleCacheMode);
+                    if (de1_version_result.Status != GattCommunicationStatus.Success) { FatalError("Failed to read DE1 characteristic " + de1_version_result.Status.ToString()); return; }
+
+                    string de1_version = "";
+                    byte[] de1_versiondata;
+                    CryptographicBuffer.CopyToByteArray(de1_version_result.Value, out de1_versiondata);
+                    if (!DecodeDe1Version(de1_versiondata, ref de1_version))  { FatalError("Failed to decode DE1 version"); return; }
+                    Header.Text = "BLE version: " + de1_version;
+
+                    /*
+                    GattCharacteristicsResult result_charact = await service.GetCharacteristicsForUuidAsync(new Guid(TestoCharactNotifGuid), bleCacheMode);
 
                     if (result_charact.Status != GattCommunicationStatus.Success)
                     {
@@ -522,9 +513,8 @@ namespace De1Win10
                     subscribedForNotificationsTesto = true;
 
 
-                    //  ====  WRITE characteristics  =====
 
-                    result_charact = await service.GetCharacteristicsForUuidAsync(new Guid(TestoCharactWriteGuid), bluetoothCacheMode);
+                    result_charact = await service.GetCharacteristicsForUuidAsync(new Guid(TestoCharactWriteGuid), bleCacheMode);
 
                     if (result_charact.Status != GattCommunicationStatus.Success)
                     {
@@ -543,10 +533,11 @@ namespace De1Win10
 
 
                     WriteCommandsToEnablePressureMeasurements(); // in order to start receiving pressure
+                    */
 
-                    statusTesto = StatusEnum.CharacteristicConnected;
+                    statusDe1 = StatusEnum.CharacteristicConnected;
 
-                    message_testo = "Connected to T549i ";
+                    message_de1 = "Connected to DE1 ";
 
                     PanelConnectDisconnect.Background = new SolidColorBrush(Windows.UI.Colors.Green);
 
@@ -557,10 +548,9 @@ namespace De1Win10
                 }
                 catch (Exception ex)
                 {
-                    FatalError("Exception when accessing service or its characteristics: " + ex.Message);
+                    FatalError("Exception when accessing De1 service or its characteristics: " + ex.Message);
                     return;
                 }
-                */
             }
             else if (statusDe1 == StatusEnum.CharacteristicConnected)
             {

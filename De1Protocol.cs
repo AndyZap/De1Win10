@@ -20,6 +20,8 @@ namespace De1Win10
 
         string SrvDe1String = "0000A000-0000-1000-8000-00805F9B34FB";
         string ChrDe1VersionString = "0000A001-0000-1000-8000-00805F9B34FB";   // A001 Versions                   R/-/-
+
+        /*
         string ChrDe1SetStateString = "0000A002-0000-1000-8000-00805F9B34FB";  // A002 Set State                  R/W/-
         string ChrDe1OtherSetnString = "0000A00B-0000-1000-8000-00805F9B34FB"; // A00B Other Settings             R/W/-
         string ChrDe1ShotInfoString = "0000A00D-0000-1000-8000-00805F9B34FB";  // A00D Shot Info                  R/-/N
@@ -28,12 +30,13 @@ namespace De1Win10
         // later - to set the shot values
         string ChrDe1ShotHeaderString = "0000A00F-0000-1000-8000-00805F9B34FB";// A00F Shot Description Header    R/W/-
         string ChrDe1ShotFrameString = "0000A010-0000-1000-8000-00805F9B34FB"; // A010 Shot Frame                 R/W/-
+        */
 
         GattCharacteristic chrDe1Version = null;
         GattCharacteristic chrDe1SetState = null;
         GattCharacteristic chrDe1OtherSetn = null;
-        GattCharacteristic chrDe1ShotInfo = null;
-        GattCharacteristic chrDe1StateInfo = null;
+        //GattCharacteristic chrDe1ShotInfo = null;
+        //GattCharacteristic chrDe1StateInfo = null;
 
         Dictionary<byte, De1StateEnum> De1StateMapping = new Dictionary<byte, De1StateEnum>();
         Dictionary<byte, De1SubStateEnum> De1SubStateMapping = new Dictionary<byte, De1SubStateEnum>();
