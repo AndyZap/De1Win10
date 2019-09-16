@@ -19,7 +19,7 @@ namespace De1Win10
 {
     public sealed partial class MainPage : Page
     {
-        private string appVersion = "1.2";
+        private string appVersion = "DE1 Win10     App version 1.2   ";
 
         private string deviceIdAcaia = String.Empty;
         private string deviceIdDe1 = String.Empty;
@@ -37,7 +37,7 @@ namespace De1Win10
         private StatusEnum statusDe1 = StatusEnum.Disconnected;
 
         private bool notifAcaia = false;
-        private bool notifDe1 = false;
+        private bool notifDe1StateInfo = false;
 
         public MainPage()
         {
@@ -66,7 +66,7 @@ namespace De1Win10
             val = localSettings.Values["ChkAcaia"] as string;
             ChkAcaia.IsOn = val == null ? false : val == "true";
 
-            Header.Text = "DE1 Win10     App version " + appVersion + "   DE1 BLE version 3.4.5"; // and add BLE verson from DE1
+            Header.Text = appVersion;
         }
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
@@ -144,9 +144,7 @@ namespace De1Win10
         }
         public void NotifyPressure(double pressure_bar)
         {
-            // If called from the UI thread, then update immediately.
-            // Otherwise, schedule a task on the UI thread to perform the update.
-            if (Dispatcher.HasThreadAccess)
+            if (Dispatcher.HasThreadAccess) // If called from the UI thread, then update immediately. Otherwise, schedule a task on the UI thread to perform the update.
             {
                 UpdatePressure(pressure_bar);
             }
@@ -384,13 +382,13 @@ namespace De1Win10
                     if (result_charact.Characteristics.Count != 1) { FatalError("Error, expected to find one Acaia characteristics"); return; }
 
                     chrAcaia = result_charact.Characteristics[0];
-                    chrAcaia.ValueChanged += CharacteristicScale_ValueChanged;
 
-                    // Enable notifications
+                    chrAcaia.ValueChanged += CharacteristicAcaia_ValueChanged;
                     await chrAcaia.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.Notify);
                     notifAcaia = true;
 
-                    var result = await WriteAppIdentity(); // in order to start receiving weights
+                    // in order to start receiving weights
+                    var result = await WriteAppIdentity(); 
                     if(result != "") { FatalError(result); return; }
 
                     statusAcaia = StatusEnum.CharacteristicConnected;
@@ -472,7 +470,7 @@ namespace De1Win10
                     var accessStatus = await service.RequestAccessAsync();
                     if (accessStatus != DeviceAccessStatus.Allowed) { FatalError("Do not have access to the DE1 service"); return; }
 
-                    // Characteristic De1Version
+                    // Characteristic   Version
                     var result_charact = await service.GetCharacteristicsForUuidAsync(new Guid(ChrDe1VersionString), bleCacheMode);
 
                     if (result_charact.Status != GattCommunicationStatus.Success) { FatalError("Failed to get DE1 characteristic " + result_charact.Status.ToString()); return; }
@@ -483,57 +481,27 @@ namespace De1Win10
                     var de1_version_result = await chrDe1Version.ReadValueAsync(bleCacheMode);
                     if (de1_version_result.Status != GattCommunicationStatus.Success) { FatalError("Failed to read DE1 characteristic " + de1_version_result.Status.ToString()); return; }
 
-                    string de1_version = "";
-                    byte[] de1_versiondata;
-                    CryptographicBuffer.CopyToByteArray(de1_version_result.Value, out de1_versiondata);
-                    if (!DecodeDe1Version(de1_versiondata, ref de1_version))  { FatalError("Failed to decode DE1 version"); return; }
-                    Header.Text = "BLE version: " + de1_version;
+                    string de1_version = DecodeDe1Version(de1_version_result.Value);
+                    if (de1_version == "")  { FatalError("Failed to decode DE1 version"); return; }
+                    Header.Text = appVersion  + "DE1 version: " + de1_version;
 
-                    /*
-                    GattCharacteristicsResult result_charact = await service.GetCharacteristicsForUuidAsync(new Guid(TestoCharactNotifGuid), bleCacheMode);
 
-                    if (result_charact.Status != GattCommunicationStatus.Success)
-                    {
-                        FatalError("Failed to get DE1 service characteristics 0xfff2 " + result_charact.Status.ToString());
-                        return;
-                    }
+                    // Characteristic   StateInfo
+                    result_charact = await service.GetCharacteristicsForUuidAsync(new Guid(ChrDe1StateInfoString), bleCacheMode);
 
-                    if (result_charact.Characteristics.Count != 1)
-                    {
-                        FatalError("Error, expected to find one DE1 service characteristics 0xfff2");
-                        return;
-                    }
+                    if (result_charact.Status != GattCommunicationStatus.Success) { FatalError("Failed to get DE1 characteristic " + result_charact.Status.ToString()); return; }
+                    if (result_charact.Characteristics.Count != 1) { FatalError("Error, expected to find one DE1 characteristics"); return; }
 
-                    characteristicTestoNotif = result_charact.Characteristics[0];
+                    chrDe1StateInfo = result_charact.Characteristics[0];
 
-                    characteristicTestoNotif.ValueChanged += CharacteristicTesto_ValueChanged;
-
-                    // enable notifications
-                    var result = await characteristicTestoNotif.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.Notify);
-                    subscribedForNotificationsTesto = true;
+                    chrDe1StateInfo.ValueChanged += CharacteristicDe1StateInfo_ValueChanged;
+                    await chrDe1StateInfo.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.Notify);
+                    notifDe1StateInfo = true;
 
 
 
-                    result_charact = await service.GetCharacteristicsForUuidAsync(new Guid(TestoCharactWriteGuid), bleCacheMode);
-
-                    if (result_charact.Status != GattCommunicationStatus.Success)
-                    {
-                        FatalError("Failed to get DE1 service characteristics fff1 " + result_charact.Status.ToString());
-                        return;
-                    }
-
-                    if (result_charact.Characteristics.Count != 1)
-                    {
-                        FatalError("Error, expected to find one DE1 service characteristics fff1");
-                        return;
-                    }
-
-                    characteristicTestoWrite = result_charact.Characteristics[0];
 
 
-
-                    WriteCommandsToEnablePressureMeasurements(); // in order to start receiving pressure
-                    */
 
                     statusDe1 = StatusEnum.CharacteristicConnected;
 
@@ -583,21 +551,17 @@ namespace De1Win10
             if (notifAcaia)
             {
                 await chrAcaia.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.None);
-
-                chrAcaia.ValueChanged -= CharacteristicScale_ValueChanged;
+                chrAcaia.ValueChanged -= CharacteristicAcaia_ValueChanged;
 
                 notifAcaia = false;
             }
 
-            if (notifDe1)
+            if (notifDe1StateInfo)
             {
-                /*
-                await characteristicTestoNotif.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.None);
+                await chrDe1StateInfo.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.None);
+                chrDe1StateInfo.ValueChanged -= CharacteristicDe1StateInfo_ValueChanged;
 
-                characteristicTestoNotif.ValueChanged -= CharacteristicTesto_ValueChanged;
-                */
-
-                notifDe1 = false;
+                notifDe1StateInfo = false;
             }
 
             bleDeviceDe1?.Dispose();
@@ -626,7 +590,7 @@ namespace De1Win10
             ScenarioControl.SelectedIndex = 0;
         }
 
-        private void CharacteristicScale_ValueChanged(GattCharacteristic sender, GattValueChangedEventArgs args)
+        private void CharacteristicAcaia_ValueChanged(GattCharacteristic sender, GattValueChangedEventArgs args)
         {
             byte[] data;
             CryptographicBuffer.CopyToByteArray(args.CharacteristicValue, out data);
@@ -641,18 +605,21 @@ namespace De1Win10
                 NotifyWeight(weight_gramm);
         }
 
-        private void CharacteristicTesto_ValueChanged(GattCharacteristic sender, GattValueChangedEventArgs args)
+        private void CharacteristicDe1StateInfo_ValueChanged(GattCharacteristic sender, GattValueChangedEventArgs args)
         {
             byte[] data;
             CryptographicBuffer.CopyToByteArray(args.CharacteristicValue, out data);
 
-            // for debug
-            //var message = "ValueChanged at " + DateTime.Now.ToString("hh:mm:ss.FFF ") + BitConverter.ToString(data);
-            //NotifyUser(message, NotifyType.StatusMessage);
+            De1StateEnum state = De1StateEnum.Sleep;
+            De1SubStateEnum substate = De1SubStateEnum.Ready;
+            if (DecodeDe1StateInfo(data, ref state, ref substate))
+            {
+                // for debug
+                var message = "ValueChanged at " + DateTime.Now.ToString("hh:mm:ss.FFF ") + state.ToString() + " " + substate.ToString();
+                NotifyUser(message, NotifyType.StatusMessage);
 
-            //double pressure_bar = 0.0;
-            //if (DecodePressure(data, ref pressure_bar))
-            //    NotifyPressure(pressure_bar);
+            }
+                //NotifyPressure(pressure_bar);
         }
 
         private void BtnDisconnect_Click(object sender, RoutedEventArgs e)
@@ -678,6 +645,13 @@ namespace De1Win10
 
         private async void BtnStartLog_Click(object sender, RoutedEventArgs e)
         {
+            // AAZ testing
+            var result = await WriteDe1State(De1StateEnum.Idle);
+            if (result != "") { FatalError(result); return; }
+
+
+
+            /*
             if (LogBrewWeight.Text != "0.0") // tare, as I always forget to do this
             {
                 var result = await WriteTare();
@@ -693,12 +667,19 @@ namespace De1Win10
             startTimeWeight = DateTime.Now;
             weightEverySec.Start();
             pressureEverySec.Start();
+            */
 
             NotifyUser("Started ...", NotifyType.StatusMessage);
         }
 
-        private void BtnStopLog_Click(object sender, RoutedEventArgs e)
+        private async void BtnStopLog_Click(object sender, RoutedEventArgs e)
         {
+            // AAZ testing
+            var result = await WriteDe1State(De1StateEnum.Sleep);
+            if (result != "") { FatalError(result); return; }
+
+
+            /*
             BtnBeansWeight.IsEnabled = true;
             BtnTare.IsEnabled = true;
             BtnStartLog.IsEnabled = true;
@@ -717,6 +698,7 @@ namespace De1Win10
             // switch to brew details page
             BtnSaveLog.IsEnabled = true;
             ScenarioControl.SelectedIndex = 1;
+            */
 
             NotifyUser("Stopped", NotifyType.StatusMessage);
         }

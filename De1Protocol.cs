@@ -5,6 +5,8 @@ using System.Runtime.InteropServices.WindowsRuntime;
 using System.Linq;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Windows.Security.Cryptography;
+using Windows.Storage.Streams;
 
 namespace De1Win10
 {
@@ -24,9 +26,10 @@ namespace De1Win10
         /*
         string ChrDe1SetStateString = "0000A002-0000-1000-8000-00805F9B34FB";  // A002 Set State                  R/W/-
         string ChrDe1OtherSetnString = "0000A00B-0000-1000-8000-00805F9B34FB"; // A00B Other Settings             R/W/-
-        string ChrDe1ShotInfoString = "0000A00D-0000-1000-8000-00805F9B34FB";  // A00D Shot Info                  R/-/N
+        string ChrDe1ShotInfoString = "0000A00D-0000-1000-8000-00805F9B34FB";  // A00D Shot Info                  R/-/N */
         string ChrDe1StateInfoString = "0000A00E-0000-1000-8000-00805F9B34FB"; // A00E State Info                 R/-/N
 
+        /*
         // later - to set the shot values
         string ChrDe1ShotHeaderString = "0000A00F-0000-1000-8000-00805F9B34FB";// A00F Shot Description Header    R/W/-
         string ChrDe1ShotFrameString = "0000A010-0000-1000-8000-00805F9B34FB"; // A010 Shot Frame                 R/W/-
@@ -36,7 +39,7 @@ namespace De1Win10
         GattCharacteristic chrDe1SetState = null;
         GattCharacteristic chrDe1OtherSetn = null;
         //GattCharacteristic chrDe1ShotInfo = null;
-        //GattCharacteristic chrDe1StateInfo = null;
+        GattCharacteristic chrDe1StateInfo = null;
 
         Dictionary<byte, De1StateEnum> De1StateMapping = new Dictionary<byte, De1StateEnum>();
         Dictionary<byte, De1SubStateEnum> De1SubStateMapping = new Dictionary<byte, De1SubStateEnum>();
@@ -101,15 +104,16 @@ namespace De1Win10
                 throw new Exception("Unknown De1StateEnum " + state.ToString());
         }
 
-        private bool DecodeDe1Version(byte[] data, ref string version_string)  // proc version_spec
+        private string DecodeDe1Version(IBuffer buffer)  // proc version_spec
         {
-            version_string = "";
+            byte[] data;
+            CryptographicBuffer.CopyToByteArray(buffer, out data);
 
             if (data == null)
-                return false;
+                return "";
 
             if (data.Length != 18)
-                return false;
+                return "";
 
             try
             {
@@ -126,7 +130,7 @@ namespace De1Win10
                 var FW_Changes = data[index]; index++;
                 var FW_Sha = BitConverter.ToUInt32(data, index);
 
-                version_string = BLE_APIVersion.ToString() + "." +
+                string version_string = BLE_APIVersion.ToString() + "." +
                 BLE_Release.ToString() + "." +
                 BLE_Commits.ToString() + "." +
                 BLE_Changes.ToString() + "." +
@@ -137,11 +141,11 @@ namespace De1Win10
                 FW_Changes.ToString() + "." +
                 FW_Sha.ToString("X");
 
-                return true;
+                return version_string;
             }
             catch (Exception)
             {
-                return false;
+                return "";
             }
         }
 
