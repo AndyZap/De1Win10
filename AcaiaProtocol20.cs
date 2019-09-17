@@ -15,6 +15,7 @@ namespace De1Win10
         string ChrAcaiaString = "00002a80-0000-1000-8000-00805f9b34fb"; // Age		                         0x2A80
 
         private GattCharacteristic chrAcaia = null;
+        private bool notifAcaia = false;
 
         private async Task<string> CreateAcaiaCharacteristics()
         {

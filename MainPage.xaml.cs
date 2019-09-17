@@ -36,9 +36,6 @@ namespace De1Win10
         private StatusEnum statusAcaia = StatusEnum.Disconnected;
         private StatusEnum statusDe1 = StatusEnum.Disconnected;
 
-        private bool notifAcaia = false;
-        private bool notifDe1StateInfo = false;
-
         public MainPage()
         {
             this.InitializeComponent();
@@ -449,7 +446,6 @@ namespace De1Win10
             {
                 await chrAcaia.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.None);
                 chrAcaia.ValueChanged -= CharacteristicAcaia_ValueChanged;
-
                 notifAcaia = false;
             }
 
@@ -457,8 +453,21 @@ namespace De1Win10
             {
                 await chrDe1StateInfo.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.None);
                 chrDe1StateInfo.ValueChanged -= CharacteristicDe1StateInfo_ValueChanged;
-
                 notifDe1StateInfo = false;
+            }
+
+            if (notifDe1ShotInfo)
+            {
+                await chrDe1ShotInfo.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.None);
+                chrDe1ShotInfo.ValueChanged -= CharacteristicDe1ShotInfo_ValueChanged;
+                notifDe1ShotInfo = false;
+            }
+
+            if (notifDe1Water)
+            {
+                await chrDe1Water.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.None);
+                chrDe1Water.ValueChanged -= CharacteristicDe1Water_ValueChanged;
+                notifDe1Water = false;
             }
 
             bleDeviceDe1?.Dispose();
@@ -493,7 +502,7 @@ namespace De1Win10
             CryptographicBuffer.CopyToByteArray(args.CharacteristicValue, out data);
 
             // for debug
-            //var message = "ValueChanged at " + DateTime.Now.ToString("hh:mm:ss.FFF ") + BitConverter.ToString(data);
+            //var message = "Acaia at " + DateTime.Now.ToString("hh:mm:ss.FFF ") + BitConverter.ToString(data);
             //NotifyUser(message, NotifyType.StatusMessage);
 
             double weight_gramm = 0.0;
@@ -512,11 +521,30 @@ namespace De1Win10
             if (DecodeDe1StateInfo(data, ref state, ref substate))
             {
                 // for debug
-                var message = "ValueChanged at " + DateTime.Now.ToString("hh:mm:ss.FFF ") + state.ToString() + " " + substate.ToString();
+                var message = "De1StateInfo at " + DateTime.Now.ToString("hh:mm:ss.FFF ") + state.ToString() + " " + substate.ToString();
                 NotifyUser(message, NotifyType.StatusMessage);
 
             }
                 //NotifyPressure(pressure_bar);
+        }
+        private void CharacteristicDe1ShotInfo_ValueChanged(GattCharacteristic sender, GattValueChangedEventArgs args)
+        {
+            byte[] data;
+            CryptographicBuffer.CopyToByteArray(args.CharacteristicValue, out data);
+
+            // for debug
+            var message = "De1ShotInfo at " + DateTime.Now.ToString("hh:mm:ss.FFF ") + BitConverter.ToString(data);
+            NotifyUser(message, NotifyType.StatusMessage);
+        }
+
+        private void CharacteristicDe1Water_ValueChanged(GattCharacteristic sender, GattValueChangedEventArgs args)
+        {
+            byte[] data;
+            CryptographicBuffer.CopyToByteArray(args.CharacteristicValue, out data);
+
+            // for debug
+            var message = "De1Water at " + DateTime.Now.ToString("hh:mm:ss.FFF ") + BitConverter.ToString(data);
+            NotifyUser(message, NotifyType.StatusMessage);
         }
 
         private void BtnDisconnect_Click(object sender, RoutedEventArgs e)

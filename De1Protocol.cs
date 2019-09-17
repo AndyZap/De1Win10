@@ -24,24 +24,27 @@ namespace De1Win10
 
         string SrvDe1String = "0000A000-0000-1000-8000-00805F9B34FB";
         string ChrDe1VersionString = "0000A001-0000-1000-8000-00805F9B34FB";   // A001 Versions                   R/-/-
-
-        /*
         string ChrDe1SetStateString = "0000A002-0000-1000-8000-00805F9B34FB";  // A002 Set State                  R/W/-
         string ChrDe1OtherSetnString = "0000A00B-0000-1000-8000-00805F9B34FB"; // A00B Other Settings             R/W/-
-        string ChrDe1ShotInfoString = "0000A00D-0000-1000-8000-00805F9B34FB";  // A00D Shot Info                  R/-/N */
+        string ChrDe1ShotInfoString = "0000A00D-0000-1000-8000-00805F9B34FB";  // A00D Shot Info                  R/-/N
         string ChrDe1StateInfoString = "0000A00E-0000-1000-8000-00805F9B34FB"; // A00E State Info                 R/-/N
 
-        /*
         // later - to set the shot values
-        string ChrDe1ShotHeaderString = "0000A00F-0000-1000-8000-00805F9B34FB";// A00F Shot Description Header    R/W/-
-        string ChrDe1ShotFrameString = "0000A010-0000-1000-8000-00805F9B34FB"; // A010 Shot Frame                 R/W/-
-        */
+        //string ChrDe1ShotHeaderString = "0000A00F-0000-1000-8000-00805F9B34FB";// A00F Shot Description Header    R/W/-
+        //string ChrDe1ShotFrameString = "0000A010-0000-1000-8000-00805F9B34FB"; // A010 Shot Frame                 R/W/-
+
+        string ChrDe1WaterString = "0000A011-0000-1000-8000-00805F9B34FB";     // A011 Water                       R/W/N
 
         GattCharacteristic chrDe1Version = null;
         GattCharacteristic chrDe1SetState = null;
         GattCharacteristic chrDe1OtherSetn = null;
-        //GattCharacteristic chrDe1ShotInfo = null;
+        GattCharacteristic chrDe1ShotInfo = null;
         GattCharacteristic chrDe1StateInfo = null;
+        GattCharacteristic chrDe1Water = null;
+
+        private bool notifDe1StateInfo = false;
+        private bool notifDe1ShotInfo = false;
+        private bool notifDe1Water = false;
 
         private async Task<string> CreateDe1Characteristics()
         {
@@ -58,7 +61,7 @@ namespace De1Win10
 
                 if (bleDeviceDe1 == null) { return "Failed to create DE1 bleDevice"; }
 
-                // Service
+                // Service --------------------------------------------------
                 var result_service = await bleDeviceDe1.GetGattServicesForUuidAsync(new Guid(SrvDe1String), bleCacheMode);
 
                 if (result_service.Status != GattCommunicationStatus.Success) { return "Failed to get DE1 service " + result_service.Status.ToString(); }
@@ -69,7 +72,8 @@ namespace De1Win10
                 var accessStatus = await service.RequestAccessAsync();
                 if (accessStatus != DeviceAccessStatus.Allowed) { return "Do not have access to the DE1 service"; }
 
-                // Characteristic   A001 Versions R/-/-
+
+                // Characteristic   A001 Versions R/-/-    --------------------------------------------------
                 var result_charact = await service.GetCharacteristicsForUuidAsync(new Guid(ChrDe1VersionString), bleCacheMode);
 
                 if (result_charact.Status != GattCommunicationStatus.Success) { return "Failed to get DE1 characteristic " + result_charact.Status.ToString(); }
@@ -85,7 +89,42 @@ namespace De1Win10
                 Header.Text = appVersion + "DE1 version: " + de1_version;
 
 
-                // Characteristic   A00E State Info  R/-/N
+
+                // Characteristic   A002 Set State  R/W/-     --------------------------------------------------
+                result_charact = await service.GetCharacteristicsForUuidAsync(new Guid(ChrDe1SetStateString), bleCacheMode);
+
+                if (result_charact.Status != GattCommunicationStatus.Success) { return "Failed to get DE1 characteristic " + result_charact.Status.ToString(); }
+                if (result_charact.Characteristics.Count != 1) { return "Error, expected to find one DE1 characteristics"; }
+
+                chrDe1SetState = result_charact.Characteristics[0];
+
+
+
+                // Characteristic   A00B Other Settings R/W/-     --------------------------------------------------
+                result_charact = await service.GetCharacteristicsForUuidAsync(new Guid(ChrDe1OtherSetnString), bleCacheMode);
+
+                if (result_charact.Status != GattCommunicationStatus.Success) { return "Failed to get DE1 characteristic " + result_charact.Status.ToString(); }
+                if (result_charact.Characteristics.Count != 1) { return "Error, expected to find one DE1 characteristics"; }
+
+                chrDe1OtherSetn = result_charact.Characteristics[0];
+
+
+
+                // Characteristic   A00D Shot Info R/-/N   --------------------------------------------------
+                result_charact = await service.GetCharacteristicsForUuidAsync(new Guid(ChrDe1ShotInfoString), bleCacheMode);
+
+                if (result_charact.Status != GattCommunicationStatus.Success) { return "Failed to get DE1 characteristic " + result_charact.Status.ToString(); }
+                if (result_charact.Characteristics.Count != 1) { return "Error, expected to find one DE1 characteristics"; }
+
+                chrDe1ShotInfo = result_charact.Characteristics[0];
+
+                chrDe1ShotInfo.ValueChanged += CharacteristicDe1ShotInfo_ValueChanged;
+                await chrDe1ShotInfo.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.Notify);
+                notifDe1ShotInfo = true;
+
+
+
+                // Characteristic   A00E State Info  R/-/N  --------------------------------------------------
                 result_charact = await service.GetCharacteristicsForUuidAsync(new Guid(ChrDe1StateInfoString), bleCacheMode);
 
                 if (result_charact.Status != GattCommunicationStatus.Success) { return "Failed to get DE1 characteristic " + result_charact.Status.ToString(); }
@@ -98,10 +137,17 @@ namespace De1Win10
                 notifDe1StateInfo = true;
 
 
+                // Characteristic   A011 Water R/W/N  --------------------------------------------------
+                result_charact = await service.GetCharacteristicsForUuidAsync(new Guid(ChrDe1WaterString), bleCacheMode);
 
+                if (result_charact.Status != GattCommunicationStatus.Success) { return "Failed to get DE1 characteristic " + result_charact.Status.ToString(); }
+                if (result_charact.Characteristics.Count != 1) { return "Error, expected to find one DE1 characteristics"; }
 
+                chrDe1Water = result_charact.Characteristics[0];
 
-
+                chrDe1Water.ValueChanged += CharacteristicDe1Water_ValueChanged;
+                await chrDe1Water.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.Notify);
+                notifDe1Water = true;
 
             }
             catch (Exception ex)
@@ -268,6 +314,28 @@ namespace De1Win10
             }
         }
 
+        private bool DecodeDe1Water(byte[] data, ref double level) // parse_binary_water_level
+        {
+            if (data == null)
+                return false;
+
+            if (data.Length != 4)
+                return false;
+
+            try
+            {
+                int index = 0;
+                level = BitConverter.ToUInt16(data, index) / 256.0; index += 2;
+                //var fill_level = BitConverter.ToUInt16(data, index) / 256.0; index += 2;
+
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
         private bool DecodeDe1StateInfo(byte[] data, ref De1StateEnum state, ref De1SubStateEnum substate)
         {
             if (data == null)
@@ -370,5 +438,4 @@ namespace De1Win10
 
 
     }
-
 }
