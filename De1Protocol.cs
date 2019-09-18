@@ -9,18 +9,20 @@ using Windows.Security.Cryptography;
 using Windows.Storage.Streams;
 using Windows.Devices.Bluetooth;
 using Windows.Devices.Enumeration;
+using Windows.UI.Core;
+using Windows.UI.Xaml.Automation.Peers;
 
 namespace De1Win10
 {
     public sealed partial class MainPage : Page
     {
         enum De1ChrEnum { Version, SetState, OtherSetn, ShotInfo, StateInfo }
-        enum De1StateEnum
+        public enum De1StateEnum
         {
             Sleep, GoingToSleep, Idle, Busy, Espresso, Steam, HotWater, ShortCal, SelfTest, LongCal, Descale,
             FatalError, Init, NoRequest, SkipToNext, HotWaterRinse, SteamRinse, Refill, Clean, InBootLoader, AirPurge
         }
-        enum De1SubStateEnum { Ready, Heating, FinalHeating, Stabilising, Preinfusion, Pouring, Ending, Refill }
+        public enum De1SubStateEnum { Ready, Heating, FinalHeating, Stabilising, Preinfusion, Pouring, Ending, Refill }
 
         string SrvDe1String = "0000A000-0000-1000-8000-00805F9B34FB";
         string ChrDe1VersionString = "0000A001-0000-1000-8000-00805F9B34FB";   // A001 Versions                   R/-/-
@@ -266,7 +268,7 @@ namespace De1Win10
             }
         }
 
-        class De1ShotInfoClass
+        public class De1ShotInfoClass
         {
             public double Timer = 0.0;
             public double GroupPressure = 0.0;
@@ -283,24 +285,24 @@ namespace De1Win10
             public De1ShotInfoClass() { }
         }
 
-        private bool DecodeDe1ShotInfo(byte[] data, ref De1ShotInfoClass shot_info) // update_de1_shotvalue
+        private bool DecodeDe1ShotInfo(byte[] data, De1ShotInfoClass shot_info) // update_de1_shotvalue
         {
             if (data == null)
                 return false;
 
-            if (data.Length != 25)
+            if (data.Length != 19)
                 return false;
 
             try
             {
                 int index = 0;
-                shot_info.Timer = BitConverter.ToUInt16(data, index); index += 2;
-                shot_info.GroupPressure = BitConverter.ToUInt16(data, index) / 4096.0; index += 2;
-                shot_info.GroupFlow = BitConverter.ToUInt16(data, index) / 4096.0; index += 2;
-                shot_info.MixTemp = BitConverter.ToUInt16(data, index) / 256.0; index += 2;
+                shot_info.Timer = data[index] * 256.0 + data[index + 1]; index += 2;
+                shot_info.GroupPressure = (data[index] / 16.0) + (data[index + 1] / 4096.0); index += 2;
+                shot_info.GroupFlow = (data[index] / 16.0) + (data[index + 1] / 4096.0); index += 2;
+                shot_info.MixTemp = data[index] + (data[index + 1] / 256.0); index += 2;
                 shot_info.HeadTemp = data[index] + (data[index + 1] / 256.0) + (data[index + 2] / 65536.0); index += 3;
-                shot_info.SetMixTemp = BitConverter.ToUInt16(data, index) / 256.0; index += 2;
-                shot_info.SetHeadTemp = BitConverter.ToUInt16(data, index) / 256.0; index += 2;
+                shot_info.SetMixTemp = data[index] + (data[index + 1] / 256.0); index += 2;
+                shot_info.SetHeadTemp = data[index] + (data[index + 1] / 256.0); index += 2;
                 shot_info.SetGroupPressure = data[index] / 16.0; index++;
                 shot_info.SetGroupFlow = data[index] / 16.0; index++;
                 shot_info.FrameNumber = data[index]; index++;
@@ -325,8 +327,8 @@ namespace De1Win10
             try
             {
                 int index = 0;
-                level = BitConverter.ToUInt16(data, index) / 256.0; index += 2;
-                //var fill_level = BitConverter.ToUInt16(data, index) / 256.0; index += 2;
+                level = data[index] + (data[index + 1] / 256.0); index += 2;
+                level += data[index] + (data[index + 1] / 256.0); index += 2;  // seems we need to add water level to fill level
 
                 return true;
             }
@@ -384,6 +386,81 @@ namespace De1Win10
             }
 
             return "";
+        }
+
+        void RaiseAutomationEvent(TextBlock t)
+        {
+            var peer = FrameworkElementAutomationPeer.FromElement(t);
+            if (peer != null)
+                peer.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged);
+        }
+
+        public void UpdateDe1StateInfo(De1StateEnum state, De1SubStateEnum substate)
+        {
+            if (Dispatcher.HasThreadAccess) // If called from the UI thread, then update immediately. Otherwise, schedule a task on the UI thread to perform the update.
+            {
+                UpdateDe1StateInfoImpl(state, substate);
+            }
+            else
+            {
+                var task = Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () => UpdateDe1StateInfoImpl(state, substate));
+            }
+        }
+        private void UpdateDe1StateInfoImpl(De1StateEnum state, De1SubStateEnum substate)
+        {
+            TxtDe1Status.Text = "DE1 status: " + state.ToString() + " (" + substate.ToString() + ")";
+            RaiseAutomationEvent(TxtDe1Status);
+        }
+
+        public void UpdateDe1ShotInfo(De1ShotInfoClass shot_info)
+        {
+            if (Dispatcher.HasThreadAccess) // If called from the UI thread, then update immediately. Otherwise, schedule a task on the UI thread to perform the update.
+            {
+                UpdateDe1ShotInfoImpl(shot_info);
+            }
+            else
+            {
+                var task = Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () => UpdateDe1ShotInfoImpl(shot_info));
+            }
+        }
+        private void UpdateDe1ShotInfoImpl(De1ShotInfoClass shot_info)
+        {
+            TxtBrewFlow.Text = shot_info.GroupFlow.ToString("0.0");
+            TxtBrewFlowTarget.Text = shot_info.SetGroupFlow.ToString("0.0");
+            TxtBrewPressure.Text = shot_info.GroupPressure.ToString("0.0");
+            TxtBrewPressureTarget.Text = shot_info.SetGroupPressure.ToString("0.0");
+            TxtBrewTempHead.Text = shot_info.HeadTemp.ToString("0.0");
+            TxtBrewTempHeadTarget.Text = shot_info.SetHeadTemp.ToString("0.0");
+            TxtBrewTempMix.Text = shot_info.MixTemp.ToString("0.0");
+            TxtBrewTempMixTarget.Text = shot_info.SetMixTemp.ToString("0.0");
+            TxtSteamTemp.Text = shot_info.SteamTemp.ToString("0");
+
+            RaiseAutomationEvent(TxtBrewFlow);
+            RaiseAutomationEvent(TxtBrewFlowTarget);
+            RaiseAutomationEvent(TxtBrewPressure);
+            RaiseAutomationEvent(TxtBrewPressureTarget);
+            RaiseAutomationEvent(TxtBrewTempHead);
+            RaiseAutomationEvent(TxtBrewTempHeadTarget);
+            RaiseAutomationEvent(TxtBrewTempMix);
+            RaiseAutomationEvent(TxtBrewTempMixTarget);
+            RaiseAutomationEvent(TxtSteamTemp);
+        }
+
+        public void UpdateDe1Water(double level)
+        {
+            if (Dispatcher.HasThreadAccess) // If called from the UI thread, then update immediately. Otherwise, schedule a task on the UI thread to perform the update.
+            {
+                UpdateDe1WaterImpl(level);
+            }
+            else
+            {
+                var task = Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () => UpdateDe1WaterImpl(level));
+            }
+        }
+        private void UpdateDe1WaterImpl(double level)
+        {
+            TxtWaterLevel.Text = "Water: " + level.ToString("0") + " mm";
+            RaiseAutomationEvent(TxtWaterLevel);
         }
 
         /*

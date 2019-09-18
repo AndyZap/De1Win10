@@ -56,18 +56,17 @@
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="auto"/>
                             </Grid.RowDefinitions>
-                            <StackPanel Grid.Row="0" Grid.Column="0" x:Name="PanelConnectDisconnect" HorizontalAlignment="Stretch" Height="100" Margin="0,0,0,0" VerticalAlignment="Stretch" Width="10"/>
-                            <Button  Grid.Row="0" Grid.Column="1" x:Name="BtnConnect" Content="Connect" Margin="20,10,10,10" FontSize="24" Click="BtnConnect_Click" />
-                            <Button  Grid.Row="0" Grid.Column="2" x:Name="BtnDisconnect" Content="Disconnect" Margin="10,10,10,10" IsEnabled="False" FontSize="24" Click="BtnDisconnect_Click" />
-                            <ToggleSwitch  Grid.Row="0" Grid.Column="3" x:Name="ChkAcaia" Header="Acaia" Margin="10,10,10,10" VerticalAlignment="Stretch" FontSize="18" Toggled="ChkAcaia_Toggled" Width="120"/>
-                            <TextBlock Grid.Row="0" Grid.Column="4" x:Name="TxtDe1Status" Margin="30,10,10,10" FontSize="22" VerticalAlignment="Center">DE1 status: Sleep</TextBlock>
-                            <TextBlock Grid.Row="0" Grid.Column="5" x:Name="TxtWaterLevel" Margin="10,10,10,10" FontSize="22" VerticalAlignment="Center">Water level: 20mm</TextBlock>
+                            <StackPanel Grid.Row="0" Grid.Column="0" x:Name="PanelConnectDisconnect" HorizontalAlignment="Stretch" Height="60" Margin="0,0,0,0" VerticalAlignment="Stretch" Width="10"/>
+                            <Button  Grid.Row="0" Grid.Column="1" x:Name="BtnConnect" Content="Connect" Margin="10,10,10,10" FontSize="24" Click="BtnConnect_Click" Width="150"/>
+                            <Button  Grid.Row="0" Grid.Column="2" x:Name="BtnDisconnect" Content="Disconnect" Margin="10,10,10,10" IsEnabled="False" FontSize="24" Click="BtnDisconnect_Click" Width="150"/>
+                            <ToggleSwitch  Grid.Row="0" Grid.Column="3" x:Name="ChkAcaia" Header="Acaia" Margin="30,10,10,10" VerticalAlignment="Stretch" FontSize="18" Toggled="ChkAcaia_Toggled" Width="120"/>
+                            <TextBlock Grid.Row="0" Grid.Column="4" x:Name="TxtDe1Status" Margin="30,10,10,10" FontSize="20" VerticalAlignment="Center" AutomationProperties.LiveSetting="Assertive">DE1 status: Sleep</TextBlock>
+                            <TextBlock Grid.Row="0" Grid.Column="5" x:Name="TxtWaterLevel" Margin="10,10,10,10" FontSize="20" VerticalAlignment="Center" AutomationProperties.LiveSetting="Assertive">Water: 20mm</TextBlock>
                         </Grid>
-
-                        <TextBlock Text="Espresso:"  Margin="30,10,0,10" FontSize="26"/>
 
                         <Grid>
                             <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="auto"/>
                                 <ColumnDefinition Width="auto"/>
                                 <ColumnDefinition Width="auto"/>
                                 <ColumnDefinition Width="*"/>
@@ -77,28 +76,60 @@
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="auto"/>
                             </Grid.RowDefinitions>
-                            <Button Grid.Row="0" Grid.Column="0" x:Name="BtnStartLog" Content="Start" Margin="30,10,30,10" IsEnabled="False" FontSize="40" Click="BtnStartLog_Click" Width="200"/>
-                            <Button Grid.Row="0" Grid.Column="1" x:Name="BtnStopLog" Content="Stop" Margin="30,10,30,10" IsEnabled="False" FontSize="40" Click="BtnStopLog_Click" Width="200"/>
-                            <Button Grid.Row="0" Grid.Column="3" x:Name="BtnBeansWeight" Content="Save bean, g" Margin="10,10,10,10" IsEnabled="False" FontSize="32" Click="BtnBeansWeight_Click"/>
-                            <Button Grid.Row="0" Grid.Column="4" x:Name="BtnTare" Content="Tare" Margin="10,10,10,10" IsEnabled="False" FontSize="32" Click="BtnTare_Click" />
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Espresso:" VerticalAlignment="Center" Margin="0,10,0,10" FontSize="24"/>
+                            <Button Grid.Row="0" Grid.Column="1" x:Name="BtnStartLog" Content="Start" Margin="30,10,30,10" IsEnabled="False" FontSize="24" Click="BtnStartLog_Click" Width="200" Height="70"/>
+                            <Button Grid.Row="0" Grid.Column="2" x:Name="BtnStopLog" Content="Stop" Margin="30,10,30,10" IsEnabled="False" FontSize="24" Click="BtnStopLog_Click" Width="200"  Height="70"/>
+                            <Button Grid.Row="0" Grid.Column="4" x:Name="BtnBeansWeight" Content="Steam" Margin="10,10,10,10" IsEnabled="False" FontSize="24" Click="BtnBeansWeight_Click"  Height="70"/>
+                            <Button Grid.Row="0" Grid.Column="5" x:Name="BtnTare" Content="Sleep" Margin="10,10,10,10" IsEnabled="False" FontSize="24" Click="BtnTare_Click"  Height="70"/>
                         </Grid>
                         
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="auto"/>
                                 <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="auto"/>
                             </Grid.ColumnDefinitions>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="auto"/>
                                 <RowDefinition Height="auto"/>
                                 <RowDefinition Height="auto"/>
+                                <RowDefinition Height="auto"/>
+                                <RowDefinition Height="auto"/>
+                                <RowDefinition Height="auto"/>
+                                <RowDefinition Height="auto"/>
                             </Grid.RowDefinitions>
-                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Time, sec"  Margin="0,10,10,10"  FontSize="32"/>
-                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Weight, g"  Margin="0,10,10,10" FontSize="32"/>
-                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Pressure, bar"  Margin="0,10,10,10" FontSize="32"/>
-                            <TextBlock Grid.Row="0" Grid.Column="1" x:Name="LogBrewTime" Text="---"  Margin="30,10,10,10" FontSize="32" AutomationProperties.LiveSetting="Assertive"/>
-                            <TextBlock Grid.Row="1" Grid.Column="1" x:Name="LogBrewWeight" Text="---"  Margin="30,10,10,10" FontSize="32" AutomationProperties.LiveSetting="Assertive"/>
-                            <TextBlock Grid.Row="2" Grid.Column="1" x:Name="LogBrewPressure" Text="---"  Margin="30,10,10,10" FontSize="32" AutomationProperties.LiveSetting="Assertive"/>
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Time, sec"  Margin="0,10,10,10"  FontSize="24"/>
+                            <TextBlock Grid.Row="0" Grid.Column="1" x:Name="TxtBrewTime" Text="---"  Margin="30,10,10,10" FontSize="24" AutomationProperties.LiveSetting="Assertive"/>
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Weight, g"  Margin="0,10,10,10" FontSize="24"/>
+                            <TextBlock Grid.Row="1" Grid.Column="1" x:Name="TxtBrewWeight" Text="---"  Margin="30,10,10,10" FontSize="24" AutomationProperties.LiveSetting="Assertive"/>
+                            <TextBlock Grid.Row="1" Grid.Column="2" x:Name="TxtBrewWeightTarget" Text="---"  Margin="30,10,10,10" FontSize="24" AutomationProperties.LiveSetting="Assertive"/>
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Weight rate, g/s"  Margin="0,10,10,10" FontSize="24"/>
+                            <TextBlock Grid.Row="2" Grid.Column="1" x:Name="TxtBrewWeightRate" Text="---"  Margin="30,10,10,10" FontSize="24" AutomationProperties.LiveSetting="Assertive"/>
+
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Flow, mL/s"  Margin="0,10,10,10" FontSize="24"/>
+                            <TextBlock Grid.Row="3" Grid.Column="1" x:Name="TxtBrewFlow" Text="---"  Margin="30,10,10,10" FontSize="24" AutomationProperties.LiveSetting="Assertive"/>
+                            <TextBlock Grid.Row="3" Grid.Column="2" x:Name="TxtBrewFlowTarget" Text="---"  Margin="30,10,10,10" FontSize="24" AutomationProperties.LiveSetting="Assertive"/>
+
+                            <TextBlock Grid.Row="4" Grid.Column="0" Text="Pressure, bar"  Margin="0,10,10,10" FontSize="24"/>
+                            <TextBlock Grid.Row="4" Grid.Column="1" x:Name="TxtBrewPressure" Text="---"  Margin="30,10,10,10" FontSize="24" AutomationProperties.LiveSetting="Assertive"/>
+                            <TextBlock Grid.Row="4" Grid.Column="2" x:Name="TxtBrewPressureTarget" Text="---"  Margin="30,10,10,10" FontSize="24" AutomationProperties.LiveSetting="Assertive"/>
+
+                            <TextBlock Grid.Row="5" Grid.Column="0" Text="Temp head, C"  Margin="0,10,10,10" FontSize="24"/>
+                            <TextBlock Grid.Row="5" Grid.Column="1" x:Name="TxtBrewTempHead" Text="---"  Margin="30,10,10,10" FontSize="24" AutomationProperties.LiveSetting="Assertive"/>
+                            <TextBlock Grid.Row="5" Grid.Column="2" x:Name="TxtBrewTempHeadTarget" Text="---"  Margin="30,10,10,10" FontSize="24" AutomationProperties.LiveSetting="Assertive"/>
+
+                            <TextBlock Grid.Row="6" Grid.Column="0" Text="Temp mix, C"  Margin="0,10,10,10" FontSize="24"/>
+                            <TextBlock Grid.Row="6" Grid.Column="1" x:Name="TxtBrewTempMix" Text="---"  Margin="30,10,10,10" FontSize="24" AutomationProperties.LiveSetting="Assertive"/>
+                            <TextBlock Grid.Row="6" Grid.Column="2" x:Name="TxtBrewTempMixTarget" Text="---"  Margin="30,10,10,10" FontSize="24" AutomationProperties.LiveSetting="Assertive"/>
+
+                            <TextBlock Grid.Row="6" Grid.Column="4" Text="Steam, C"  Margin="0,10,10,10" FontSize="24"/>
+                            <TextBlock Grid.Row="6" Grid.Column="5" x:Name="TxtSteamTemp" Text="---"  Margin="30,10,10,10" FontSize="24" AutomationProperties.LiveSetting="Assertive"/>
+
                         </Grid>
                     </StackPanel>
 
@@ -201,7 +232,7 @@
                     </ToggleButton.Content>
                 </ToggleButton>
             </Border>
-            <TextBlock x:Name="Header" Text="DE1 Win10" Style="{StaticResource TagLineTextStyle}" Margin="0,15,0,0" FontSize="22" />
+            <TextBlock x:Name="Header" Text="DE1 Win10" Style="{StaticResource TagLineTextStyle}" Margin="0,10,0,0" VerticalAlignment="Center" FontSize="16" />
         </StackPanel>
     </Grid>
 </Page>

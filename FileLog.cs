@@ -77,7 +77,7 @@ namespace De1Win10
             localSettings.Values["DetailBeansName"] = DetailBeansName.Text;
             localSettings.Values["DetailGrind"] = DetailGrind.Text;
 
-            NotifyUser("Saved to log " + file.Path, NotifyType.StatusMessage);
+            UpdateStatus("Saved to log " + file.Path, NotifyType.StatusMessage);
 
             BtnSaveLog.IsEnabled = false;
         }

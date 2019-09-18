@@ -19,7 +19,7 @@ namespace De1Win10
 {
     public sealed partial class MainPage : Page
     {
-        private string appVersion = "DE1 Win10     App version 1.3   ";
+        private string appVersion = "DE1 Win10     App version 1.4   ";
 
         private string deviceIdAcaia = String.Empty;
         private string deviceIdDe1 = String.Empty;
@@ -40,11 +40,13 @@ namespace De1Win10
         {
             this.InitializeComponent();
 
+            SetupDe1StateMapping();
+
             heartBeatTimer = new DispatcherTimer();
             heartBeatTimer.Tick += dispatcherTimer_Tick;
             heartBeatTimer.Interval = new TimeSpan(0, 0, 3);
 
-            NotifyUser("", NotifyType.StatusMessage);
+            UpdateStatus("", NotifyType.StatusMessage);
 
             ApplicationDataContainer localSettings = ApplicationData.Current.LocalSettings;
 
@@ -103,55 +105,29 @@ namespace De1Win10
                 ScrollViewerBrewList.Visibility = Visibility.Visible;
             }
             else
-                NotifyUser("Unknown menu item", NotifyType.ErrorMessage);
+                UpdateStatus("Unknown menu item", NotifyType.ErrorMessage);
         }
 
         public void FatalError(string message)
         {
-            NotifyUser(message, NotifyType.ErrorMessage);
+            UpdateStatus(message, NotifyType.ErrorMessage);
             Disconnect();
         }
 
-        public void NotifyUser(string strMessage, NotifyType type)
+        public void UpdateStatus(string strMessage, NotifyType type)
         {
             // If called from the UI thread, then update immediately.
             // Otherwise, schedule a task on the UI thread to perform the update.
             if (Dispatcher.HasThreadAccess)
             {
-                UpdateStatus(strMessage, type);
+                UpdateStatusImpl(strMessage, type);
             }
             else
             {
-                var task = Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () => UpdateStatus(strMessage, type));
+                var task = Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () => UpdateStatusImpl(strMessage, type));
             }
         }
-
-        public void NotifyWeight(double weight_gramm)
-        {
-            // If called from the UI thread, then update immediately.
-            // Otherwise, schedule a task on the UI thread to perform the update.
-            if (Dispatcher.HasThreadAccess)
-            {
-                UpdateWeight(weight_gramm);
-            }
-            else
-            {
-                var task = Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () => UpdateWeight(weight_gramm));
-            }
-        }
-        public void NotifyPressure(double pressure_bar)
-        {
-            if (Dispatcher.HasThreadAccess) // If called from the UI thread, then update immediately. Otherwise, schedule a task on the UI thread to perform the update.
-            {
-                UpdatePressure(pressure_bar);
-            }
-            else
-            {
-                var task = Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () => UpdatePressure(pressure_bar));
-            }
-        }
-
-        private void UpdateStatus(string strMessage, NotifyType type)
+        private void UpdateStatusImpl(string strMessage, NotifyType type)
         {
             switch (type)
             {
@@ -181,57 +157,9 @@ namespace De1Win10
             // Raise an event if necessary to enable a screen reader to announce the status update.
             var peer = FrameworkElementAutomationPeer.FromElement(StatusBlock);
             if (peer != null)
-            {
                 peer.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged);
-            }
         }
 
-        DateTime startTimeWeight = DateTime.MinValue;
-        private void UpdateWeight(double weight_gramm)
-        {
-            LogBrewWeight.Text = weight_gramm == double.MinValue ? "---" : weight_gramm.ToString("0.0");
-
-            // Raise an event if necessary to enable a screen reader to announce the status update.
-            var peer = FrameworkElementAutomationPeer.FromElement(LogBrewWeight);
-            if (peer != null)
-            {
-                peer.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged);
-            }
-
-            if (startTimeWeight != DateTime.MinValue)
-            {
-                var tspan = (DateTime.Now - startTimeWeight);
-
-                if (tspan.TotalSeconds >= 60)
-                    LogBrewTime.Text = tspan.Minutes.ToString("0") + ":" + tspan.Seconds.ToString("00");
-                else
-                    LogBrewTime.Text = tspan.Seconds.ToString("0");
-
-                var peerT = FrameworkElementAutomationPeer.FromElement(LogBrewTime);
-                if (peerT != null)
-                {
-                    peerT.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged);
-                }
-            }
-
-            if (!weightEverySec.NewReading(weight_gramm))
-                FatalError("Error: do not receive regular weight measurements from the scale");
-        }
-
-        private void UpdatePressure(double pressure_bar)
-        {
-            LogBrewPressure.Text = pressure_bar == double.MinValue ? "---" : pressure_bar.ToString("0.0");
-
-            // Raise an event if necessary to enable a screen reader to announce the status update.
-            var peer = FrameworkElementAutomationPeer.FromElement(LogBrewPressure);
-            if (peer != null)
-            {
-                peer.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged);
-            }
-
-            if (!pressureEverySec.NewReading(pressure_bar))
-                FatalError("Error: do not receive regular pressure measurements from T549i");
-        }
 
         private void MenuToggleButton_Click(object sender, RoutedEventArgs e)
         {
@@ -242,7 +170,7 @@ namespace De1Win10
         {
             ScenarioControl.SelectedIndex = 0;
 
-            NotifyUser("Connecting ... ", NotifyType.StatusMessage);
+            UpdateStatus("Connecting ... ", NotifyType.StatusMessage);
 
             BtnConnect.IsEnabled = false;
             BtnDisconnect.IsEnabled = true;
@@ -304,12 +232,11 @@ namespace De1Win10
             if (need_device_watcher)
             {
                 StartBleDeviceWatcher();
-                NotifyUser("Device watcher started", NotifyType.StatusMessage);
+                UpdateStatus("Device watcher started", NotifyType.StatusMessage);
             }
 
             heartBeatTimer.Start();
         }
-
         private async void dispatcherTimer_Tick(object sender, object e)
         {
             heartBeatTimer.Stop();
@@ -430,12 +357,11 @@ namespace De1Win10
 
             // Notify
             if (message_acaia != "" || message_de1 != "")
-                NotifyUser(message_acaia + message_de1, NotifyType.StatusMessage);
+                UpdateStatus(message_acaia + message_de1, NotifyType.StatusMessage);
 
 
             heartBeatTimer.Start();
         }
-
         private async void Disconnect()
         {
             heartBeatTimer.Stop();
@@ -487,9 +413,9 @@ namespace De1Win10
             statusDe1 = StatusEnum.Disconnected;
             statusAcaia  = ChkAcaia.IsOn ? StatusEnum.Disconnected : StatusEnum.Disabled;
 
-            LogBrewWeight.Text = "---";
-            LogBrewTime.Text = "---";
-            LogBrewPressure.Text = "---";
+            TxtBrewWeight.Text = "---";
+            TxtBrewTime.Text = "---";
+            TxtBrewPressure.Text = "---";
 
             PanelConnectDisconnect.Background = new SolidColorBrush(Windows.UI.Colors.Yellow);
 
@@ -508,9 +434,8 @@ namespace De1Win10
             double weight_gramm = 0.0;
             bool is_stable = true;
             if(DecodeWeight(data, ref weight_gramm, ref is_stable))
-                NotifyWeight(weight_gramm);
+                UpdateWeight(weight_gramm);
         }
-
         private void CharacteristicDe1StateInfo_ValueChanged(GattCharacteristic sender, GattValueChangedEventArgs args)
         {
             byte[] data;
@@ -519,59 +444,62 @@ namespace De1Win10
             De1StateEnum state = De1StateEnum.Sleep;
             De1SubStateEnum substate = De1SubStateEnum.Ready;
             if (DecodeDe1StateInfo(data, ref state, ref substate))
-            {
-                // for debug
-                var message = "De1StateInfo at " + DateTime.Now.ToString("hh:mm:ss.FFF ") + state.ToString() + " " + substate.ToString();
-                NotifyUser(message, NotifyType.StatusMessage);
-
-            }
-                //NotifyPressure(pressure_bar);
+                UpdateDe1StateInfo(state, substate);
         }
         private void CharacteristicDe1ShotInfo_ValueChanged(GattCharacteristic sender, GattValueChangedEventArgs args)
         {
             byte[] data;
             CryptographicBuffer.CopyToByteArray(args.CharacteristicValue, out data);
 
-            // for debug
-            var message = "De1ShotInfo at " + DateTime.Now.ToString("hh:mm:ss.FFF ") + BitConverter.ToString(data);
-            NotifyUser(message, NotifyType.StatusMessage);
+            De1ShotInfoClass shot_info = new De1ShotInfoClass();
+            if (DecodeDe1ShotInfo(data, shot_info))
+                UpdateDe1ShotInfo(shot_info);
         }
-
         private void CharacteristicDe1Water_ValueChanged(GattCharacteristic sender, GattValueChangedEventArgs args)
         {
             byte[] data;
             CryptographicBuffer.CopyToByteArray(args.CharacteristicValue, out data);
 
-            // for debug
-            var message = "De1Water at " + DateTime.Now.ToString("hh:mm:ss.FFF ") + BitConverter.ToString(data);
-            NotifyUser(message, NotifyType.StatusMessage);
+            double level = 0.0;
+            if (DecodeDe1Water(data, ref level))
+                UpdateDe1Water(level);
         }
 
         private void BtnDisconnect_Click(object sender, RoutedEventArgs e)
         {
-            NotifyUser("Disconnected", NotifyType.StatusMessage);
+            UpdateStatus("Disconnected", NotifyType.StatusMessage);
             Disconnect();
         }
 
         private async void BtnTare_Click(object sender, RoutedEventArgs e)
         {
+            // AAZ testing
+            var result = await WriteDe1State(De1StateEnum.Sleep);
+            if (result != "") { FatalError(result); return; }
+
+
+            /*
             var result = await WriteTare();
             if (result != "") { FatalError(result); return; }
 
-            LogBrewTime.Text = "---";
-            NotifyUser("Tare", NotifyType.StatusMessage);
+            TxtBrewTime.Text = "---";
+            UpdateStatus("Tare", NotifyType.StatusMessage); */
         }
 
-        private void BtnBeansWeight_Click(object sender, RoutedEventArgs e)
+        private async void BtnBeansWeight_Click(object sender, RoutedEventArgs e)
         {
-            DetailBeansWeight.Text = LogBrewWeight.Text;
-            NotifyUser("Bean weight saved", NotifyType.StatusMessage);
+            // AAZ testing
+            var result = await WriteDe1State(De1StateEnum.Steam);
+            if (result != "") { FatalError(result); return; }
+
+            /*DetailBeansWeight.Text = TxtBrewWeight.Text;
+            UpdateStatus("Bean weight saved", NotifyType.StatusMessage); */
         }
 
         private async void BtnStartLog_Click(object sender, RoutedEventArgs e)
         {
             // AAZ testing
-            var result = await WriteDe1State(De1StateEnum.Idle);
+            var result = await WriteDe1State(De1StateEnum.Espresso);
             if (result != "") { FatalError(result); return; }
 
 
@@ -594,13 +522,13 @@ namespace De1Win10
             pressureEverySec.Start();
             */
 
-            NotifyUser("Started ...", NotifyType.StatusMessage);
+            UpdateStatus("Started ...", NotifyType.StatusMessage);
         }
 
         private async void BtnStopLog_Click(object sender, RoutedEventArgs e)
         {
             // AAZ testing
-            var result = await WriteDe1State(De1StateEnum.Sleep);
+            var result = await WriteDe1State(De1StateEnum.Idle);
             if (result != "") { FatalError(result); return; }
 
 
@@ -625,7 +553,7 @@ namespace De1Win10
             ScenarioControl.SelectedIndex = 1;
             */
 
-            NotifyUser("Stopped", NotifyType.StatusMessage);
+            UpdateStatus("Stopped", NotifyType.StatusMessage);
         }
 
         private static bool IsCtrlKeyPressed()
@@ -721,7 +649,6 @@ namespace De1Win10
             }
             catch (Exception) { }
         }
-
         private void BtnGrindPlus_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -732,7 +659,6 @@ namespace De1Win10
             }
             catch (Exception) { }
         }
-
         private void ChkAcaia_Toggled(object sender, RoutedEventArgs e)
         {
             ApplicationDataContainer localSettings = ApplicationData.Current.LocalSettings;

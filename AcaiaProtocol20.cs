@@ -6,6 +6,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using Windows.Devices.Bluetooth;
 using Windows.Devices.Enumeration;
+using Windows.UI.Xaml.Automation.Peers;
+using Windows.UI.Core;
 
 namespace De1Win10
 {
@@ -139,6 +141,48 @@ namespace De1Win10
             {
                 return false;
             }
+        }
+
+        public void UpdateWeight(double weight_gramm)
+        {
+            // If called from the UI thread, then update immediately.
+            // Otherwise, schedule a task on the UI thread to perform the update.
+            if (Dispatcher.HasThreadAccess)
+            {
+                UpdateWeightImpl(weight_gramm);
+            }
+            else
+            {
+                var task = Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () => UpdateWeightImpl(weight_gramm));
+            }
+        }
+
+        DateTime startTimeWeight = DateTime.MinValue;
+        private void UpdateWeightImpl(double weight_gramm)
+        {
+            TxtBrewWeight.Text = weight_gramm == double.MinValue ? "---" : weight_gramm.ToString("0.0");
+
+            // Raise an event if necessary to enable a screen reader to announce the status update.
+            var peer = FrameworkElementAutomationPeer.FromElement(TxtBrewWeight);
+            if (peer != null)
+                peer.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged);
+
+            if (startTimeWeight != DateTime.MinValue)
+            {
+                var tspan = (DateTime.Now - startTimeWeight);
+
+                if (tspan.TotalSeconds >= 60)
+                    TxtBrewTime.Text = tspan.Minutes.ToString("0") + ":" + tspan.Seconds.ToString("00");
+                else
+                    TxtBrewTime.Text = tspan.Seconds.ToString("0");
+
+                var peerT = FrameworkElementAutomationPeer.FromElement(TxtBrewTime);
+                if (peerT != null)
+                    peerT.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged);
+            }
+
+            if (!weightEverySec.NewReading(weight_gramm))
+                FatalError("Error: do not receive regular weight measurements from the scale");
         }
     }
 }
