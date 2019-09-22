@@ -19,7 +19,7 @@ namespace De1Win10
 {
     public sealed partial class MainPage : Page
     {
-        private string appVersion = "DE1 Win10     App version 1.4   ";
+        private string appVersion = "DE1 Win10     App version 1.5   ";
 
         private string deviceIdAcaia = String.Empty;
         private string deviceIdDe1 = String.Empty;
@@ -31,6 +31,7 @@ namespace De1Win10
 
         private DispatcherTimer heartBeatTimer;
 
+        public enum NotifyType { StatusMessage, ErrorMessage };
         private enum StatusEnum { Disabled, Disconnected, Discovered, CharacteristicConnected }
 
         private StatusEnum statusAcaia = StatusEnum.Disconnected;
@@ -281,13 +282,6 @@ namespace De1Win10
                 statusAcaia = StatusEnum.CharacteristicConnected;
 
                 message_acaia = "Connected to Acaia ";
-
-                PanelConnectDisconnect.Background = new SolidColorBrush(Windows.UI.Colors.Green);
-
-                BtnBeansWeight.IsEnabled = true;
-                BtnTare.IsEnabled = true;
-                BtnStartLog.IsEnabled = true;
-                BtnStopLog.IsEnabled = false;
             }
             else if (statusAcaia == StatusEnum.CharacteristicConnected)
             {
@@ -330,6 +324,9 @@ namespace De1Win10
                 var result = await CreateDe1Characteristics();
                 if (result != "") { FatalError(result); return; }
 
+                result = await WriteDe1State(De1StateEnum.Idle);
+                if (result != "") { FatalError(result); return; }
+
                 statusDe1 = StatusEnum.CharacteristicConnected;
 
                 message_de1 = "Connected to DE1 ";
@@ -339,7 +336,7 @@ namespace De1Win10
                 BtnBeansWeight.IsEnabled = true;
                 BtnTare.IsEnabled = true;
                 BtnStartLog.IsEnabled = true;
-                BtnStopLog.IsEnabled = false;
+                BtnStopLog.IsEnabled = true;
             }
             else if (statusDe1 == StatusEnum.CharacteristicConnected)
             {
@@ -367,6 +364,9 @@ namespace De1Win10
             heartBeatTimer.Stop();
 
             StopBleDeviceWatcher();
+
+            if(chrDe1SetState != null)
+                await WriteDe1State(De1StateEnum.Sleep);
 
             if (notifAcaia)
             {
@@ -399,8 +399,18 @@ namespace De1Win10
             bleDeviceDe1?.Dispose();
             bleDeviceDe1 = null;
 
+            chrDe1Version = null;
+            chrDe1SetState = null;
+            chrDe1OtherSetn = null;
+            chrDe1ShotInfo = null;
+            chrDe1StateInfo = null;
+            chrDe1Water = null;
+
             bleDeviceAcaia?.Dispose();
             bleDeviceAcaia = null;
+
+            chrAcaia = null;
+
 
             BtnConnect.IsEnabled = true;
             BtnDisconnect.IsEnabled = false;
@@ -665,6 +675,4 @@ namespace De1Win10
             localSettings.Values["ChkAcaia"] = ChkAcaia.IsOn ? "true" : "false";
         }
     }
-
-    public enum NotifyType { StatusMessage, ErrorMessage };
 }

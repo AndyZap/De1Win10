@@ -16,7 +16,7 @@ namespace De1Win10
 {
     public sealed partial class MainPage : Page
     {
-        enum De1ChrEnum { Version, SetState, OtherSetn, ShotInfo, StateInfo }
+        enum De1ChrEnum { Version, SetState, OtherSetn, ShotInfo, StateInfo, Water }
         public enum De1StateEnum
         {
             Sleep, GoingToSleep, Idle, Busy, Espresso, Steam, HotWater, ShortCal, SelfTest, LongCal, Descale,
@@ -35,7 +35,7 @@ namespace De1Win10
         //string ChrDe1ShotHeaderString = "0000A00F-0000-1000-8000-00805F9B34FB";// A00F Shot Description Header    R/W/-
         //string ChrDe1ShotFrameString = "0000A010-0000-1000-8000-00805F9B34FB"; // A010 Shot Frame                 R/W/-
 
-        string ChrDe1WaterString = "0000A011-0000-1000-8000-00805F9B34FB";     // A011 Water                       R/W/N
+        string ChrDe1WaterString = "0000A011-0000-1000-8000-00805F9B34FB";     // A011 Water                      R/W/N
 
         GattCharacteristic chrDe1Version = null;
         GattCharacteristic chrDe1SetState = null;
@@ -47,6 +47,12 @@ namespace De1Win10
         private bool notifDe1StateInfo = false;
         private bool notifDe1ShotInfo = false;
         private bool notifDe1Water = false;
+
+        // global values
+        const int RefillWaterLevel = 5; // hard code for now
+        const int ExtraWaterDepth = 5;  // distance between the water inlet and the bottom of the water tank, hard code for now
+
+        De1OtherSetnClass de1OtherSetn = new De1OtherSetnClass();
 
         private async Task<string> CreateDe1Characteristics()
         {
@@ -138,6 +144,15 @@ namespace De1Win10
                 await chrDe1StateInfo.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.Notify);
                 notifDe1StateInfo = true;
 
+                //    read state
+                var de1_state_result = await chrDe1StateInfo.ReadValueAsync(bleCacheMode);
+                if (de1_state_result.Status != GattCommunicationStatus.Success) { return "Failed to read DE1 characteristic " + de1_state_result.Status.ToString(); }
+
+                De1StateEnum state = De1StateEnum.Idle; De1SubStateEnum substate = De1SubStateEnum.Ready;
+                if (!DecodeDe1StateInfo(de1_state_result.Value, ref state, ref substate))
+                    return "Error, expected to find one DE1 characteristics";
+                UpdateDe1StateInfo(state, substate);
+
 
                 // Characteristic   A011 Water R/W/N  --------------------------------------------------
                 result_charact = await service.GetCharacteristicsForUuidAsync(new Guid(ChrDe1WaterString), bleCacheMode);
@@ -151,6 +166,9 @@ namespace De1Win10
                 await chrDe1Water.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.Notify);
                 notifDe1Water = true;
 
+                // set refill level
+                var refill_result = await WriteDeWaterRefillLevel(RefillWaterLevel);
+                if(refill_result != "") { return "Error writing DE1 refill level"; }
             }
             catch (Exception ex)
             {
@@ -285,6 +303,20 @@ namespace De1Win10
             public De1ShotInfoClass() { }
         }
 
+        public class De1OtherSetnClass
+        {
+            public int SteamSettings = 0;  // do not know what is this, use always 0
+            public int TargetSteamTemp = 0;
+            public int TargetSteamLength = 0;
+            public int TargetHotWaterTemp = 0;
+            public int TargetHotWaterVol = 0;
+            public int TargetHotWaterLength = 0;
+            public int TargetEspressoVol = 0;
+            public double TargetGroupTemp = 0.0; // taken form the shot data
+
+            public De1OtherSetnClass() { }
+        }
+
         private bool DecodeDe1ShotInfo(byte[] data, De1ShotInfoClass shot_info) // update_de1_shotvalue
         {
             if (data == null)
@@ -316,6 +348,53 @@ namespace De1Win10
             }
         }
 
+        private bool DecodeDe1OtherSetn(byte[] data, De1OtherSetnClass other_setn) // hotwater_steam_settings_spec
+        {
+            if (data == null)
+                return false;
+
+            if (data.Length != 9)
+                return false;
+
+            try
+            {
+                int index = 0;
+                other_setn.SteamSettings = data[index]; index++;
+                other_setn.TargetSteamTemp = data[index]; index++;
+                other_setn.TargetSteamLength = data[index]; index++;
+                other_setn.TargetHotWaterTemp = data[index]; index++;
+                other_setn.TargetHotWaterVol = data[index]; index++;
+                other_setn.TargetHotWaterLength = data[index]; index++;
+                other_setn.TargetEspressoVol = data[index]; index++;
+                other_setn.TargetGroupTemp = data[index] + (data[index + 1] / 256.0);
+
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        private byte[] EncodeDe1OtherSetn(De1OtherSetnClass other_setn)
+        {
+            byte[] data = new byte[9];
+
+            int index = 0;
+            data[index] = (byte)other_setn.SteamSettings; index++;
+            data[index] = (byte)other_setn.TargetSteamTemp; index++;
+            data[index] = (byte)other_setn.TargetSteamLength; index++;
+            data[index] = (byte)other_setn.TargetHotWaterTemp; index++;
+            data[index] = (byte)other_setn.TargetHotWaterVol; index++;
+            data[index] = (byte)other_setn.TargetHotWaterLength; index++;
+            data[index] = (byte)other_setn.TargetEspressoVol; index++;
+
+            data[index] = (byte)other_setn.TargetGroupTemp; index++;
+            data[index] = (byte)((other_setn.TargetGroupTemp - Math.Floor(other_setn.TargetGroupTemp)) * 256.0); index++;
+
+            return data;
+        }
+
         private bool DecodeDe1Water(byte[] data, ref double level) // parse_binary_water_level
         {
             if (data == null)
@@ -328,7 +407,7 @@ namespace De1Win10
             {
                 int index = 0;
                 level = data[index] + (data[index + 1] / 256.0); index += 2;
-                level += data[index] + (data[index + 1] / 256.0); index += 2;  // seems we need to add water level to fill level
+                level += ExtraWaterDepth; // add extra depth
 
                 return true;
             }
@@ -337,6 +416,8 @@ namespace De1Win10
                 return false;
             }
         }
+
+
 
         private bool DecodeDe1StateInfo(byte[] data, ref De1StateEnum state, ref De1SubStateEnum substate)
         {
@@ -359,10 +440,11 @@ namespace De1Win10
             }
         }
 
-        private Task<string> WriteDe1State(De1StateEnum state)
-        {
-            byte[] payload = new byte[1]; payload[0] = GetDe1StateAsByte(state);
-            return writeToDE(payload, De1ChrEnum.SetState);
+        private bool DecodeDe1StateInfo(IBuffer buffer, ref De1StateEnum state, ref De1SubStateEnum substate)
+        { 
+            byte[] data;
+            CryptographicBuffer.CopyToByteArray(buffer, out data);
+            return DecodeDe1StateInfo(data, ref state, ref substate);
         }
 
         private async Task<string> writeToDE(byte[] payload, De1ChrEnum chr)
@@ -374,6 +456,8 @@ namespace De1Win10
                     result = await chrDe1SetState.WriteValueWithResultAsync(payload.AsBuffer());
                 else if (chr == De1ChrEnum.OtherSetn)
                     result = await chrDe1OtherSetn.WriteValueWithResultAsync(payload.AsBuffer());
+                else if (chr == De1ChrEnum.Water)
+                    result = await chrDe1Water.WriteValueWithResultAsync(payload.AsBuffer());
                 else
                     return "DE1 write characteristic not supported " + chr.ToString();
 
@@ -411,6 +495,12 @@ namespace De1Win10
             TxtDe1Status.Text = "DE1 status: " + state.ToString() + " (" + substate.ToString() + ")";
             RaiseAutomationEvent(TxtDe1Status);
         }
+        private Task<string> WriteDe1State(De1StateEnum state)
+        {
+            byte[] payload = new byte[1]; payload[0] = GetDe1StateAsByte(state);
+            return writeToDE(payload, De1ChrEnum.SetState);
+        }
+
 
         public void UpdateDe1ShotInfo(De1ShotInfoClass shot_info)
         {
@@ -461,6 +551,14 @@ namespace De1Win10
         {
             TxtWaterLevel.Text = "Water: " + level.ToString("0") + " mm";
             RaiseAutomationEvent(TxtWaterLevel);
+        }
+
+        private Task<string> WriteDeWaterRefillLevel(int refill_level)
+        {
+            byte[] payload = new byte[] { 0x0, 0x0, 0x0, 0x0 };
+            payload[2] = (byte) refill_level;
+
+            return writeToDE(payload, De1ChrEnum.Water);
         }
 
         /*
