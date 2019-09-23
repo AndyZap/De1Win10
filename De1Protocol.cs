@@ -115,7 +115,13 @@ namespace De1Win10
                 if (result_charact.Characteristics.Count != 1) { return "Error, expected to find one DE1 characteristics"; }
 
                 chrDe1OtherSetn = result_charact.Characteristics[0];
+                var de1_watersteam_result = await chrDe1OtherSetn.ReadValueAsync(bleCacheMode);
+                if (de1_watersteam_result.Status != GattCommunicationStatus.Success) { return "Failed to read DE1 characteristic " + de1_watersteam_result.Status.ToString(); }
 
+                if (!DecodeDe1OtherSetn(de1_watersteam_result.Value, de1OtherSetn)) { return "Failed to decode DE1 Water Steam"; }
+                TxtHotWaterSec.Text = de1OtherSetn.TargetHotWaterLength.ToString();
+                TxtHotWaterMl.Text = de1OtherSetn.TargetHotWaterVol.ToString();
+                TxtSteamSec.Text = de1OtherSetn.TargetSteamLength.ToString();
 
 
                 // Characteristic   A00D Shot Info R/-/N   --------------------------------------------------
@@ -162,13 +168,14 @@ namespace De1Win10
 
                 chrDe1Water = result_charact.Characteristics[0];
 
+                // set refill level first, otherwise this stops the notifications !!
+                var refill_result = await WriteDeWaterRefillLevel(RefillWaterLevel);
+                if (refill_result != "") { return "Error writing DE1 refill level"; }
+
+                // then subscribe to notifications
                 chrDe1Water.ValueChanged += CharacteristicDe1Water_ValueChanged;
                 await chrDe1Water.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.Notify);
                 notifDe1Water = true;
-
-                // set refill level
-                var refill_result = await WriteDeWaterRefillLevel(RefillWaterLevel);
-                if(refill_result != "") { return "Error writing DE1 refill level"; }
             }
             catch (Exception ex)
             {
@@ -375,7 +382,12 @@ namespace De1Win10
                 return false;
             }
         }
-
+        private bool DecodeDe1OtherSetn(IBuffer buffer, De1OtherSetnClass other_setn)
+        {
+            byte[] data;
+            CryptographicBuffer.CopyToByteArray(buffer, out data);
+            return DecodeDe1OtherSetn(data, other_setn);
+        }
         private byte[] EncodeDe1OtherSetn(De1OtherSetnClass other_setn)
         {
             byte[] data = new byte[9];

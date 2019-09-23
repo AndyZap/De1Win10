@@ -181,8 +181,7 @@ namespace De1Win10
                     peerT.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged);
             }
 
-            if (!weightEverySec.NewReading(weight_gramm))
-                FatalError("Error: do not receive regular weight measurements from the scale");
+            // TODO: check how to smooth the readings
         }
     }
 }

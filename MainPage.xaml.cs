@@ -19,7 +19,7 @@ namespace De1Win10
 {
     public sealed partial class MainPage : Page
     {
-        private string appVersion = "DE1 Win10     App version 1.5   ";
+        private string appVersion = "DE1 Win10     App version 1.6   ";
 
         private string deviceIdAcaia = String.Empty;
         private string deviceIdDe1 = String.Empty;
@@ -71,7 +71,7 @@ namespace De1Win10
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
         {
-            List<string> scenarios = new List<string> { ">  Espresso", ">  Water & Steam", ">  Save record" };
+            List<string> scenarios = new List<string> { ">  Espresso", ">  Water & Steam", ">  Save record", ">  Profiles" };
 
             ScenarioControl.ItemsSource = scenarios;
             if (Window.Current.Bounds.Width < 640)
@@ -79,7 +79,9 @@ namespace De1Win10
             else
                 ScenarioControl.SelectedIndex = 0;
 
-            ResultsListView.ItemsSource = BrewLog;
+            // AAZ test
+            Profiles.Add(new ProfileClass("test profile"));
+            ListBoxProfiles.ItemsSource = Profiles;
 
             PanelConnectDisconnect.Background = new SolidColorBrush(Windows.UI.Colors.Yellow);
         }
@@ -89,21 +91,35 @@ namespace De1Win10
             ListBox scenarioListBox = sender as ListBox;
             if (scenarioListBox.SelectedIndex == 0)  // >  Espresso
             {
-                PanelBrewDetails.Visibility = Visibility.Collapsed;
-                ScrollViewerBrewList.Visibility = Visibility.Collapsed;
-                PanelLogBrew.Visibility = Visibility.Visible;
+                PanelSaveRecord.Visibility = Visibility.Collapsed;
+                PanelWaterSteam.Visibility = Visibility.Collapsed;
+                ScrollViewerProfiles.Visibility = Visibility.Collapsed;
+
+                PanelEspresso.Visibility = Visibility.Visible;
             }
             else if (scenarioListBox.SelectedIndex == 1) // >   Water & Steam
             {
-                PanelLogBrew.Visibility = Visibility.Collapsed;
-                ScrollViewerBrewList.Visibility = Visibility.Collapsed;
-                PanelBrewDetails.Visibility = Visibility.Visible;
+                PanelEspresso.Visibility = Visibility.Collapsed;
+                PanelSaveRecord.Visibility = Visibility.Collapsed;
+                ScrollViewerProfiles.Visibility = Visibility.Collapsed;
+
+                PanelWaterSteam.Visibility = Visibility.Visible;
             }
             else if (scenarioListBox.SelectedIndex == 2)  // >  Save record
             {
-                PanelLogBrew.Visibility = Visibility.Collapsed;
-                PanelBrewDetails.Visibility = Visibility.Collapsed;
-                ScrollViewerBrewList.Visibility = Visibility.Visible;
+                PanelEspresso.Visibility = Visibility.Collapsed;
+                PanelWaterSteam.Visibility = Visibility.Collapsed;
+                ScrollViewerProfiles.Visibility = Visibility.Collapsed;
+
+                PanelSaveRecord.Visibility = Visibility.Visible;
+            }
+            else if (scenarioListBox.SelectedIndex == 3)  // >  Profiles
+            {
+                PanelEspresso.Visibility = Visibility.Collapsed;
+                PanelWaterSteam.Visibility = Visibility.Collapsed;
+                PanelSaveRecord.Visibility = Visibility.Collapsed;
+
+                ScrollViewerProfiles.Visibility = Visibility.Visible;
             }
             else
                 UpdateStatus("Unknown menu item", NotifyType.ErrorMessage);
@@ -242,10 +258,65 @@ namespace De1Win10
         {
             heartBeatTimer.Stop();
 
-            // Commmon actions from scale and testo
+            // Commmon actions from scale and de1
             bool device_watcher_needs_stopping = false;
             string message_acaia = "";
             string message_de1 = "";
+
+            //  ===========   DE1  ==================
+
+            if (statusDe1 == StatusEnum.Disabled)
+            {
+                // do nothing
+            }
+            else if (statusDe1 == StatusEnum.Disconnected)
+            {
+                foreach (var d in KnownDevices)
+                {
+                    if (d.Name.StartsWith("DE1"))
+                    {
+                        deviceIdDe1 = d.Id;
+
+                        ApplicationDataContainer localSettings = ApplicationData.Current.LocalSettings;
+                        localSettings.Values["DeviceIdDe1"] = deviceIdDe1;
+
+                        statusDe1 = StatusEnum.Discovered;
+
+                        device_watcher_needs_stopping = true;
+
+                        message_de1 = "Discovered " + deviceIdDe1 + " ";
+                    }
+                }
+            }
+            else if (statusDe1 == StatusEnum.Discovered)
+            {
+                var result = await CreateDe1Characteristics();
+                if (result != "") { FatalError(result); return; }
+
+                // AAZ: disable auto-powering the machine until the app is ready
+                //result = await WriteDe1State(De1StateEnum.Idle);
+                //if (result != "") { FatalError(result); return; }
+
+                statusDe1 = StatusEnum.CharacteristicConnected;
+
+                message_de1 = "Connected to DE1 ";
+
+                PanelConnectDisconnect.Background = new SolidColorBrush(Windows.UI.Colors.Green);
+
+                BtnBeansWeight.IsEnabled = true;
+                BtnTare.IsEnabled = true;
+                BtnStartLog.IsEnabled = true;
+                BtnStopLog.IsEnabled = true;
+            }
+            else if (statusDe1 == StatusEnum.CharacteristicConnected)
+            {
+                // do nothing
+            }
+            else
+            {
+                FatalError("Unknown Status for DE1" + statusDe1.ToString());
+                return;
+            }
 
             //  ===========   ACAIA  ==================
 
@@ -291,60 +362,6 @@ namespace De1Win10
             else
             {
                 FatalError("Unknown Status for Acaia scale" + statusAcaia.ToString());
-                return;
-            }
-
-            //  ===========   DE1  ==================
-
-            if (statusDe1 == StatusEnum.Disabled)
-            {
-                // do nothing
-            }
-            else if (statusDe1 == StatusEnum.Disconnected)
-            {
-                foreach (var d in KnownDevices)
-                {
-                    if (d.Name.StartsWith("DE1"))
-                    {
-                        deviceIdDe1 = d.Id;
-
-                        ApplicationDataContainer localSettings = ApplicationData.Current.LocalSettings;
-                        localSettings.Values["DeviceIdDe1"] = deviceIdDe1;
-
-                        statusDe1 = StatusEnum.Discovered;
-
-                        device_watcher_needs_stopping = true;
-
-                        message_de1 = "Discovered " + deviceIdDe1 + " ";
-                    }
-                }
-            }
-            else if (statusDe1 == StatusEnum.Discovered)
-            {
-                var result = await CreateDe1Characteristics();
-                if (result != "") { FatalError(result); return; }
-
-                result = await WriteDe1State(De1StateEnum.Idle);
-                if (result != "") { FatalError(result); return; }
-
-                statusDe1 = StatusEnum.CharacteristicConnected;
-
-                message_de1 = "Connected to DE1 ";
-
-                PanelConnectDisconnect.Background = new SolidColorBrush(Windows.UI.Colors.Green);
-
-                BtnBeansWeight.IsEnabled = true;
-                BtnTare.IsEnabled = true;
-                BtnStartLog.IsEnabled = true;
-                BtnStopLog.IsEnabled = true;
-            }
-            else if (statusDe1 == StatusEnum.CharacteristicConnected)
-            {
-                // do nothing
-            }
-            else
-            {
-                FatalError("Unknown Status for DE1" + statusDe1.ToString());
                 return;
             }
 

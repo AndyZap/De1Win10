@@ -9,9 +9,7 @@
     mc:Ignorable="d">
 
     <Page.Resources>
-        <local:LogEntryConverter x:Key="EntryConverter"></local:LogEntryConverter>
-        <local:LogNotesConverter x:Key="NotesConverter"></local:LogNotesConverter>
-        <local:LogBeanNameConverter x:Key="BeanNameConverter"></local:LogBeanNameConverter>
+        <local:ProfileNameConverter x:Key="localProfileNameConverter"></local:ProfileNameConverter>
     </Page.Resources>
 
     <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}" KeyDown="Grid_KeyDown">
@@ -28,7 +26,7 @@
                              VerticalAlignment="Top" Margin="0,10,0,0" RelativePanel.Below="FooterPanel" FontSize="18">
                     </ListBox>
                     <StackPanel x:Name="FooterPanel" Orientation="Vertical">
-                        <StackPanel x:Name="LinksPanel" Orientation="Horizontal" Margin="10,10,0,10"/>
+                        <StackPanel x:Name="LinksPanel" Orientation="Horizontal" Margin="10,10,0,10"/>                        
                     </StackPanel>
                 </StackPanel>
             </SplitView.Pane>
@@ -41,9 +39,9 @@
                     </Grid.RowDefinitions>
 
                     <!-- 
-                    StackPanel LogBrew
+                    StackPanel PanelEspresso
                     -->
-                    <StackPanel  x:Name="PanelLogBrew" Grid.Row="0" Margin="0,0,0,10" >
+                    <StackPanel  x:Name="PanelEspresso" Grid.Row="0" Margin="0,0,0,10" Visibility="Collapsed">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="auto"/>
@@ -60,8 +58,8 @@
                             <Button  Grid.Row="0" Grid.Column="1" x:Name="BtnConnect" Content="Connect" Margin="10,10,10,10" FontSize="24" Click="BtnConnect_Click" Width="150"/>
                             <Button  Grid.Row="0" Grid.Column="2" x:Name="BtnDisconnect" Content="Disconnect" Margin="10,10,10,10" IsEnabled="False" FontSize="24" Click="BtnDisconnect_Click" Width="150"/>
                             <ToggleSwitch  Grid.Row="0" Grid.Column="3" x:Name="ChkAcaia" Header="Acaia" Margin="30,10,10,10" VerticalAlignment="Stretch" FontSize="18" Toggled="ChkAcaia_Toggled" Width="120"/>
-                            <TextBlock Grid.Row="0" Grid.Column="4" x:Name="TxtDe1Status" Margin="30,10,10,10" FontSize="20" VerticalAlignment="Center" AutomationProperties.LiveSetting="Assertive">DE1 status: Sleep</TextBlock>
-                            <TextBlock Grid.Row="0" Grid.Column="5" x:Name="TxtWaterLevel" Margin="10,10,10,10" FontSize="20" VerticalAlignment="Center" AutomationProperties.LiveSetting="Assertive">Water: 20mm</TextBlock>
+                            <TextBlock Grid.Row="0" Grid.Column="4" x:Name="TxtDe1Status" Margin="30,10,10,10" FontSize="20" VerticalAlignment="Center" AutomationProperties.LiveSetting="Assertive">DE1 status: ---</TextBlock>
+                            <TextBlock Grid.Row="0" Grid.Column="5" x:Name="TxtWaterLevel" Margin="10,10,10,10" FontSize="20" VerticalAlignment="Center" AutomationProperties.LiveSetting="Assertive">Water: ---</TextBlock>
                         </Grid>
 
                         <Grid>
@@ -76,7 +74,7 @@
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="auto"/>
                             </Grid.RowDefinitions>
-                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Espresso:" VerticalAlignment="Center" Margin="0,10,0,10" FontSize="24"/>
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Espresso" VerticalAlignment="Center" Margin="0,10,0,10" FontSize="24"/>
                             <Button Grid.Row="0" Grid.Column="1" x:Name="BtnStartLog" Content="Start" Margin="30,10,30,10" IsEnabled="False" FontSize="24" Click="BtnStartLog_Click" Width="200" Height="70"/>
                             <Button Grid.Row="0" Grid.Column="2" x:Name="BtnStopLog" Content="Stop" Margin="30,10,30,10" IsEnabled="False" FontSize="24" Click="BtnStopLog_Click" Width="200"  Height="70"/>
                             <Button Grid.Row="0" Grid.Column="4" x:Name="BtnBeansWeight" Content="Steam" Margin="10,10,10,10" IsEnabled="False" FontSize="24" Click="BtnBeansWeight_Click"  Height="70"/>
@@ -133,10 +131,59 @@
                         </Grid>
                     </StackPanel>
 
+
                     <!-- 
-                    StackPanel BrewDetails
+                    StackPanel PanelWaterSteam
                     -->
-                    <StackPanel  x:Name="PanelBrewDetails" Grid.Row="1" Margin="0,0,0,10" Visibility="Collapsed">
+                    <StackPanel  x:Name="PanelWaterSteam" Grid.Row="1" Margin="0,30,30,30" Visibility="Visible">
+                        <TextBlock Text="Water and Steam" Style="{StaticResource SampleHeaderTextStyle}"/>
+
+                        <Grid >
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="auto"/>
+                                <RowDefinition Height="auto"/>
+                                <RowDefinition Height="auto"/>
+                                <RowDefinition Height="auto"/>
+                                <RowDefinition Height="auto"/>
+                                <RowDefinition Height="auto"/>
+                                <RowDefinition Height="auto"/>
+                                <RowDefinition Height="auto"/>
+                            </Grid.RowDefinitions>
+
+                            <Button    Grid.Row="0" Grid.Column="5" x:Name="BtnStopLog1" Content="Stop" Margin="0,10,10,10" IsEnabled="True" FontSize="24" Click="BtnStopLog_Click" Width="200" Height="70" />
+                            
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Hot water" VerticalAlignment="Center" Margin="0,10,10,10" FontSize="24"/>
+                            <TextBox   Grid.Row="1" Grid.Column="1" x:Name="TxtHotWaterSec" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="20,10,10,10" Text="" FontSize="24" Height="auto" Width ="auto" TextWrapping="Wrap"/>
+                            <TextBlock Grid.Row="1" Grid.Column="2" VerticalAlignment="Center" Text="sec"  Margin="0,10,10,10" FontSize="24"/>
+                            <TextBox   Grid.Row="1" Grid.Column="3" x:Name="TxtHotWaterMl" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="20,10,10,10" Text="" FontSize="24" Height="auto" Width ="auto" TextWrapping="Wrap"/>
+                            <TextBlock Grid.Row="1" Grid.Column="4" VerticalAlignment="Center" Text="mL"  Margin="0,10,10,10" FontSize="24"/>
+                            <Button    Grid.Row="1" Grid.Column="5" x:Name="BtnHotWater" Content="Start water" Margin="0,10,10,10" IsEnabled="False" FontSize="24" Click="BtnStopLog_Click" Width="200" Height="70" />
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Flush" VerticalAlignment="Center"  Margin="0,10,10,10" FontSize="24"/>
+                            <Button    Grid.Row="2" Grid.Column="5" x:Name="BtnFlush" Content="Start flush" Margin="0,10,10,10" IsEnabled="False" FontSize="24" Click="BtnStopLog_Click" Width="200" Height="70" />
+
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Steam"  VerticalAlignment="Center"  Margin="0,10,10,10" FontSize="24"/>
+                            <TextBox   Grid.Row="3" Grid.Column="1" x:Name="TxtSteamSec" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="20,10,10,10" Text="" FontSize="24" Height="auto" Width ="auto" TextWrapping="Wrap"/>
+                            <TextBlock Grid.Row="3" Grid.Column="2" VerticalAlignment="Center" Text="sec"  Margin="0,10,10,10" FontSize="24"/>
+                            <Button    Grid.Row="3" Grid.Column="5" x:Name="BtnSteam" Content="Start steam" Margin="0,10,10,10" IsEnabled="False" FontSize="24" Click="BtnStopLog_Click" Width="200" Height="70" />
+
+                        </Grid>
+                    </StackPanel>
+
+
+
+                    <!-- 
+                    StackPanel PanelSaveRecord
+                    -->
+                    <StackPanel  x:Name="PanelSaveRecord" Grid.Row="1" Margin="0,0,0,10" Visibility="Collapsed">
                         <TextBlock Text="Brew Details" Style="{StaticResource SampleHeaderTextStyle}"/>
                         <StackPanel Margin="0,10,0,0" Orientation="Horizontal">
                             <Button x:Name="BtnSaveLog" Content="Add to log" Margin="0,10,10,10" IsEnabled="False" FontSize="24" Click="BtnSaveLog_Click" />
@@ -184,20 +231,18 @@
                     </StackPanel>
 
                     <!-- 
-                    List view ResultsListView
+                    ScrollViewer ScrollViewerProfiles
                     -->
 
-                    <ScrollViewer x:Name="ScrollViewerBrewList" VerticalScrollMode="Auto" VerticalScrollBarVisibility="Auto" Grid.Row="2" Margin="0,10,0,0"
+                    <ScrollViewer x:Name="ScrollViewerProfiles" VerticalScrollMode="Auto" VerticalScrollBarVisibility="Auto" Grid.Row="2" Margin="0,10,0,0"
                       BorderBrush="AntiqueWhite" BorderThickness="1" Visibility="Collapsed">
 
-                        <ListBox x:Name="ResultsListView" AutomationProperties.Name="BrewLog"
+                        <ListBox x:Name="ListBoxProfiles" AutomationProperties.Name="Profiles"
                             SelectionMode="Single" HorizontalAlignment="Left" Background="Transparent" BorderThickness="0" VerticalAlignment="Top" Margin="0,10,0,0">
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
                                     <StackPanel Orientation="Vertical">
-                                        <TextBlock Text="{Binding Converter={StaticResource BeanNameConverter}}" FontSize="28" TextWrapping="Wrap"/>
-                                        <TextBlock Text="{Binding Converter={StaticResource EntryConverter}}" FontSize="24" TextWrapping="Wrap"/>
-                                        <TextBlock Text="{Binding Converter={StaticResource NotesConverter}}" FontSize="18" TextWrapping="Wrap"/>
+                                        <TextBlock Text="{Binding Converter={StaticResource localProfileNameConverter}}" FontSize="28" TextWrapping="Wrap"/>
                                     </StackPanel>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
@@ -216,8 +261,8 @@
                     <Border x:Name="StatusBorder" Margin="0,0,0,0">
                         <ScrollViewer VerticalScrollMode="Auto"  VerticalScrollBarVisibility="Auto" MaxHeight="200">
                             <!-- Use LiveSetting to enable screen readers to announce the status update. -->
-                            <TextBlock x:Name="StatusBlock" FontWeight="Bold" AutomationProperties.LiveSetting="Assertive"
-                                   MaxWidth="{Binding ElementName=Splitter, Path=ActualWidth}" Margin="10,10,10,20" TextWrapping="Wrap" FontSize="24" />
+                            <TextBlock x:Name="StatusBlock" AutomationProperties.LiveSetting="Assertive"
+                                   MaxWidth="{Binding ElementName=Splitter, Path=ActualWidth}" Margin="10,10,10,20" TextWrapping="Wrap" FontSize="18" />
                         </ScrollViewer>
                     </Border>
                 </StackPanel>
