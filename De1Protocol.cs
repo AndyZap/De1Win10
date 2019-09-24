@@ -11,6 +11,7 @@ using Windows.Devices.Bluetooth;
 using Windows.Devices.Enumeration;
 using Windows.UI.Core;
 using Windows.UI.Xaml.Automation.Peers;
+using Windows.Storage;
 
 namespace De1Win10
 {
@@ -53,6 +54,8 @@ namespace De1Win10
         const int ExtraWaterDepth = 5;  // distance between the water inlet and the bottom of the water tank, hard code for now
 
         De1OtherSetnClass de1OtherSetn = new De1OtherSetnClass();
+
+        DateTime StopTime = DateTime.MaxValue;
 
         private async Task<string> CreateDe1Characteristics()
         {
@@ -119,10 +122,14 @@ namespace De1Win10
                 if (de1_watersteam_result.Status != GattCommunicationStatus.Success) { return "Failed to read DE1 characteristic " + de1_watersteam_result.Status.ToString(); }
 
                 if (!DecodeDe1OtherSetn(de1_watersteam_result.Value, de1OtherSetn)) { return "Failed to decode DE1 Water Steam"; }
-                TxtHotWaterTemp.Text = de1OtherSetn.TargetHotWaterTemp.ToString();
-                TxtHotWaterMl.Text = de1OtherSetn.TargetHotWaterVol.ToString();
-                TxtFlushSec.Text = de1OtherSetn.TargetHotWaterLength.ToString();
-                TxtSteamSec.Text = de1OtherSetn.TargetSteamLength.ToString();
+                if(TxtHotWaterTemp.Text == "")
+                    TxtHotWaterTemp.Text = de1OtherSetn.TargetHotWaterTemp.ToString();
+                if(TxtHotWaterMl.Text == "")
+                    TxtHotWaterMl.Text = de1OtherSetn.TargetHotWaterVol.ToString();
+                if (TxtSteamSec.Text == "")
+                    TxtSteamSec.Text = de1OtherSetn.TargetSteamLength.ToString();
+
+
 
                 // Characteristic   A00D Shot Info R/-/N   --------------------------------------------------
                 result_charact = await service.GetCharacteristicsForUuidAsync(new Guid(ChrDe1ShotInfoString), bleCacheMode);
@@ -261,29 +268,20 @@ namespace De1Win10
 
             try
             {
+                string version_string = " DE1 API v.";
                 int index = 0;
-                var BLE_APIVersion = data[index]; index++;
-                var BLE_Release = data[index]; index++;
-                var BLE_Commits = BitConverter.ToUInt16(data, index); index += 2;
-                var BLE_Changes = data[index]; index++;
-                var BLE_Sha = BitConverter.ToUInt32(data, index); index += 4;
+                version_string += data[index].ToString(); index++;
 
-                var FW_APIVersion = data[index]; index++;
-                var FW_Release = data[index]; index++;
-                var FW_Commits = BitConverter.ToUInt16(data, index); index += 2;
-                var FW_Changes = data[index]; index++;
-                var FW_Sha = BitConverter.ToUInt32(data, index);
+                var BLE2 = data[index]; index++;
+                var BLE1 = data[index]; index++;
+                var BLE4 = data[index]; index++;
+                var BLE3 = data[index]; index++;
+                version_string += " BLE " + BLE1.ToString() + "." + BLE2.ToString() + "." + BLE3.ToString() + "." + BLE4.ToString() + " SHA ";
 
-                string version_string = BLE_APIVersion.ToString() + "." +
-                BLE_Release.ToString() + "." +
-                BLE_Commits.ToString() + "." +
-                BLE_Changes.ToString() + "." +
-                BLE_Sha.ToString("X") + "." +
-                FW_APIVersion.ToString() + "." +
-                FW_Release.ToString() + "." +
-                FW_Commits.ToString() + "." +
-                FW_Changes.ToString() + "." +
-                FW_Sha.ToString("X");
+                version_string += data[index].ToString("X"); index++;
+                version_string += data[index].ToString("X"); index++;
+                version_string += data[index].ToString("X"); index++;
+                version_string += data[index].ToString("X"); index++;
 
                 return version_string;
             }
@@ -438,34 +436,48 @@ namespace De1Win10
                 return "WARNING: Error reading hot water volume, please supply a valid integer value";
             }
 
-            int targetHotWaterLength;
+            if (de1OtherSetn.TargetSteamLength != targetSteamLength ||
+                de1OtherSetn.TargetHotWaterTemp != targetHotWaterTemp ||
+                de1OtherSetn.TargetHotWaterVol != targetHotWaterVol)
+            {
+
+                de1OtherSetn.TargetSteamLength = targetSteamLength;
+                de1OtherSetn.TargetHotWaterTemp = targetHotWaterTemp;
+                de1OtherSetn.TargetHotWaterVol = targetHotWaterVol;
+
+                ApplicationDataContainer localSettings = ApplicationData.Current.LocalSettings;
+                localSettings.Values["TxtHotWaterTemp"] = TxtHotWaterTemp.Text;
+                localSettings.Values["TxtHotWaterMl"] = TxtHotWaterMl.Text;
+                localSettings.Values["TxtSteamSec"] = TxtSteamSec.Text;
+
+                var bytes = EncodeDe1OtherSetn(de1OtherSetn);
+                return await writeToDE(bytes, De1ChrEnum.OtherSetn);
+            }
+            else
+                return "";
+        }
+
+        private string UpdateFlushSecFromGui()
+        {
+            int flushSec;
             try
             {
-                targetHotWaterLength = Convert.ToInt32(TxtFlushSec.Text.Trim());
+                flushSec = Convert.ToInt32(TxtFlushSec.Text.Trim());
             }
             catch (Exception)
             {
                 return "WARNING: Error reading flush length, please supply a valid integer value";
             }
 
-            if (de1OtherSetn.TargetSteamLength != targetSteamLength ||
-                de1OtherSetn.TargetHotWaterTemp != targetHotWaterTemp ||
-                de1OtherSetn.TargetHotWaterVol != targetHotWaterVol ||
-                de1OtherSetn.TargetHotWaterLength != targetHotWaterLength)
-            {
+            ApplicationDataContainer localSettings = ApplicationData.Current.LocalSettings;
+            localSettings.Values["TxtFlushSec"] = TxtFlushSec.Text;
 
-                de1OtherSetn.TargetSteamLength = targetSteamLength;
-                de1OtherSetn.TargetHotWaterTemp = targetHotWaterTemp;
-                de1OtherSetn.TargetHotWaterVol = targetHotWaterVol;
-                de1OtherSetn.TargetHotWaterLength = targetHotWaterLength;
+            TimeSpan ts = new TimeSpan(0, 0, flushSec);
+            StopTime = DateTime.Now + ts;
 
-                var bytes = EncodeDe1OtherSetn(de1OtherSetn);
-
-                return await writeToDE(bytes, De1ChrEnum.OtherSetn);
-            }
-            else
-                return "";
+            return "";
         }
+
 
 
         private bool DecodeDe1Water(byte[] data, ref double level) // parse_binary_water_level
@@ -607,6 +619,9 @@ namespace De1Win10
             RaiseAutomationEvent(TxtBrewTempMix);
             RaiseAutomationEvent(TxtBrewTempMixTarget);
             RaiseAutomationEvent(TxtSteamTemp);
+
+            if (DateTime.Now >= StopTime)
+                BtnStopLog_Click(null, null);
         }
 
         public void UpdateDe1Water(double level)

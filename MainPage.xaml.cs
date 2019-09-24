@@ -19,7 +19,7 @@ namespace De1Win10
 {
     public sealed partial class MainPage : Page
     {
-        private string appVersion = "DE1 Win10     App version 1.6   ";
+        private string appVersion = "DE1 Win10     App v1.7   ";
 
         private string deviceIdAcaia = String.Empty;
         private string deviceIdDe1 = String.Empty;
@@ -66,12 +66,24 @@ namespace De1Win10
             val = localSettings.Values["ChkAcaia"] as string;
             ChkAcaia.IsOn = val == null ? false : val == "true";
 
+            val = localSettings.Values["TxtHotWaterTemp"] as string;
+            TxtHotWaterTemp.Text = val == null ? "" : val;
+
+            val = localSettings.Values["TxtHotWaterMl"] as string;
+            TxtHotWaterMl.Text = val == null ? "" : val;
+
+            val = localSettings.Values["TxtFlushSec"] as string;
+            TxtFlushSec.Text = val == null ? "" : val;
+
+            val = localSettings.Values["TxtSteamSec"] as string;
+            TxtSteamSec.Text = val == null ? "" : val;
+
             Header.Text = appVersion;
         }
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
         {
-            List<string> scenarios = new List<string> { ">  Espresso", ">  Water & Steam", ">  Save record", ">  Profiles" };
+            List<string> scenarios = new List<string> { ">  Connect and set profile", ">  Espresso", ">  Water and steam", ">  Add record" };
 
             ScenarioControl.ItemsSource = scenarios;
             if (Window.Current.Bounds.Width < 640)
@@ -81,6 +93,13 @@ namespace De1Win10
 
             // AAZ test
             Profiles.Add(new ProfileClass("test profile"));
+            Profiles.Add(new ProfileClass("test profile"));
+            Profiles.Add(new ProfileClass("test profile"));
+            Profiles.Add(new ProfileClass("test profile"));
+            Profiles.Add(new ProfileClass("test profile"));
+            Profiles.Add(new ProfileClass("test profile"));
+            Profiles.Add(new ProfileClass("test profile"));
+            Profiles.Add(new ProfileClass("test profile"));
             ListBoxProfiles.ItemsSource = Profiles;
 
             PanelConnectDisconnect.Background = new SolidColorBrush(Windows.UI.Colors.Yellow);
@@ -89,37 +108,41 @@ namespace De1Win10
         private void ScenarioControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             ListBox scenarioListBox = sender as ListBox;
-            if (scenarioListBox.SelectedIndex == 0)  // >  Espresso
+            if (scenarioListBox.SelectedIndex == 0)  // >  Connect and set profile
+            {
+                PanelEspresso.Visibility = Visibility.Collapsed;
+                PanelWaterSteam.Visibility = Visibility.Collapsed;
+                PanelSaveRecord.Visibility = Visibility.Collapsed;
+
+                GridProfiles.Visibility = Visibility.Visible;
+                ScrollViewerProfiles.Visibility = Visibility.Visible;
+            }
+            else if(scenarioListBox.SelectedIndex == 1)  // >  Espresso
             {
                 PanelSaveRecord.Visibility = Visibility.Collapsed;
                 PanelWaterSteam.Visibility = Visibility.Collapsed;
+                GridProfiles.Visibility = Visibility.Collapsed;
                 ScrollViewerProfiles.Visibility = Visibility.Collapsed;
 
                 PanelEspresso.Visibility = Visibility.Visible;
             }
-            else if (scenarioListBox.SelectedIndex == 1) // >   Water & Steam
+            else if (scenarioListBox.SelectedIndex == 2) // >  Water and steam
             {
                 PanelEspresso.Visibility = Visibility.Collapsed;
                 PanelSaveRecord.Visibility = Visibility.Collapsed;
+                GridProfiles.Visibility = Visibility.Collapsed;
                 ScrollViewerProfiles.Visibility = Visibility.Collapsed;
 
                 PanelWaterSteam.Visibility = Visibility.Visible;
             }
-            else if (scenarioListBox.SelectedIndex == 2)  // >  Save record
+            else if (scenarioListBox.SelectedIndex == 3)  // >  Add record
             {
                 PanelEspresso.Visibility = Visibility.Collapsed;
                 PanelWaterSteam.Visibility = Visibility.Collapsed;
+                GridProfiles.Visibility = Visibility.Collapsed;
                 ScrollViewerProfiles.Visibility = Visibility.Collapsed;
 
                 PanelSaveRecord.Visibility = Visibility.Visible;
-            }
-            else if (scenarioListBox.SelectedIndex == 3)  // >  Profiles
-            {
-                PanelEspresso.Visibility = Visibility.Collapsed;
-                PanelWaterSteam.Visibility = Visibility.Collapsed;
-                PanelSaveRecord.Visibility = Visibility.Collapsed;
-
-                ScrollViewerProfiles.Visibility = Visibility.Visible;
             }
             else
                 UpdateStatus("Unknown menu item", NotifyType.ErrorMessage);
@@ -157,19 +180,6 @@ namespace De1Win10
             }
 
             StatusBlock.Text = strMessage;
-
-            // Collapse the StatusBlock if it has no text to conserve real estate.
-            StatusBorder.Visibility = (StatusBlock.Text != String.Empty) ? Visibility.Visible : Visibility.Collapsed;
-            if (StatusBlock.Text != String.Empty)
-            {
-                StatusBorder.Visibility = Visibility.Visible;
-                StatusPanel.Visibility = Visibility.Visible;
-            }
-            else
-            {
-                StatusBorder.Visibility = Visibility.Collapsed;
-                StatusPanel.Visibility = Visibility.Collapsed;
-            }
 
             // Raise an event if necessary to enable a screen reader to announce the status update.
             var peer = FrameworkElementAutomationPeer.FromElement(StatusBlock);
@@ -554,6 +564,8 @@ namespace De1Win10
 
         private async void BtnStopLog_Click(object sender, RoutedEventArgs e)
         {
+            StopTime = DateTime.MaxValue;
+
             // AAZ testing
             var result = await WriteDe1State(De1StateEnum.Idle);
             if (result != "") { FatalError(result); return; }
@@ -602,13 +614,10 @@ namespace De1Win10
         }
         private async void BtnFlush_Click(object sender, RoutedEventArgs e)
         {
-            var result = await UpdateOtherSetnFromGui();
+            var result = UpdateFlushSecFromGui();
             if (result != "")
             {
-                if (result.StartsWith("WARNING:"))
-                    UpdateStatus(result.Replace("WARNING:", ""), NotifyType.ErrorMessage);
-                else
-                    FatalError(result);
+                UpdateStatus(result.Replace("WARNING:", ""), NotifyType.ErrorMessage);
                 return;
             }
 
@@ -700,6 +709,9 @@ namespace De1Win10
                         break;
                     case VirtualKey.Number3:
                         ScenarioControl.SelectedIndex = 2;
+                        break;
+                    case VirtualKey.Number4:
+                        ScenarioControl.SelectedIndex = 3;
                         break;
                 }
 
