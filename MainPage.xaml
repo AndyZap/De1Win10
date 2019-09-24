@@ -117,15 +117,15 @@
                             <TextBlock Grid.Row="4" Grid.Column="1" x:Name="TxtBrewPressure" Text="---"  Margin="30,10,10,10" FontSize="24" AutomationProperties.LiveSetting="Assertive"/>
                             <TextBlock Grid.Row="4" Grid.Column="2" x:Name="TxtBrewPressureTarget" Text="---"  Margin="30,10,10,10" FontSize="24" AutomationProperties.LiveSetting="Assertive"/>
 
-                            <TextBlock Grid.Row="5" Grid.Column="0" Text="Temp head, C"  Margin="0,10,10,10" FontSize="24"/>
+                            <TextBlock Grid.Row="5" Grid.Column="0" Text="Temp head, °C"  Margin="0,10,10,10" FontSize="24"/>
                             <TextBlock Grid.Row="5" Grid.Column="1" x:Name="TxtBrewTempHead" Text="---"  Margin="30,10,10,10" FontSize="24" AutomationProperties.LiveSetting="Assertive"/>
                             <TextBlock Grid.Row="5" Grid.Column="2" x:Name="TxtBrewTempHeadTarget" Text="---"  Margin="30,10,10,10" FontSize="24" AutomationProperties.LiveSetting="Assertive"/>
 
-                            <TextBlock Grid.Row="6" Grid.Column="0" Text="Temp mix, C"  Margin="0,10,10,10" FontSize="24"/>
+                            <TextBlock Grid.Row="6" Grid.Column="0" Text="Temp mix, °C"  Margin="0,10,10,10" FontSize="24"/>
                             <TextBlock Grid.Row="6" Grid.Column="1" x:Name="TxtBrewTempMix" Text="---"  Margin="30,10,10,10" FontSize="24" AutomationProperties.LiveSetting="Assertive"/>
                             <TextBlock Grid.Row="6" Grid.Column="2" x:Name="TxtBrewTempMixTarget" Text="---"  Margin="30,10,10,10" FontSize="24" AutomationProperties.LiveSetting="Assertive"/>
 
-                            <TextBlock Grid.Row="6" Grid.Column="4" Text="Steam, C"  Margin="0,10,10,10" FontSize="24"/>
+                            <TextBlock Grid.Row="6" Grid.Column="4" Text="Steam, °C"  Margin="0,10,10,10" FontSize="24"/>
                             <TextBlock Grid.Row="6" Grid.Column="5" x:Name="TxtSteamTemp" Text="---"  Margin="30,10,10,10" FontSize="24" AutomationProperties.LiveSetting="Assertive"/>
 
                         </Grid>
@@ -161,19 +161,21 @@
                             <Button    Grid.Row="0" Grid.Column="5" x:Name="BtnStopLog1" Content="Stop" Margin="0,10,10,10" IsEnabled="True" FontSize="24" Click="BtnStopLog_Click" Width="200" Height="70" />
                             
                             <TextBlock Grid.Row="1" Grid.Column="0" Text="Hot water" VerticalAlignment="Center" Margin="0,10,10,10" FontSize="24"/>
-                            <TextBox   Grid.Row="1" Grid.Column="1" x:Name="TxtHotWaterSec" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="20,10,10,10" Text="" FontSize="24" Height="auto" Width ="auto" TextWrapping="Wrap"/>
-                            <TextBlock Grid.Row="1" Grid.Column="2" VerticalAlignment="Center" Text="sec"  Margin="0,10,10,10" FontSize="24"/>
+                            <TextBox   Grid.Row="1" Grid.Column="1" x:Name="TxtHotWaterTemp" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="20,10,10,10" Text="" FontSize="24" Height="auto" Width ="auto" TextWrapping="Wrap"/>
+                            <TextBlock Grid.Row="1" Grid.Column="2" VerticalAlignment="Center" Text="°C"  Margin="0,10,10,10" FontSize="24"/>
                             <TextBox   Grid.Row="1" Grid.Column="3" x:Name="TxtHotWaterMl" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="20,10,10,10" Text="" FontSize="24" Height="auto" Width ="auto" TextWrapping="Wrap"/>
                             <TextBlock Grid.Row="1" Grid.Column="4" VerticalAlignment="Center" Text="mL"  Margin="0,10,10,10" FontSize="24"/>
-                            <Button    Grid.Row="1" Grid.Column="5" x:Name="BtnHotWater" Content="Start water" Margin="0,10,10,10" IsEnabled="False" FontSize="24" Click="BtnStopLog_Click" Width="200" Height="70" />
+                            <Button    Grid.Row="1" Grid.Column="5" x:Name="BtnHotWater" Content="Start water" Margin="0,10,10,10" IsEnabled="True" FontSize="24" Click="BtnWater_Click" Width="200" Height="70" />
 
                             <TextBlock Grid.Row="2" Grid.Column="0" Text="Flush" VerticalAlignment="Center"  Margin="0,10,10,10" FontSize="24"/>
-                            <Button    Grid.Row="2" Grid.Column="5" x:Name="BtnFlush" Content="Start flush" Margin="0,10,10,10" IsEnabled="False" FontSize="24" Click="BtnStopLog_Click" Width="200" Height="70" />
+                            <TextBox   Grid.Row="2" Grid.Column="1" x:Name="TxtFlushSec" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="20,10,10,10" Text="" FontSize="24" Height="auto" Width ="auto" TextWrapping="Wrap"/>
+                            <TextBlock Grid.Row="2" Grid.Column="2" VerticalAlignment="Center" Text="sec"  Margin="0,10,10,10" FontSize="24"/>
+                            <Button    Grid.Row="2" Grid.Column="5" x:Name="BtnFlush" Content="Start flush" Margin="0,10,10,10" IsEnabled="True" FontSize="24" Click="BtnFlush_Click" Width="200" Height="70" />
 
                             <TextBlock Grid.Row="3" Grid.Column="0" Text="Steam"  VerticalAlignment="Center"  Margin="0,10,10,10" FontSize="24"/>
                             <TextBox   Grid.Row="3" Grid.Column="1" x:Name="TxtSteamSec" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="20,10,10,10" Text="" FontSize="24" Height="auto" Width ="auto" TextWrapping="Wrap"/>
                             <TextBlock Grid.Row="3" Grid.Column="2" VerticalAlignment="Center" Text="sec"  Margin="0,10,10,10" FontSize="24"/>
-                            <Button    Grid.Row="3" Grid.Column="5" x:Name="BtnSteam" Content="Start steam" Margin="0,10,10,10" IsEnabled="False" FontSize="24" Click="BtnStopLog_Click" Width="200" Height="70" />
+                            <Button    Grid.Row="3" Grid.Column="5" x:Name="BtnSteam" Content="Start steam" Margin="0,10,10,10" IsEnabled="True" FontSize="24" Click="BtnSteam_Click" Width="200" Height="70" />
 
                         </Grid>
                     </StackPanel>

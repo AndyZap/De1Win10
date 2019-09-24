@@ -119,10 +119,10 @@ namespace De1Win10
                 if (de1_watersteam_result.Status != GattCommunicationStatus.Success) { return "Failed to read DE1 characteristic " + de1_watersteam_result.Status.ToString(); }
 
                 if (!DecodeDe1OtherSetn(de1_watersteam_result.Value, de1OtherSetn)) { return "Failed to decode DE1 Water Steam"; }
-                TxtHotWaterSec.Text = de1OtherSetn.TargetHotWaterLength.ToString();
+                TxtHotWaterTemp.Text = de1OtherSetn.TargetHotWaterTemp.ToString();
                 TxtHotWaterMl.Text = de1OtherSetn.TargetHotWaterVol.ToString();
+                TxtFlushSec.Text = de1OtherSetn.TargetHotWaterLength.ToString();
                 TxtSteamSec.Text = de1OtherSetn.TargetSteamLength.ToString();
-
 
                 // Characteristic   A00D Shot Info R/-/N   --------------------------------------------------
                 result_charact = await service.GetCharacteristicsForUuidAsync(new Guid(ChrDe1ShotInfoString), bleCacheMode);
@@ -406,6 +406,67 @@ namespace De1Win10
 
             return data;
         }
+        private async Task<string> UpdateOtherSetnFromGui()
+        {
+            int targetSteamLength;
+            try
+            {
+                targetSteamLength = Convert.ToInt32(TxtSteamSec.Text.Trim());
+            }
+            catch (Exception)
+            {
+                return "WARNING: Error reading steam length, please supply a valid integer value";
+            }
+
+            int targetHotWaterTemp;
+            try
+            {
+                targetHotWaterTemp = Convert.ToInt32(TxtHotWaterTemp.Text.Trim());
+            }
+            catch (Exception)
+            {
+                return "WARNING: Error reading hot water temperature, please supply a valid integer value";
+            }
+
+            int targetHotWaterVol;
+            try
+            {
+                targetHotWaterVol = Convert.ToInt32(TxtHotWaterMl.Text.Trim());
+            }
+            catch (Exception)
+            {
+                return "WARNING: Error reading hot water volume, please supply a valid integer value";
+            }
+
+            int targetHotWaterLength;
+            try
+            {
+                targetHotWaterLength = Convert.ToInt32(TxtFlushSec.Text.Trim());
+            }
+            catch (Exception)
+            {
+                return "WARNING: Error reading flush length, please supply a valid integer value";
+            }
+
+            if (de1OtherSetn.TargetSteamLength != targetSteamLength ||
+                de1OtherSetn.TargetHotWaterTemp != targetHotWaterTemp ||
+                de1OtherSetn.TargetHotWaterVol != targetHotWaterVol ||
+                de1OtherSetn.TargetHotWaterLength != targetHotWaterLength)
+            {
+
+                de1OtherSetn.TargetSteamLength = targetSteamLength;
+                de1OtherSetn.TargetHotWaterTemp = targetHotWaterTemp;
+                de1OtherSetn.TargetHotWaterVol = targetHotWaterVol;
+                de1OtherSetn.TargetHotWaterLength = targetHotWaterLength;
+
+                var bytes = EncodeDe1OtherSetn(de1OtherSetn);
+
+                return await writeToDE(bytes, De1ChrEnum.OtherSetn);
+            }
+            else
+                return "";
+        }
+
 
         private bool DecodeDe1Water(byte[] data, ref double level) // parse_binary_water_level
         {

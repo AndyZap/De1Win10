@@ -583,6 +583,59 @@ namespace De1Win10
             UpdateStatus("Stopped", NotifyType.StatusMessage);
         }
 
+        private async void BtnWater_Click(object sender, RoutedEventArgs e)
+        {
+            var result = await UpdateOtherSetnFromGui();
+            if (result != "")
+            {
+                if (result.StartsWith("WARNING:"))
+                    UpdateStatus(result.Replace("WARNING:", ""), NotifyType.ErrorMessage);
+                else
+                    FatalError(result);
+                return;
+            }
+
+            result = await WriteDe1State(De1StateEnum.HotWater);
+            if (result != "") { FatalError(result); return; }
+
+            UpdateStatus("Hot Water ...", NotifyType.StatusMessage);
+        }
+        private async void BtnFlush_Click(object sender, RoutedEventArgs e)
+        {
+            var result = await UpdateOtherSetnFromGui();
+            if (result != "")
+            {
+                if (result.StartsWith("WARNING:"))
+                    UpdateStatus(result.Replace("WARNING:", ""), NotifyType.ErrorMessage);
+                else
+                    FatalError(result);
+                return;
+            }
+
+            result = await WriteDe1State(De1StateEnum.HotWaterRinse);
+            if (result != "") { FatalError(result); return; }
+
+            UpdateStatus("Flush ...", NotifyType.StatusMessage);
+        }
+        private async void BtnSteam_Click(object sender, RoutedEventArgs e)
+        {
+            var result = await UpdateOtherSetnFromGui();
+            if (result != "")
+            {
+                if (result.StartsWith("WARNING:"))
+                    UpdateStatus(result.Replace("WARNING:", ""), NotifyType.ErrorMessage);
+                else
+                    FatalError(result);
+                return;
+            }
+
+            result = await WriteDe1State(De1StateEnum.Steam);
+            if (result != "") { FatalError(result); return; }
+
+            UpdateStatus("Steam ...", NotifyType.StatusMessage);
+        }
+
+
         private static bool IsCtrlKeyPressed()
         {
             var ctrlState = CoreWindow.GetForCurrentThread().GetKeyState(VirtualKey.Control);
