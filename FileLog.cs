@@ -15,6 +15,11 @@ namespace De1Win10
         private string LogFileName = "De1Win10Log.csv";
         //private string LogFileHeader = "date,beanName,beanWeight,coffeeWeight,grind,time,notes,weightEverySec,pressureEverySec";
 
+        StorageFolder HistoryFolder = null;
+        StorageFolder ProfilesFolder = null;
+        const string De1FolderToken = "De1FolderToken";
+        IList<string> ReferenceShotFile = null;
+
         public ObservableCollection<ProfileClass> Profiles { get; } = new ObservableCollection<ProfileClass>();
         private string ToCsvFile(string s) // make sure we do not save commas into csv, a quick hack
         {
@@ -33,6 +38,14 @@ namespace De1Win10
                 return "-";
             }
         }
+
+        /* 
+         * DateTime dt = DateTimeOffset.FromUnixTimeSeconds(1568407877).LocalDateTime;
+
+            //var sec = DateTimeOffset.Now.ToUnixTimeSeconds()
+            var dt0 = new DateTimeOffset(dt);
+            var sec = dt0.ToUnixTimeSeconds();  // back to 1568407877
+         */
 
         private async void BtnSaveLog_Click(object sender, RoutedEventArgs e)
         {

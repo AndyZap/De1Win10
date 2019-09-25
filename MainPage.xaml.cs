@@ -14,12 +14,13 @@ using Windows.Security.Cryptography;
 using Windows.UI.Xaml.Input;
 using Windows.System;
 using Windows.UI.Popups;
+using Windows.Storage.Pickers;
 
 namespace De1Win10
 {
     public sealed partial class MainPage : Page
     {
-        private string appVersion = "DE1 Win10     App v1.7   ";
+        private string appVersion = "DE1 Win10     App v1.8   ";
 
         private string deviceIdAcaia = String.Empty;
         private string deviceIdDe1 = String.Empty;
@@ -31,7 +32,7 @@ namespace De1Win10
 
         private DispatcherTimer heartBeatTimer;
 
-        public enum NotifyType { StatusMessage, ErrorMessage };
+        public enum NotifyType { StatusMessage, WarningMessage, ErrorMessage };
         private enum StatusEnum { Disabled, Disconnected, Discovered, CharacteristicConnected }
 
         private StatusEnum statusAcaia = StatusEnum.Disconnected;
@@ -91,15 +92,6 @@ namespace De1Win10
             else
                 ScenarioControl.SelectedIndex = 0;
 
-            // AAZ test
-            Profiles.Add(new ProfileClass("test profile"));
-            Profiles.Add(new ProfileClass("test profile"));
-            Profiles.Add(new ProfileClass("test profile"));
-            Profiles.Add(new ProfileClass("test profile"));
-            Profiles.Add(new ProfileClass("test profile"));
-            Profiles.Add(new ProfileClass("test profile"));
-            Profiles.Add(new ProfileClass("test profile"));
-            Profiles.Add(new ProfileClass("test profile"));
             ListBoxProfiles.ItemsSource = Profiles;
 
             PanelConnectDisconnect.Background = new SolidColorBrush(Windows.UI.Colors.Yellow);
@@ -177,9 +169,15 @@ namespace De1Win10
                 case NotifyType.ErrorMessage:
                     StatusBorder.Background = new SolidColorBrush(Windows.UI.Colors.Red);
                     break;
+                case NotifyType.WarningMessage:
+                    StatusBorder.Background = new SolidColorBrush(Windows.UI.Colors.DarkOrange);
+                    break;
             }
 
             StatusBlock.Text = strMessage;
+
+            if (StatusBlock.Text == "")
+                StatusBorder.Background = new SolidColorBrush(Windows.UI.Colors.Transparent);
 
             // Raise an event if necessary to enable a screen reader to announce the status update.
             var peer = FrameworkElementAutomationPeer.FromElement(StatusBlock);
@@ -315,8 +313,8 @@ namespace De1Win10
 
                 BtnBeansWeight.IsEnabled = true;
                 BtnTare.IsEnabled = true;
-                BtnStartLog.IsEnabled = true;
-                BtnStopLog.IsEnabled = true;
+                BtnEspresso.IsEnabled = true;
+                BtnStop.IsEnabled = true;
             }
             else if (statusDe1 == StatusEnum.CharacteristicConnected)
             {
@@ -444,8 +442,8 @@ namespace De1Win10
 
             BtnBeansWeight.IsEnabled = false;
             BtnTare.IsEnabled = false;
-            BtnStartLog.IsEnabled = false;
-            BtnStopLog.IsEnabled = false;
+            BtnEspresso.IsEnabled = false;
+            BtnStop.IsEnabled = false;
 
             statusDe1 = StatusEnum.Disconnected;
             statusAcaia  = ChkAcaia.IsOn ? StatusEnum.Disconnected : StatusEnum.Disabled;
@@ -510,30 +508,20 @@ namespace De1Win10
 
         private async void BtnTare_Click(object sender, RoutedEventArgs e)
         {
-            // AAZ testing
-            var result = await WriteDe1State(De1StateEnum.Sleep);
-            if (result != "") { FatalError(result); return; }
-
-
-            /*
             var result = await WriteTare();
             if (result != "") { FatalError(result); return; }
 
             TxtBrewTime.Text = "---";
-            UpdateStatus("Tare", NotifyType.StatusMessage); */
+            UpdateStatus("Tare", NotifyType.StatusMessage);
         }
 
-        private async void BtnBeansWeight_Click(object sender, RoutedEventArgs e)
+        private void BtnBeansWeight_Click(object sender, RoutedEventArgs e)
         {
-            // AAZ testing
-            var result = await WriteDe1State(De1StateEnum.Steam);
-            if (result != "") { FatalError(result); return; }
-
-            /*DetailBeansWeight.Text = TxtBrewWeight.Text;
-            UpdateStatus("Bean weight saved", NotifyType.StatusMessage); */
+            DetailBeansWeight.Text = TxtBrewWeight.Text;
+            UpdateStatus("Bean weight saved", NotifyType.StatusMessage);
         }
 
-        private async void BtnStartLog_Click(object sender, RoutedEventArgs e)
+        private async void BtnEspresso_Click(object sender, RoutedEventArgs e)
         {
             // AAZ testing
             var result = await WriteDe1State(De1StateEnum.Espresso);
@@ -562,9 +550,10 @@ namespace De1Win10
             UpdateStatus("Started ...", NotifyType.StatusMessage);
         }
 
-        private async void BtnStopLog_Click(object sender, RoutedEventArgs e)
+        private async void BtnStop_Click(object sender, RoutedEventArgs e)
         {
             StopTime = DateTime.MaxValue;
+            StartTime = DateTime.MaxValue;
 
             // AAZ testing
             var result = await WriteDe1State(De1StateEnum.Idle);
@@ -683,10 +672,10 @@ namespace De1Win10
                         break;
 
                     case VirtualKey.S:
-                        if (BtnStartLog.IsEnabled)
-                            BtnStartLog_Click(null, null);
-                        else if (BtnStopLog.IsEnabled)
-                            BtnStopLog_Click(null, null);
+                        if (BtnEspresso.IsEnabled)
+                            BtnEspresso_Click(null, null);
+                        else if (BtnStop.IsEnabled)
+                            BtnStop_Click(null, null);
                         break;
 
                     case VirtualKey.Down:
@@ -730,7 +719,6 @@ namespace De1Win10
                 }
             }
         }
-
         private void BtnGrindMinus_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -755,6 +743,83 @@ namespace De1Win10
         {
             ApplicationDataContainer localSettings = ApplicationData.Current.LocalSettings;
             localSettings.Values["ChkAcaia"] = ChkAcaia.IsOn ? "true" : "false";
+        }
+        private async void BtnChooseProfile_Click(object sender, RoutedEventArgs e)
+        {
+            if(ProfilesFolder == null)
+            {
+                var access_list = Windows.Storage.AccessCache.StorageApplicationPermissions.FutureAccessList;
+
+                StorageFolder de1_folder = null;
+
+                if (!access_list.ContainsItem(De1FolderToken))
+                {
+                    var folderPicker = new FolderPicker();
+                    folderPicker.SuggestedStartLocation = PickerLocationId.ComputerFolder;
+                    folderPicker.FileTypeFilter.Add("*");
+
+                    de1_folder = await folderPicker.PickSingleFolderAsync();
+                    if (de1_folder != null)
+                    {
+                        Windows.Storage.AccessCache.StorageApplicationPermissions.FutureAccessList.AddOrReplace(De1FolderToken, de1_folder);
+                    }
+                    else
+                    {
+                        UpdateStatus("Error: DE1 source folder has not been selected", NotifyType.ErrorMessage);
+                        return;
+                    }
+                }
+                else
+                    de1_folder = await access_list.GetFolderAsync(De1FolderToken);
+
+                if(await de1_folder.TryGetItemAsync("profiles") == null)
+                {
+                    UpdateStatus("Error: seems the selected folder is not correct, DE1 source folder should have \"profiles\" subfolder", NotifyType.ErrorMessage);
+                    Windows.Storage.AccessCache.StorageApplicationPermissions.FutureAccessList.Remove(De1FolderToken);
+                    return;
+                }
+                if (await de1_folder.TryGetItemAsync("history") == null)
+                {
+                    UpdateStatus("Error: seems the selected folder is not correct, DE1 source folder should have \"history\" subfolder", NotifyType.ErrorMessage);
+                    Windows.Storage.AccessCache.StorageApplicationPermissions.FutureAccessList.Remove(De1FolderToken);
+                    return;
+                }
+
+                HistoryFolder = await de1_folder.GetFolderAsync("history");
+                if (await HistoryFolder.TryGetItemAsync("0.shot") == null)
+                {
+                    UpdateStatus("Error: please create 0.shot file in \"history\" folder, for the app to use", NotifyType.WarningMessage);
+                    return;
+                }
+
+                ProfilesFolder = await de1_folder.GetFolderAsync("profiles");
+                
+
+                var ref_file = await HistoryFolder.GetFileAsync("0.shot");
+                ReferenceShotFile = await FileIO.ReadLinesAsync(ref_file);
+
+
+                var files = await ProfilesFolder.GetFilesAsync();
+
+                Profiles.Clear();
+                foreach (var f in files)
+                {
+                    Profiles.Add(new ProfileClass(f.Name));
+                }
+
+                UpdateStatus("Profile list has been loaded, please now select profile to use", NotifyType.WarningMessage);
+                return;
+            }
+
+            // set profile
+            if (ListBoxProfiles.SelectedIndex != -1)
+            {
+                ProfileName = Profiles[ListBoxProfiles.SelectedIndex].profileName;
+                TxtDe1Profile.Text = "Profile: "+ Profiles[ListBoxProfiles.SelectedIndex].profileName;
+                UpdateStatus("Loaded " + TxtDe1Profile.Text, NotifyType.StatusMessage);
+            }
+            else
+                UpdateStatus("Please select profile to use", NotifyType.WarningMessage);
         }
     }
 }

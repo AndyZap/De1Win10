@@ -12,6 +12,7 @@ using Windows.Devices.Enumeration;
 using Windows.UI.Core;
 using Windows.UI.Xaml.Automation.Peers;
 using Windows.Storage;
+using Windows.UI.Xaml.Media;
 
 namespace De1Win10
 {
@@ -56,6 +57,9 @@ namespace De1Win10
         De1OtherSetnClass de1OtherSetn = new De1OtherSetnClass();
 
         DateTime StopTime = DateTime.MaxValue;
+        DateTime StartTime = DateTime.MaxValue;
+
+        string ProfileName = "";
 
         private async Task<string> CreateDe1Characteristics()
         {
@@ -578,7 +582,16 @@ namespace De1Win10
         private void UpdateDe1StateInfoImpl(De1StateEnum state, De1SubStateEnum substate)
         {
             TxtDe1Status.Text = "DE1 status: " + state.ToString() + " (" + substate.ToString() + ")";
+
+            if (state != De1StateEnum.Idle)
+                De1StatusBorder.Background = new SolidColorBrush(Windows.UI.Colors.DarkOrange);
+            else
+                De1StatusBorder.Background = new SolidColorBrush(Windows.UI.Colors.Transparent);
+
             RaiseAutomationEvent(TxtDe1Status);
+
+            if (substate == De1SubStateEnum.Pouring) // save the start time of the shot
+                StartTime = DateTime.Now;
         }
         private Task<string> WriteDe1State(De1StateEnum state)
         {
@@ -621,7 +634,7 @@ namespace De1Win10
             RaiseAutomationEvent(TxtSteamTemp);
 
             if (DateTime.Now >= StopTime)
-                BtnStopLog_Click(null, null);
+                BtnStop_Click(null, null);
         }
 
         public void UpdateDe1Water(double level)
