@@ -20,7 +20,7 @@ namespace De1Win10
 {
     public sealed partial class MainPage : Page
     {
-        private string appVersion = "DE1 Win10     App v1.8   ";
+        private string appVersion = "DE1 Win10     App v1.9   ";
 
         private string deviceIdAcaia = String.Empty;
         private string deviceIdDe1 = String.Empty;
@@ -527,7 +527,7 @@ namespace De1Win10
             var result = await WriteDe1State(De1StateEnum.Espresso);
             if (result != "") { FatalError(result); return; }
 
-
+            ShotRecords.Clear();
 
             /*
             if (LogBrewWeight.Text != "0.0") // tare, as I always forget to do this
@@ -543,11 +543,9 @@ namespace De1Win10
 
 
             startTimeWeight = DateTime.Now;
-            weightEverySec.Start();
-            pressureEverySec.Start();
             */
 
-            UpdateStatus("Started ...", NotifyType.StatusMessage);
+            UpdateStatus("Espresso ...", NotifyType.StatusMessage);
         }
 
         private async void BtnStop_Click(object sender, RoutedEventArgs e)

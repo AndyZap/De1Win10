@@ -12,9 +12,6 @@ namespace De1Win10
 {
     public sealed partial class MainPage : Page
     {
-        private string LogFileName = "De1Win10Log.csv";
-        //private string LogFileHeader = "date,beanName,beanWeight,coffeeWeight,grind,time,notes,weightEverySec,pressureEverySec";
-
         StorageFolder HistoryFolder = null;
         StorageFolder ProfilesFolder = null;
         const string De1FolderToken = "De1FolderToken";
@@ -39,6 +36,33 @@ namespace De1Win10
             }
         }
 
+        private void CalculateLastEntryWeightFlow(List<De1ShotRecordClass> data, double flow_smoothing_sec)
+        {
+            if (data.Count <= 1)
+                return;
+
+            int last_index = data.Count - 1;
+            De1ShotRecordClass last_rec = data[last_index];
+
+            int target_index = last_index-1;
+            for (int i = last_index-1; i >= 0; i++)
+            {
+                target_index = i;
+                if ((last_rec.espresso_elapsed - data[i].espresso_elapsed) >= flow_smoothing_sec)
+                    break;
+            }
+
+            var time = last_rec.espresso_elapsed - data[target_index].espresso_elapsed;
+            if (time < 1E-6)
+                return;
+
+            var diff = last_rec.espresso_weight - data[target_index].espresso_weight;
+            if (diff < 1E-6)
+                return;
+
+            last_rec.espresso_flow_weight = diff / time;
+        }
+
         /* 
          * DateTime dt = DateTimeOffset.FromUnixTimeSeconds(1568407877).LocalDateTime;
 
@@ -49,45 +73,40 @@ namespace De1Win10
 
         private async void BtnSaveLog_Click(object sender, RoutedEventArgs e)
         {
-            StorageFolder storageFolder = ApplicationData.Current.RoamingFolder;
-            StorageFile file = await storageFolder.CreateFileAsync(LogFileName, CreationCollisionOption.OpenIfExists);
+            var now = DateTime.Now;
+            var sec_now = DateTimeOffset.Now.ToUnixTimeSeconds();
+            string file_name = now.ToString("yyyyMMdd") + "T" + now.ToString("HHmmss") + ".shot";
 
-            // need a new log to match DE1 format
-            /*
-            StringBuilder new_record = new StringBuilder();
+            StorageFile file = await HistoryFolder.CreateFileAsync(file_name, CreationCollisionOption.OpenIfExists);
 
-            new_record.Append(ToCsvFile(DetailDateTime.Text));
-            new_record.Append(ToCsvFile(DetailBeansName.Text));
-            new_record.Append(ToCsvFile(DetailBeansWeight.Text));
-            new_record.Append(ToCsvFile(DetailCoffeeWeight.Text));
-            new_record.Append(ToCsvFile(DetailGrind.Text));
-            new_record.Append(ToCsvFile(DetailTime.Text));
-            new_record.Append(ToCsvFile(DetailNotes.Text));
-            new_record.Append(weightEverySec.GetValuesString() + ",");
-            new_record.Append(pressureEverySec.GetValuesString() + ",");
+            StringBuilder sb = new StringBuilder();
 
-            //
-            var lines = await FileIO.ReadLinesAsync(file);
+            foreach (var line in ReferenceShotFile)
+            {
+                if (line.StartsWith("clock"))
+                    sb.AppendLine("clock " + sec_now.ToString());
+                else
+                    sb.AppendLine(line);
 
-            List<string> new_lines = new List<string>();
-            new_lines.Add(LogFileHeader);
-            new_lines.Add(new_record.ToString());
-            for(int i = 1; i < Math.Min(__MaxRecordsToSave, lines.Count); i++)
-                new_lines.Add(lines[i]);
+                /*
+                new_record.Append(ToCsvFile(DetailDateTime.Text));
+                new_record.Append(ToCsvFile(DetailBeansName.Text));
+                new_record.Append(ToCsvFile(DetailBeansWeight.Text));
+                new_record.Append(ToCsvFile(DetailCoffeeWeight.Text));
+                new_record.Append(ToCsvFile(DetailGrind.Text));
+                new_record.Append(ToCsvFile(DetailTime.Text));
+                new_record.Append(ToCsvFile(DetailNotes.Text)); */
 
-            await FileIO.WriteLinesAsync(file, new_lines);
+            }
 
-            // update brewLog list
-            BrewLog.Insert(0, new LogEntry(new_record.ToString()));
+            await FileIO.WriteTextAsync(file, sb.ToString());
 
             // save to settings
             ApplicationDataContainer localSettings = ApplicationData.Current.LocalSettings;
             localSettings.Values["DetailBeansName"] = DetailBeansName.Text;
             localSettings.Values["DetailGrind"] = DetailGrind.Text;
 
-            UpdateStatus("Saved to log " + file.Path, NotifyType.StatusMessage);
-
-            BtnSaveLog.IsEnabled = false; */
+            UpdateStatus("Saved to log " + file_name, NotifyType.StatusMessage);
         }
     }
 

@@ -61,6 +61,8 @@ namespace De1Win10
 
         string ProfileName = "";
 
+        List<De1ShotRecordClass> ShotRecords = new List<De1ShotRecordClass>();
+
         private async Task<string> CreateDe1Characteristics()
         {
             try
@@ -324,6 +326,37 @@ namespace De1Win10
             public double TargetGroupTemp = 0.0; // taken form the shot data
 
             public De1OtherSetnClass() { }
+        }
+
+        public class De1ShotRecordClass
+        {
+            public double espresso_elapsed = 0.0;
+            public double espresso_pressure = 0.0;
+            public double espresso_weight = 0.0;
+            public double espresso_flow = 0.0;
+            public double espresso_flow_weight = 0.0;
+            public double espresso_temperature_basket = 0.0;
+            public double espresso_temperature_mix = 0.0;
+            public double espresso_pressure_goal = 0.0;
+            public double espresso_flow_goal = 0.0;
+            public double espresso_temperature_goal = 0.0;
+            public De1ShotRecordClass(double time_sec, De1ShotInfoClass info)
+            {
+                espresso_elapsed = time_sec;
+
+                espresso_pressure = info.GroupPressure;
+                espresso_flow = info.GroupFlow;
+                espresso_temperature_basket = info.HeadTemp;
+                espresso_temperature_mix = info.MixTemp;
+                espresso_pressure_goal = info.SetGroupPressure == 0.0 ? -1.0 : info.SetGroupPressure;
+                espresso_flow_goal = info.SetGroupFlow == 0.0 ? -1.0 : info.SetGroupFlow;
+                espresso_temperature_goal = info.SetHeadTemp;
+            }
+
+            public void UpdateWeightFromScale(double weight)
+            {
+                espresso_weight = weight;
+            }
         }
 
         private bool DecodeDe1ShotInfo(byte[] data, De1ShotInfoClass shot_info) // update_de1_shotvalue
@@ -635,6 +668,40 @@ namespace De1Win10
 
             if (DateTime.Now >= StopTime)
                 BtnStop_Click(null, null);
+
+            if (StartTime != DateTime.MaxValue) // we are recording the shot
+            {
+                TimeSpan ts = DateTime.Now - StartTime;
+
+                De1ShotRecordClass rec = new De1ShotRecordClass(ts.TotalSeconds, shot_info);
+
+                if (notifAcaia)
+                    rec.UpdateWeightFromScale(SmoothedWeight);
+
+                ShotRecords.Add(rec);
+
+                if (notifAcaia)
+                {
+                    CalculateLastEntryWeightFlow(ShotRecords, SmoothWeightFlowSec);
+
+                    TxtBrewWeightRate.Text = ShotRecords.Last().espresso_flow_weight.ToString("0.0");
+                }
+
+                if (ts.TotalSeconds >= 60)
+                    TxtBrewTime.Text = ts.Minutes.ToString("0") + ":" + ts.Seconds.ToString("00");
+                else
+                    TxtBrewTime.Text = ts.Seconds.ToString("0");
+
+                RaiseAutomationEvent(TxtBrewTime);
+            }
+            else
+            {
+                TxtBrewTime.Text = "---";
+                TxtBrewWeightRate.Text = "---";
+            }
+
+            RaiseAutomationEvent(TxtBrewTime);
+            RaiseAutomationEvent(TxtBrewWeightRate);
         }
 
         public void UpdateDe1Water(double level)

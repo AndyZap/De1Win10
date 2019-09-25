@@ -19,6 +19,10 @@ namespace De1Win10
         private GattCharacteristic chrAcaia = null;
         private bool notifAcaia = false;
 
+        private double SmoothedWeight = 0.0;
+        private double SmoothWeightFactor = 0.9;  // this means 1 sec averaging, as we are getting 10 weight per sec
+        private double SmoothWeightFlowSec = 3.0; // smooth the weight flow over 3 sec
+
         private async Task<string> CreateAcaiaCharacteristics()
         {
             try
@@ -157,31 +161,14 @@ namespace De1Win10
             }
         }
 
-        DateTime startTimeWeight = DateTime.MinValue;
         private void UpdateWeightImpl(double weight_gramm)
         {
-            TxtBrewWeight.Text = weight_gramm == double.MinValue ? "---" : weight_gramm.ToString("0.0");
+            if(weight_gramm != double.MinValue)
+                SmoothedWeight = SmoothedWeight * SmoothWeightFactor + weight_gramm * (1 - SmoothWeightFactor);
 
-            // Raise an event if necessary to enable a screen reader to announce the status update.
-            var peer = FrameworkElementAutomationPeer.FromElement(TxtBrewWeight);
-            if (peer != null)
-                peer.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged);
+            TxtBrewWeight.Text = weight_gramm == double.MinValue ? "---" : SmoothedWeight.ToString("0.0");
 
-            if (startTimeWeight != DateTime.MinValue)
-            {
-                var tspan = (DateTime.Now - startTimeWeight);
-
-                if (tspan.TotalSeconds >= 60)
-                    TxtBrewTime.Text = tspan.Minutes.ToString("0") + ":" + tspan.Seconds.ToString("00");
-                else
-                    TxtBrewTime.Text = tspan.Seconds.ToString("0");
-
-                var peerT = FrameworkElementAutomationPeer.FromElement(TxtBrewTime);
-                if (peerT != null)
-                    peerT.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged);
-            }
-
-            // TODO: check how to smooth the readings
+            RaiseAutomationEvent(TxtBrewWeight);
         }
     }
 }
