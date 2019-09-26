@@ -785,7 +785,7 @@ namespace De1Win10
         }
         private async void BtnChooseProfile_Click(object sender, RoutedEventArgs e)
         {
-            if(ProfilesFolder == null)
+            if (ProfilesFolder == null)
             {
                 var access_list = Windows.Storage.AccessCache.StorageApplicationPermissions.FutureAccessList;
 
@@ -809,7 +809,18 @@ namespace De1Win10
                     }
                 }
                 else
-                    de1_folder = await access_list.GetFolderAsync(De1FolderToken);
+                {
+                    try
+                    {
+                        de1_folder = await access_list.GetFolderAsync(De1FolderToken);
+                    }
+                    catch (Exception)
+                    {
+                        UpdateStatus("Error: previously selected folder not found, please try again", NotifyType.ErrorMessage);
+                        Windows.Storage.AccessCache.StorageApplicationPermissions.FutureAccessList.Remove(De1FolderToken);
+                        return;
+                    }
+                }
 
                 if(await de1_folder.TryGetItemAsync("profiles") == null)
                 {
