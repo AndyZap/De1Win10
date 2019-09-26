@@ -677,7 +677,7 @@ namespace De1Win10
                 De1ShotRecordClass rec = new De1ShotRecordClass(ts.TotalSeconds, shot_info);
 
                 if (notifAcaia)
-                    rec.UpdateWeightFromScale(SmoothedWeight);
+                    rec.UpdateWeightFromScale(WeightAverager.GetValue());
 
                 ShotRecords.Add(rec);
 

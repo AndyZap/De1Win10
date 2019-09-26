@@ -8,6 +8,7 @@ using Windows.Devices.Bluetooth;
 using Windows.Devices.Enumeration;
 using Windows.UI.Xaml.Automation.Peers;
 using Windows.UI.Core;
+using System.Collections.Generic;
 
 namespace De1Win10
 {
@@ -19,9 +20,9 @@ namespace De1Win10
         private GattCharacteristic chrAcaia = null;
         private bool notifAcaia = false;
 
-        private double SmoothedWeight = 0.0;
-        private double SmoothWeightFactor = 0.9;  // this means 1 sec averaging, as we are getting 10 weight per sec
         private double SmoothWeightFlowSec = 3.0; // smooth the weight flow over 3 sec
+
+        ValuesAverager WeightAverager = new ValuesAverager();
 
         private async Task<string> CreateAcaiaCharacteristics()
         {
@@ -163,12 +164,42 @@ namespace De1Win10
 
         private void UpdateWeightImpl(double weight_gramm)
         {
-            if(weight_gramm != double.MinValue)
-                SmoothedWeight = SmoothedWeight * SmoothWeightFactor + weight_gramm * (1 - SmoothWeightFactor);
-
-            TxtBrewWeight.Text = weight_gramm == double.MinValue ? "---" : SmoothedWeight.ToString("0.0");
+            TxtBrewWeight.Text = WeightAverager.NewReading(weight_gramm).ToString("0.0");
 
             RaiseAutomationEvent(TxtBrewWeight);
         }
+
+        public class ValuesAverager
+        {
+            const int max_values = 10;
+            List<double> values = new List<double>();
+            double last_value = 0.0;
+
+            public ValuesAverager()
+            {
+            }
+
+            public double GetValue()
+            {
+                return last_value;
+            }
+
+            public double NewReading(double val)
+            {
+                values.Add(val);
+
+                while (values.Count > max_values)
+                    values.RemoveAt(0);
+
+                double sum = 0.0;
+                foreach (var x in values)
+                    sum += x;
+
+                last_value = sum / values.Count;
+
+                return last_value;
+            }
+        }
+
     }
 }
