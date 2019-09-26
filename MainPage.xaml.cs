@@ -88,9 +88,15 @@ namespace De1Win10
 
             ScenarioControl.ItemsSource = scenarios;
             if (Window.Current.Bounds.Width < 640)
+            {
+                Splitter.IsPaneOpen = false;
                 ScenarioControl.SelectedIndex = -1;
+            }
             else
+            {
+                Splitter.IsPaneOpen = true;
                 ScenarioControl.SelectedIndex = 0;
+            }
 
             ListBoxProfiles.ItemsSource = Profiles;
 
@@ -557,6 +563,20 @@ namespace De1Win10
             var result = await WriteDe1State(De1StateEnum.Idle);
             if (result != "") { FatalError(result); return; }
 
+            // update the fields on the Add Record page
+            if(ShotRecords.Count >= 1)
+            {
+                var last = ShotRecords[ShotRecords.Count - 1];
+                DetailTime.Text = last.espresso_elapsed == 0.0 ? "---" : last.espresso_elapsed.ToString("0.0");
+                DetailCoffeeWeight.Text = last.espresso_weight == 0.0 ? "---" : last.espresso_weight.ToString("0.0");
+
+                ScenarioControl.SelectedIndex = 3;  // swith to Add Record page 
+            }
+            else
+            {
+                DetailTime.Text =  "---";
+                DetailCoffeeWeight.Text = "---";
+            }
 
             /*
             BtnBeansWeight.IsEnabled = true;

@@ -623,7 +623,8 @@ namespace De1Win10
 
             RaiseAutomationEvent(TxtDe1Status);
 
-            if (substate == De1SubStateEnum.Pouring) // save the start time of the shot
+            if (StartTime == DateTime.MaxValue &&     // save the start time of the shot
+                (substate == De1SubStateEnum.Preinfusion || substate == De1SubStateEnum.Pouring)) 
                 StartTime = DateTime.Now;
         }
         private Task<string> WriteDe1State(De1StateEnum state)
@@ -681,11 +682,7 @@ namespace De1Win10
                 ShotRecords.Add(rec);
 
                 if (notifAcaia)
-                {
-                    CalculateLastEntryWeightFlow(ShotRecords, SmoothWeightFlowSec);
-
-                    TxtBrewWeightRate.Text = ShotRecords.Last().espresso_flow_weight.ToString("0.0");
-                }
+                    TxtBrewWeightRate.Text = CalculateLastEntryWeightFlow(ShotRecords, SmoothWeightFlowSec);
 
                 if (ts.TotalSeconds >= 60)
                     TxtBrewTime.Text = ts.Minutes.ToString("0") + ":" + ts.Seconds.ToString("00");

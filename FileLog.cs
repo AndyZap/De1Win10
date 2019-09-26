@@ -36,31 +36,84 @@ namespace De1Win10
             }
         }
 
-        private void CalculateLastEntryWeightFlow(List<De1ShotRecordClass> data, double flow_smoothing_sec)
+        private string CalculateLastEntryWeightFlow(List<De1ShotRecordClass> data, double flow_smoothing_sec)
         {
-            if (data.Count <= 1)
-                return;
+            if (data.Count <= 2)
+                return "---";
 
             int last_index = data.Count - 1;
             De1ShotRecordClass last_rec = data[last_index];
 
-            int target_index = last_index-1;
-            for (int i = last_index-1; i >= 0; i++)
+            last_rec.espresso_flow_weight = 0.0;
+
+            int to_compare_index = last_index - 1;
+            for (int i = last_index - 1; i >= 0; i--)
             {
-                target_index = i;
+                to_compare_index = i;
                 if ((last_rec.espresso_elapsed - data[i].espresso_elapsed) >= flow_smoothing_sec)
                     break;
             }
 
-            var time = last_rec.espresso_elapsed - data[target_index].espresso_elapsed;
+            var time = last_rec.espresso_elapsed - data[to_compare_index].espresso_elapsed;
             if (time < 1E-6)
-                return;
+                return "0.0";
 
-            var diff = last_rec.espresso_weight - data[target_index].espresso_weight;
+            var diff = last_rec.espresso_weight - data[to_compare_index].espresso_weight;
             if (diff < 1E-6)
-                return;
+                return "0.0";
 
             last_rec.espresso_flow_weight = diff / time;
+
+            return last_rec.espresso_flow_weight.ToString("0.0");
+        }
+
+        private void CreateStringsFromShotRecords(List<De1ShotRecordClass> list,
+         StringBuilder espresso_elapsed,
+         StringBuilder espresso_pressure,
+         StringBuilder espresso_weight,
+         StringBuilder espresso_flow,
+         StringBuilder espresso_flow_weight,
+         StringBuilder espresso_temperature_basket,
+         StringBuilder espresso_temperature_mix,
+         StringBuilder espresso_pressure_goal,
+         StringBuilder espresso_flow_goal,
+         StringBuilder espresso_temperature_goal)
+        {
+            espresso_elapsed.Append(" {");
+            espresso_pressure.Append(" {");
+            espresso_weight.Append(" {");
+            espresso_flow.Append(" {");
+            espresso_flow_weight.Append(" {");
+            espresso_temperature_basket.Append(" {");
+            espresso_temperature_mix.Append(" {");
+            espresso_pressure_goal.Append(" {");
+            espresso_flow_goal.Append(" {");
+            espresso_temperature_goal.Append(" {");
+
+            foreach (var rec in list)
+            {
+                espresso_elapsed.Append(rec.espresso_elapsed.ToString("0.0##") + " ");
+                espresso_pressure.Append(rec.espresso_pressure.ToString("0.0#") + " ");
+                espresso_weight.Append(rec.espresso_weight.ToString("0.0") + " ");
+                espresso_flow.Append(rec.espresso_flow.ToString("0.0#") + " ");
+                espresso_flow_weight.Append(rec.espresso_flow_weight.ToString("0.0#") + " ");
+                espresso_temperature_basket.Append(rec.espresso_temperature_basket.ToString("0.0") + " ");
+                espresso_temperature_mix.Append(rec.espresso_temperature_mix.ToString("0.0") + " ");
+                espresso_pressure_goal.Append(rec.espresso_pressure_goal.ToString("0.0") + " ");
+                espresso_flow_goal.Append(rec.espresso_flow_goal.ToString("0.0") + " ");
+                espresso_temperature_goal.Append(rec.espresso_temperature_goal.ToString("0.0") + " ");
+            }
+
+            espresso_elapsed.Append("}");
+            espresso_pressure.Append("}");
+            espresso_weight.Append("}");
+            espresso_flow.Append("}");
+            espresso_flow_weight.Append("}");
+            espresso_temperature_basket.Append("}");
+            espresso_temperature_mix.Append("}");
+            espresso_pressure_goal.Append("}");
+            espresso_flow_goal.Append("}");
+            espresso_temperature_goal.Append("}");
         }
 
         /* 
@@ -79,24 +132,67 @@ namespace De1Win10
 
             StorageFile file = await HistoryFolder.CreateFileAsync(file_name, CreationCollisionOption.OpenIfExists);
 
+            // StringBuilders to save data from ShotRecords
+            StringBuilder espresso_elapsed = new StringBuilder();
+            StringBuilder espresso_pressure = new StringBuilder();
+            StringBuilder espresso_weight = new StringBuilder();
+            StringBuilder espresso_flow = new StringBuilder();
+            StringBuilder espresso_flow_weight = new StringBuilder();
+            StringBuilder espresso_temperature_basket = new StringBuilder();
+            StringBuilder espresso_temperature_mix = new StringBuilder();
+            StringBuilder espresso_pressure_goal = new StringBuilder();
+            StringBuilder espresso_flow_goal = new StringBuilder();
+            StringBuilder espresso_temperature_goal = new StringBuilder();
+
+            CreateStringsFromShotRecords(ShotRecords,
+                                    espresso_elapsed, espresso_pressure, espresso_weight, espresso_flow, espresso_flow_weight, espresso_temperature_basket,
+                                    espresso_temperature_mix, espresso_pressure_goal, espresso_flow_goal, espresso_temperature_goal);
+
             StringBuilder sb = new StringBuilder();
 
             foreach (var line in ReferenceShotFile)
             {
                 if (line.StartsWith("clock"))
                     sb.AppendLine("clock " + sec_now.ToString());
+
+                else if (line.StartsWith("espresso_elapsed"))
+                    sb.AppendLine("espresso_elapsed " + espresso_elapsed.ToString().Replace(" }", "}"));
+                else if (line.StartsWith("espresso_pressure"))
+                    sb.AppendLine("espresso_pressure " + espresso_pressure.ToString().Replace(" }", "}"));
+                else if (line.StartsWith("espresso_weight"))
+                    sb.AppendLine("espresso_weight " + espresso_weight.ToString().Replace(" }", "}"));
+                else if (line.StartsWith("espresso_flow"))
+                    sb.AppendLine("espresso_flow " + espresso_flow.ToString().Replace(" }", "}"));
+                else if (line.StartsWith("espresso_flow_weight"))
+                    sb.AppendLine("espresso_flow_weight " + espresso_flow_weight.ToString().Replace(" }", "}"));
+                else if (line.StartsWith("espresso_temperature_basket"))
+                    sb.AppendLine("espresso_temperature_basket " + espresso_temperature_basket.ToString().Replace(" }", "}"));
+                else if (line.StartsWith("espresso_temperature_mix"))
+                    sb.AppendLine("espresso_temperature_mix " + espresso_temperature_mix.ToString().Replace(" }", "}"));
+                else if (line.StartsWith("espresso_pressure_goal"))
+                    sb.AppendLine("espresso_pressure_goal " + espresso_pressure_goal.ToString().Replace(" }", "}"));
+                else if (line.StartsWith("espresso_flow_goal"))
+                    sb.AppendLine("espresso_flow_goal " + espresso_flow_goal.ToString().Replace(" }", "}"));
+                else if (line.StartsWith("espresso_temperature_goal"))
+                    sb.AppendLine("espresso_temperature_goal " + espresso_temperature_goal.ToString().Replace(" }", "}"));
+
+                else if(line.StartsWith("drink_weight"))
+                    sb.AppendLine("drink_weight " + (DetailCoffeeWeight.Text == "---" ? "0" : DetailCoffeeWeight.Text));
+
+                else if (line.StartsWith("dsv2_bean_weight"))
+                    sb.AppendLine("dsv2_bean_weight " + (DetailBeansWeight.Text == "---" ? "0" : DetailBeansWeight.Text));
+
+                else if (line.StartsWith("grinder_setting"))
+                    sb.AppendLine("grinder_setting {" + DetailGrind.Text + "}");
+
+                else if (line.StartsWith("bean_brand"))
+                    sb.AppendLine("bean_brand {" + DetailBeansName.Text + "}");
+
+                else if (line.StartsWith("espresso_notes"))
+                    sb.AppendLine("espresso_notes {" + DetailNotes.Text + "}");
+
                 else
                     sb.AppendLine(line);
-
-                /*
-                new_record.Append(ToCsvFile(DetailDateTime.Text));
-                new_record.Append(ToCsvFile(DetailBeansName.Text));
-                new_record.Append(ToCsvFile(DetailBeansWeight.Text));
-                new_record.Append(ToCsvFile(DetailCoffeeWeight.Text));
-                new_record.Append(ToCsvFile(DetailGrind.Text));
-                new_record.Append(ToCsvFile(DetailTime.Text));
-                new_record.Append(ToCsvFile(DetailNotes.Text)); */
-
             }
 
             await FileIO.WriteTextAsync(file, sb.ToString());
