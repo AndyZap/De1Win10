@@ -20,7 +20,7 @@ namespace De1Win10
 {
     public sealed partial class MainPage : Page
     {
-        private string appVersion = "DE1 Win10     App v1.10   ";
+        private string appVersion = "DE1 Win10     App v1.11   ";
 
         private string deviceIdAcaia = String.Empty;
         private string deviceIdDe1 = String.Empty;
@@ -524,16 +524,37 @@ namespace De1Win10
         private void BtnBeansWeight_Click(object sender, RoutedEventArgs e)
         {
             DetailBeansWeight.Text = TxtBrewWeight.Text;
+            TxtBeanWeightMain.Text = TxtBrewWeight.Text;
+
+            try
+            {
+                var ratio = Convert.ToDouble(TxtRatio.Text.Trim());
+                var bean = Convert.ToDouble(TxtBeanWeightMain.Text.Trim());
+
+                TxtBrewWeightTarget.Text = (bean * ratio).ToString("0.0");
+            }
+            catch (Exception) { }
+
             UpdateStatus("Bean weight saved", NotifyType.StatusMessage);
         }
 
         private async void BtnEspresso_Click(object sender, RoutedEventArgs e)
         {
+            ShotRecords.Clear();
+
+            try
+            {
+                StopWeight = Convert.ToDouble(TxtBrewWeightTarget.Text.Trim());
+            }
+            catch(Exception)
+            {
+                StopWeight = double.MaxValue;
+            }
+
             // AAZ testing
             var result = await WriteDe1State(De1StateEnum.Espresso);
             if (result != "") { FatalError(result); return; }
 
-            ShotRecords.Clear();
 
             /*
             if (LogBrewWeight.Text != "0.0") // tare, as I always forget to do this

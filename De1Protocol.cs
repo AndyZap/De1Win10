@@ -58,6 +58,7 @@ namespace De1Win10
 
         DateTime StopTime = DateTime.MaxValue;
         DateTime StartTime = DateTime.MaxValue;
+        double StopWeight = double.MaxValue;
 
         string ProfileName = "";
 
@@ -682,7 +683,20 @@ namespace De1Win10
                 ShotRecords.Add(rec);
 
                 if (notifAcaia)
-                    TxtBrewWeightRate.Text = CalculateLastEntryWeightFlow(ShotRecords, SmoothWeightFlowSec);
+                {
+                    var last_flow = CalculateLastEntryWeightFlow(ShotRecords, SmoothWeightFlowSec);
+                    TxtBrewWeightRate.Text = last_flow.ToString("0.0");
+
+                    // damian found: after you hit the stop button, the remaining liquid that will end up in the cup is 
+                    // equal to about 2.6 seconds of the current flow rate, minus a 0.4 g adjustment
+
+                    if (StopWeight != double.MaxValue)
+                    {
+                        var current_weight = WeightAverager.GetValue();
+                        if (current_weight + 2.6 * last_flow - 0.4 >= StopWeight)
+                            BtnStop_Click(null, null);
+                    }
+                }
 
                 if (ts.TotalSeconds >= 60)
                     TxtBrewTime.Text = ts.Minutes.ToString("0") + ":" + ts.Seconds.ToString("00");
@@ -693,7 +707,7 @@ namespace De1Win10
             }
             else
             {
-                TxtBrewTime.Text = "---";
+                //TxtBrewTime.Text = "---";
                 TxtBrewWeightRate.Text = "---";
             }
 

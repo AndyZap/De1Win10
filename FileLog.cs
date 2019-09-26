@@ -36,10 +36,10 @@ namespace De1Win10
             }
         }
 
-        private string CalculateLastEntryWeightFlow(List<De1ShotRecordClass> data, double flow_smoothing_sec)
+        private double CalculateLastEntryWeightFlow(List<De1ShotRecordClass> data, double flow_smoothing_sec)
         {
             if (data.Count <= 2)
-                return "---";
+                return 0;
 
             int last_index = data.Count - 1;
             De1ShotRecordClass last_rec = data[last_index];
@@ -56,15 +56,15 @@ namespace De1Win10
 
             var time = last_rec.espresso_elapsed - data[to_compare_index].espresso_elapsed;
             if (time < 1E-6)
-                return "0.0";
+                return 0;
 
             var diff = last_rec.espresso_weight - data[to_compare_index].espresso_weight;
             if (diff < 1E-6)
-                return "0.0";
+                return 0;
 
             last_rec.espresso_flow_weight = diff / time;
 
-            return last_rec.espresso_flow_weight.ToString("0.0");
+            return last_rec.espresso_flow_weight;
         }
 
         private void CreateStringsFromShotRecords(List<De1ShotRecordClass> list,
