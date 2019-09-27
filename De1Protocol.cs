@@ -57,8 +57,8 @@ namespace De1Win10
 
         De1OtherSetnClass de1OtherSetn = new De1OtherSetnClass();
 
-        DateTime StopTime = DateTime.MaxValue;
-        DateTime StartTime = DateTime.MaxValue;
+        DateTime StopFlushTime = DateTime.MaxValue;
+        DateTime StartEsproTime = DateTime.MaxValue;
         DateTime StopClickedTime = DateTime.MaxValue;
         double StopWeight = double.MaxValue;
 
@@ -505,7 +505,7 @@ namespace De1Win10
             localSettings.Values["TxtFlushSec"] = TxtFlushSec.Text;
 
             TimeSpan ts = new TimeSpan(0, 0, flushSec);
-            StopTime = DateTime.Now + ts;
+            StopFlushTime = DateTime.Now + ts;
 
             return "";
         }
@@ -610,11 +610,9 @@ namespace De1Win10
 
             RaiseAutomationEvent(TxtDe1Status);
 
-            if (StartTime == DateTime.MaxValue &&     // save the start time of the shot
-                (substate == De1SubStateEnum.Preinfusion || substate == De1SubStateEnum.Pouring) &&
-                (state == De1StateEnum.Espresso)
-                )
-                StartTime = DateTime.Now;
+            if (state == De1StateEnum.Espresso  && StartEsproTime == DateTime.MaxValue &&     // save the start time of the shot
+               (substate == De1SubStateEnum.Preinfusion || substate == De1SubStateEnum.Pouring))
+                StartEsproTime = DateTime.Now;
         }
         private Task<string> WriteDe1State(De1StateEnum state)
         {
@@ -654,12 +652,12 @@ namespace De1Win10
             RaiseAutomationEvent(TxtBrewTempMixTarget);
             RaiseAutomationEvent(TxtSteamTemp);
 
-            if (DateTime.Now >= StopTime)
+            if (DateTime.Now >= StopFlushTime)
                 BtnStop_Click(null, null);
 
-            if (StartTime != DateTime.MaxValue) // we are recording the shot
+            if (StartEsproTime != DateTime.MaxValue) // we are recording the shot
             {
-                TimeSpan ts = DateTime.Now - StartTime;
+                TimeSpan ts = DateTime.Now - StartEsproTime;
 
                 De1ShotRecordClass rec = new De1ShotRecordClass(ts.TotalSeconds, shot_info);
 
@@ -697,7 +695,8 @@ namespace De1Win10
 
                     if (ts_extra.TotalSeconds > ExtraStopTime)
                     {
-                        StartTime = DateTime.MaxValue;
+                        StartEsproTime = DateTime.MaxValue;
+                        StopClickedTime = DateTime.MaxValue;
 
                         if (ShotRecords.Count >= 1)
                         {

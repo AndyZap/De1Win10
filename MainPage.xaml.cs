@@ -21,7 +21,7 @@ namespace De1Win10
 {
     public sealed partial class MainPage : Page
     {
-        private string appVersion = "DE1 Win10     App v1.12   ";
+        private string appVersion = "DE1 Win10     App v1.14   ";
 
         private string deviceIdAcaia = String.Empty;
         private string deviceIdDe1 = String.Empty;
@@ -592,8 +592,10 @@ namespace De1Win10
 
         private async void BtnStop_Click(object sender, RoutedEventArgs e)
         {
-            StopTime = DateTime.MaxValue;
-            StopClickedTime = DateTime.Now;
+            StopFlushTime = DateTime.MaxValue;
+
+            if(StartEsproTime != DateTime.MaxValue)  // we are recording Espro shot
+                StopClickedTime = DateTime.Now;
 
             // AAZ testing
             var result = await WriteDe1State(De1StateEnum.Idle);
