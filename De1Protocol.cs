@@ -627,7 +627,9 @@ namespace De1Win10
             RaiseAutomationEvent(TxtDe1Status);
 
             if (StartTime == DateTime.MaxValue &&     // save the start time of the shot
-                (substate == De1SubStateEnum.Preinfusion || substate == De1SubStateEnum.Pouring)) 
+                (substate == De1SubStateEnum.Preinfusion || substate == De1SubStateEnum.Pouring) &&
+                (state == De1StateEnum.Espresso)
+                ) 
                 StartTime = DateTime.Now;
         }
         private Task<string> WriteDe1State(De1StateEnum state)
