@@ -201,6 +201,9 @@ namespace De1Win10
                 else if (line.StartsWith("\tespresso_notes "))
                     sb.AppendLine("\tespresso_notes {" + DetailNotes.Text + "}");
 
+                else if (line.StartsWith("\tprofile_title "))
+                    sb.AppendLine("\tprofile_title {" + ProfileName + "}");
+
                 else
                     sb.AppendLine(line);
             }

@@ -15,6 +15,7 @@ using Windows.UI.Xaml.Input;
 using Windows.System;
 using Windows.UI.Popups;
 using Windows.Storage.Pickers;
+using System.Threading.Tasks;
 
 namespace De1Win10
 {
@@ -79,10 +80,16 @@ namespace De1Win10
             val = localSettings.Values["TxtSteamSec"] as string;
             TxtSteamSec.Text = val == null ? "" : val;
 
+            val = localSettings.Values["TxtRatio"] as string;
+            TxtRatio.Text = val == null ? "" : val;
+
+            val = localSettings.Values["ProfileName"] as string;
+            ProfileName = val == null ? "" : val;
+
             Header.Text = appVersion;
         }
 
-        protected override void OnNavigatedTo(NavigationEventArgs e)
+        protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
             List<string> scenarios = new List<string> { ">  Connect and set profile", ">  Espresso", ">  Water and steam", ">  Add record" };
 
@@ -101,6 +108,13 @@ namespace De1Win10
             ListBoxProfiles.ItemsSource = Profiles;
 
             PanelConnectDisconnect.Background = new SolidColorBrush(Windows.UI.Colors.Yellow);
+
+            var result = await LoadFolders();
+            if (result != "")
+            {
+                UpdateStatus(result, result.StartsWith("Error") ? NotifyType.ErrorMessage : NotifyType.WarningMessage);
+                return;
+            }
         }
 
         private void ScenarioControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -170,7 +184,7 @@ namespace De1Win10
             switch (type)
             {
                 case NotifyType.StatusMessage:
-                    StatusBorder.Background = new SolidColorBrush(Windows.UI.Colors.Green);
+                    StatusBorder.Background = new SolidColorBrush(Windows.UI.Colors.Transparent);
                     break;
                 case NotifyType.ErrorMessage:
                     StatusBorder.Background = new SolidColorBrush(Windows.UI.Colors.Red);
@@ -185,10 +199,7 @@ namespace De1Win10
             if (StatusBlock.Text == "")
                 StatusBorder.Background = new SolidColorBrush(Windows.UI.Colors.Transparent);
 
-            // Raise an event if necessary to enable a screen reader to announce the status update.
-            var peer = FrameworkElementAutomationPeer.FromElement(StatusBlock);
-            if (peer != null)
-                peer.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged);
+            RaiseAutomationEvent(StatusBlock);
         }
 
 
@@ -526,6 +537,9 @@ namespace De1Win10
             DetailBeansWeight.Text = TxtBrewWeight.Text;
             TxtBeanWeightMain.Text = TxtBrewWeight.Text;
 
+            ApplicationDataContainer localSettings = ApplicationData.Current.LocalSettings;
+            localSettings.Values["TxtRatio"] = TxtRatio.Text;
+
             try
             {
                 var ratio = Convert.ToDouble(TxtRatio.Text.Trim());
@@ -668,7 +682,8 @@ namespace De1Win10
         private async void Grid_KeyDown(object sender, KeyRoutedEventArgs e)
         {
             string help_message = "Shortcuts\r\nF1\tHelp\r\nCtrl-C\tConnect\r\nCtrl-D\tDisconnect\r\n";
-            help_message += "Ctrl-B\tBeans weight\r\nCtrl-T\tTare\r\nCtrl-S\tStart / Stop\r\n";
+            help_message += "Ctrl-B\tBeans weight\r\nCtrl-T\tTare\r\nCtrl-S\tStop\r\nCtrl-E\tEspresso\r\n";
+            help_message += "Ctrl-W\tHot water\r\nCtrl-F\tFlash\r\nCtrl-M\tMilk (Steam)\r\n";
             help_message += "Ctrl-Up\tGrind +\r\nCtrl-Dn\tGrind -\r\n\r\nCtrl-A\tAdd to log\r\n";
             help_message += "Ctrl-1\tMenu item 1, etc";
 
@@ -697,10 +712,28 @@ namespace De1Win10
                         break;
 
                     case VirtualKey.S:
+                        if (BtnStop.IsEnabled)
+                            BtnStop_Click(null, null);
+                        break;
+
+                    case VirtualKey.E:
                         if (BtnEspresso.IsEnabled)
                             BtnEspresso_Click(null, null);
-                        else if (BtnStop.IsEnabled)
-                            BtnStop_Click(null, null);
+                        break;
+
+                    case VirtualKey.W:
+                        if (BtnHotWater.IsEnabled)
+                            BtnWater_Click(null, null);
+                        break;
+
+                    case VirtualKey.F:
+                        if (BtnFlush.IsEnabled)
+                            BtnFlush_Click(null, null);
+                        break;
+
+                    case VirtualKey.M:
+                        if (BtnSteam.IsEnabled)
+                            BtnSteam_Click(null, null);
                         break;
 
                     case VirtualKey.Down:
@@ -769,7 +802,7 @@ namespace De1Win10
             ApplicationDataContainer localSettings = ApplicationData.Current.LocalSettings;
             localSettings.Values["ChkAcaia"] = ChkAcaia.IsOn ? "true" : "false";
         }
-        private async void BtnChooseProfile_Click(object sender, RoutedEventArgs e)
+        private async Task<string> LoadFolders()
         {
             if (ProfilesFolder == null)
             {
@@ -790,8 +823,7 @@ namespace De1Win10
                     }
                     else
                     {
-                        UpdateStatus("Error: DE1 source folder has not been selected", NotifyType.ErrorMessage);
-                        return;
+                        return  "Error: DE1 source folder has not been selected";
                     }
                 }
                 else
@@ -802,48 +834,64 @@ namespace De1Win10
                     }
                     catch (Exception)
                     {
-                        UpdateStatus("Error: previously selected folder not found, please try again", NotifyType.ErrorMessage);
                         Windows.Storage.AccessCache.StorageApplicationPermissions.FutureAccessList.Remove(De1FolderToken);
-                        return;
+
+                        return "Error: previously selected folder not found, please try again";
                     }
                 }
 
-                if(await de1_folder.TryGetItemAsync("profiles") == null)
+                if (await de1_folder.TryGetItemAsync("profiles") == null)
                 {
-                    UpdateStatus("Error: seems the selected folder is not correct, DE1 source folder should have \"profiles\" subfolder", NotifyType.ErrorMessage);
                     Windows.Storage.AccessCache.StorageApplicationPermissions.FutureAccessList.Remove(De1FolderToken);
-                    return;
+                    return "Error: seems the selected folder is not correct, DE1 source folder should have \"profiles\" subfolder";
                 }
                 if (await de1_folder.TryGetItemAsync("history") == null)
                 {
-                    UpdateStatus("Error: seems the selected folder is not correct, DE1 source folder should have \"history\" subfolder", NotifyType.ErrorMessage);
                     Windows.Storage.AccessCache.StorageApplicationPermissions.FutureAccessList.Remove(De1FolderToken);
-                    return;
+                    return "Error: seems the selected folder is not correct, DE1 source folder should have \"history\" subfolder";
                 }
 
                 HistoryFolder = await de1_folder.GetFolderAsync("history");
                 if (await HistoryFolder.TryGetItemAsync("0.shot") == null)
                 {
-                    UpdateStatus("Error: please create 0.shot file in \"history\" folder, for the app to use", NotifyType.WarningMessage);
-                    return;
+                    return "Error: please create 0.shot file in \"history\" folder, for the app to use";
                 }
 
                 ProfilesFolder = await de1_folder.GetFolderAsync("profiles");
-                
+
 
                 var ref_file = await HistoryFolder.GetFileAsync("0.shot");
                 ReferenceShotFile = await FileIO.ReadLinesAsync(ref_file);
 
-
                 var files = await ProfilesFolder.GetFilesAsync();
 
                 Profiles.Clear();
+                bool found = false;
                 foreach (var f in files)
                 {
-                    Profiles.Add(new ProfileClass(f.Name));
+                    var name = f.Name.Replace(".tcl", "");
+
+                    Profiles.Add(new ProfileClass(name));
+
+                    if (name == ProfileName)
+                    {
+                        found = true;
+                        TxtDe1Profile.Text = "Profile: " + name;
+                    }
                 }
 
-                UpdateStatus("Profile list has been loaded, please now select profile to use", NotifyType.WarningMessage);
+                if(!found)
+                    return "Profile list has been loaded, please now select profile to use";
+            }
+
+            return "";
+        }
+        private async void BtnChooseProfile_Click(object sender, RoutedEventArgs e)
+        {
+            var result = await LoadFolders();
+            if(result != "")
+            {
+                UpdateStatus(result, result.StartsWith("Error") ? NotifyType.ErrorMessage : NotifyType.ErrorMessage);
                 return;
             }
 
@@ -853,6 +901,9 @@ namespace De1Win10
                 ProfileName = Profiles[ListBoxProfiles.SelectedIndex].profileName;
                 TxtDe1Profile.Text = "Profile: "+ Profiles[ListBoxProfiles.SelectedIndex].profileName;
                 UpdateStatus("Loaded " + TxtDe1Profile.Text, NotifyType.StatusMessage);
+
+                ApplicationDataContainer localSettings = ApplicationData.Current.LocalSettings;
+                localSettings.Values["ProfileName"] = ProfileName;
             }
             else
                 UpdateStatus("Please select profile to use", NotifyType.WarningMessage);

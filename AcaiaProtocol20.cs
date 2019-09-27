@@ -171,7 +171,7 @@ namespace De1Win10
 
         public class ValuesAverager
         {
-            const int max_values = 7;
+            const int max_values = 10;
             List<double> values = new List<double>();
             double last_value = 0.0;
 

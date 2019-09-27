@@ -200,7 +200,6 @@ namespace De1Win10
             return "";
         }
 
-
         Dictionary<byte, De1StateEnum> De1StateMapping = new Dictionary<byte, De1StateEnum>();
         Dictionary<byte, De1SubStateEnum> De1SubStateMapping = new Dictionary<byte, De1SubStateEnum>();
 
@@ -263,7 +262,6 @@ namespace De1Win10
             else
                 throw new Exception("Unknown De1StateEnum " + state.ToString());
         }
-
         private string DecodeDe1Version(IBuffer buffer)  // proc version_spec
         {
             byte[] data;
@@ -299,7 +297,6 @@ namespace De1Win10
                 return "";
             }
         }
-
         public class De1ShotInfoClass
         {
             public double Timer = 0.0;
@@ -316,7 +313,6 @@ namespace De1Win10
 
             public De1ShotInfoClass() { }
         }
-
         public class De1OtherSetnClass
         {
             public int SteamSettings = 0;  // do not know what is this, use always 0
@@ -330,7 +326,6 @@ namespace De1Win10
 
             public De1OtherSetnClass() { }
         }
-
         public class De1ShotRecordClass
         {
             public double espresso_elapsed = 0.0;
@@ -361,7 +356,6 @@ namespace De1Win10
                 espresso_weight = weight;
             }
         }
-
         private bool DecodeDe1ShotInfo(byte[] data, De1ShotInfoClass shot_info) // update_de1_shotvalue
         {
             if (data == null)
@@ -392,7 +386,6 @@ namespace De1Win10
                 return false;
             }
         }
-
         private bool DecodeDe1OtherSetn(byte[] data, De1OtherSetnClass other_setn) // hotwater_steam_settings_spec
         {
             if (data == null)
@@ -496,7 +489,6 @@ namespace De1Win10
             else
                 return "";
         }
-
         private string UpdateFlushSecFromGui()
         {
             int flushSec;
@@ -517,9 +509,6 @@ namespace De1Win10
 
             return "";
         }
-
-
-
         private bool DecodeDe1Water(byte[] data, ref double level) // parse_binary_water_level
         {
             if (data == null)
@@ -541,9 +530,6 @@ namespace De1Win10
                 return false;
             }
         }
-
-
-
         private bool DecodeDe1StateInfo(byte[] data, ref De1StateEnum state, ref De1SubStateEnum substate)
         {
             if (data == null)
@@ -564,14 +550,12 @@ namespace De1Win10
                 return false;
             }
         }
-
         private bool DecodeDe1StateInfo(IBuffer buffer, ref De1StateEnum state, ref De1SubStateEnum substate)
         { 
             byte[] data;
             CryptographicBuffer.CopyToByteArray(buffer, out data);
             return DecodeDe1StateInfo(data, ref state, ref substate);
         }
-
         private async Task<string> writeToDE(byte[] payload, De1ChrEnum chr)
         {
             try
@@ -596,14 +580,12 @@ namespace De1Win10
 
             return "";
         }
-
         void RaiseAutomationEvent(TextBlock t)
         {
             var peer = FrameworkElementAutomationPeer.FromElement(t);
             if (peer != null)
                 peer.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged);
         }
-
         public void UpdateDe1StateInfo(De1StateEnum state, De1SubStateEnum substate)
         {
             if (Dispatcher.HasThreadAccess) // If called from the UI thread, then update immediately. Otherwise, schedule a task on the UI thread to perform the update.
@@ -619,17 +601,19 @@ namespace De1Win10
         {
             TxtDe1Status.Text = "DE1 status: " + state.ToString() + " (" + substate.ToString() + ")";
 
-            if (state != De1StateEnum.Idle)
-                De1StatusBorder.Background = new SolidColorBrush(Windows.UI.Colors.DarkOrange);
+            if (substate == De1SubStateEnum.Ready)
+                De1StatusBorder.Background = new SolidColorBrush(Windows.UI.Colors.Green);
+            else if (substate == De1SubStateEnum.Pouring || substate == De1SubStateEnum.Preinfusion)
+                De1StatusBorder.Background = new SolidColorBrush(Windows.UI.Colors.Blue);
             else
-                De1StatusBorder.Background = new SolidColorBrush(Windows.UI.Colors.Transparent);
+                De1StatusBorder.Background = new SolidColorBrush(Windows.UI.Colors.DarkOrange);
 
             RaiseAutomationEvent(TxtDe1Status);
 
             if (StartTime == DateTime.MaxValue &&     // save the start time of the shot
                 (substate == De1SubStateEnum.Preinfusion || substate == De1SubStateEnum.Pouring) &&
                 (state == De1StateEnum.Espresso)
-                ) 
+                )
                 StartTime = DateTime.Now;
         }
         private Task<string> WriteDe1State(De1StateEnum state)
@@ -637,8 +621,6 @@ namespace De1Win10
             byte[] payload = new byte[1]; payload[0] = GetDe1StateAsByte(state);
             return writeToDE(payload, De1ChrEnum.SetState);
         }
-
-
         public void UpdateDe1ShotInfo(De1ShotInfoClass shot_info)
         {
             if (Dispatcher.HasThreadAccess) // If called from the UI thread, then update immediately. Otherwise, schedule a task on the UI thread to perform the update.
@@ -697,7 +679,7 @@ namespace De1Win10
                     if (StopWeight != double.MaxValue)
                     {
                         var current_weight = WeightAverager.GetValue();
-                        if (current_weight + 2.6 * last_flow - 0.4 >= StopWeight)
+                        if (current_weight + 1.0 * last_flow >= StopWeight)
                             BtnStop_Click(null, null);
                     }
                 }
@@ -723,6 +705,7 @@ namespace De1Win10
                             var last = ShotRecords[ShotRecords.Count - 1];
                             DetailTime.Text = last.espresso_elapsed == 0.0 ? "---" : last.espresso_elapsed.ToString("0.0");
                             DetailCoffeeWeight.Text = last.espresso_weight == 0.0 ? "---" : last.espresso_weight.ToString("0.0");
+                            DetailCoffeeRatio.Text = GetRatioString();
 
                             ScenarioControl.SelectedIndex = 3;  // swith to Add Record page 
                         }
@@ -738,7 +721,6 @@ namespace De1Win10
             RaiseAutomationEvent(TxtBrewTime);
             RaiseAutomationEvent(TxtBrewWeightRate);
         }
-
         public void UpdateDe1Water(double level)
         {
             if (Dispatcher.HasThreadAccess) // If called from the UI thread, then update immediately. Otherwise, schedule a task on the UI thread to perform the update.
@@ -755,7 +737,6 @@ namespace De1Win10
             TxtWaterLevel.Text = "Water: " + level.ToString("0") + " mm";
             RaiseAutomationEvent(TxtWaterLevel);
         }
-
         private Task<string> WriteDeWaterRefillLevel(int refill_level)
         {
             byte[] payload = new byte[] { 0x0, 0x0, 0x0, 0x0 };
