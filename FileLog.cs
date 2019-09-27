@@ -185,20 +185,21 @@ namespace De1Win10
                 else if (line.StartsWith("espresso_temperature_goal "))
                     sb.AppendLine("espresso_temperature_goal " + espresso_temperature_goal.ToString().Replace(" }", "}"));
 
-                else if(line.StartsWith("drink_weight "))
-                    sb.AppendLine("drink_weight " + (DetailCoffeeWeight.Text == "---" ? "0" : DetailCoffeeWeight.Text));
+                // these are with tabs
+                else if(line.StartsWith("\tdrink_weight "))
+                    sb.AppendLine("\tdrink_weight " + (DetailCoffeeWeight.Text == "---" ? "0" : DetailCoffeeWeight.Text));
 
-                else if (line.StartsWith("dsv2_bean_weight "))
-                    sb.AppendLine("dsv2_bean_weight " + (DetailBeansWeight.Text == "---" ? "0" : DetailBeansWeight.Text));
+                else if (line.StartsWith("\tdsv2_bean_weight "))
+                    sb.AppendLine("\tdsv2_bean_weight " + (DetailBeansWeight.Text == "---" ? "0" : DetailBeansWeight.Text));
 
-                else if (line.StartsWith("grinder_setting "))
-                    sb.AppendLine("grinder_setting {" + DetailGrind.Text + "}");
+                else if (line.StartsWith("\tgrinder_setting "))
+                    sb.AppendLine("\tgrinder_setting {" + DetailGrind.Text + "}");
 
-                else if (line.StartsWith("bean_brand "))
-                    sb.AppendLine("bean_brand {" + DetailBeansName.Text + "}");
+                else if (line.StartsWith("\tbean_brand "))
+                    sb.AppendLine("\tbean_brand {" + DetailBeansName.Text + "}");
 
-                else if (line.StartsWith("espresso_notes "))
-                    sb.AppendLine("espresso_notes {" + DetailNotes.Text + "}");
+                else if (line.StartsWith("\tespresso_notes "))
+                    sb.AppendLine("\tespresso_notes {" + DetailNotes.Text + "}");
 
                 else
                     sb.AppendLine(line);

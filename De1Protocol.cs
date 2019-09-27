@@ -53,11 +53,13 @@ namespace De1Win10
         // global values
         const int RefillWaterLevel = 5; // hard code for now
         const int ExtraWaterDepth = 5;  // distance between the water inlet and the bottom of the water tank, hard code for now
+        const int ExtraStopTime = 4; // time to record data after stop
 
         De1OtherSetnClass de1OtherSetn = new De1OtherSetnClass();
 
         DateTime StopTime = DateTime.MaxValue;
         DateTime StartTime = DateTime.MaxValue;
+        DateTime StopClickedTime = DateTime.MaxValue;
         double StopWeight = double.MaxValue;
 
         string ProfileName = "";
@@ -704,6 +706,26 @@ namespace De1Win10
                     TxtBrewTime.Text = ts.Seconds.ToString("0");
 
                 RaiseAutomationEvent(TxtBrewTime);
+
+                if(StopClickedTime != DateTime.MaxValue)
+                {
+                    TimeSpan ts_extra = DateTime.Now - StopClickedTime;
+
+                    if (ts_extra.TotalSeconds > ExtraStopTime)
+                    {
+                        StartTime = DateTime.MaxValue;
+
+                        if (ShotRecords.Count >= 1)
+                        {
+                            // AAZ TODO prune the values which does not change
+                            var last = ShotRecords[ShotRecords.Count - 1];
+                            DetailTime.Text = last.espresso_elapsed == 0.0 ? "---" : last.espresso_elapsed.ToString("0.0");
+                            DetailCoffeeWeight.Text = last.espresso_weight == 0.0 ? "---" : last.espresso_weight.ToString("0.0");
+
+                            ScenarioControl.SelectedIndex = 3;  // swith to Add Record page 
+                        }
+                    }
+                }
             }
             else
             {
