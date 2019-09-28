@@ -18,7 +18,7 @@ namespace De1Win10
 {
     public sealed partial class MainPage : Page
     {
-        enum De1ChrEnum { Version, SetState, OtherSetn, ShotInfo, StateInfo, Water }
+        enum De1ChrEnum { SetState, OtherSetn, ShotHeader, ShotFrame, Water }
         public enum De1StateEnum
         {
             Sleep, GoingToSleep, Idle, Busy, Espresso, Steam, HotWater, ShortCal, SelfTest, LongCal, Descale,
@@ -27,23 +27,22 @@ namespace De1Win10
         public enum De1SubStateEnum { Ready, Heating, FinalHeating, Stabilising, Preinfusion, Pouring, Ending, Refill }
 
         string SrvDe1String = "0000A000-0000-1000-8000-00805F9B34FB";
-        string ChrDe1VersionString = "0000A001-0000-1000-8000-00805F9B34FB";   // A001 Versions                   R/-/-
-        string ChrDe1SetStateString = "0000A002-0000-1000-8000-00805F9B34FB";  // A002 Set State                  R/W/-
-        string ChrDe1OtherSetnString = "0000A00B-0000-1000-8000-00805F9B34FB"; // A00B Other Settings             R/W/-
-        string ChrDe1ShotInfoString = "0000A00D-0000-1000-8000-00805F9B34FB";  // A00D Shot Info                  R/-/N
-        string ChrDe1StateInfoString = "0000A00E-0000-1000-8000-00805F9B34FB"; // A00E State Info                 R/-/N
-
-        // later - to set the shot values
-        //string ChrDe1ShotHeaderString = "0000A00F-0000-1000-8000-00805F9B34FB";// A00F Shot Description Header    R/W/-
-        //string ChrDe1ShotFrameString = "0000A010-0000-1000-8000-00805F9B34FB"; // A010 Shot Frame                 R/W/-
-
-        string ChrDe1WaterString = "0000A011-0000-1000-8000-00805F9B34FB";     // A011 Water                      R/W/N
+        string ChrDe1VersionString = "0000A001-0000-1000-8000-00805F9B34FB";    // A001 Versions                   R/-/-
+        string ChrDe1SetStateString = "0000A002-0000-1000-8000-00805F9B34FB";   // A002 Set State                  R/W/-
+        string ChrDe1OtherSetnString = "0000A00B-0000-1000-8000-00805F9B34FB";  // A00B Other Settings             R/W/-
+        string ChrDe1ShotInfoString = "0000A00D-0000-1000-8000-00805F9B34FB";   // A00D Shot Info                  R/-/N
+        string ChrDe1StateInfoString = "0000A00E-0000-1000-8000-00805F9B34FB";  // A00E State Info                 R/-/N
+        string ChrDe1ShotHeaderString = "0000A00F-0000-1000-8000-00805F9B34FB"; // A00F Shot Description Header    R/W/-
+        string ChrDe1ShotFrameString = "0000A010-0000-1000-8000-00805F9B34FB";  // A010 Shot Frame                 R/W/-
+        string ChrDe1WaterString = "0000A011-0000-1000-8000-00805F9B34FB";      // A011 Water                      R/W/N
 
         GattCharacteristic chrDe1Version = null;
         GattCharacteristic chrDe1SetState = null;
         GattCharacteristic chrDe1OtherSetn = null;
         GattCharacteristic chrDe1ShotInfo = null;
         GattCharacteristic chrDe1StateInfo = null;
+        GattCharacteristic chrDe1ShotHeader = null;
+        GattCharacteristic chrDe1ShotFrame = null;
         GattCharacteristic chrDe1Water = null;
 
         private bool notifDe1StateInfo = false;
@@ -54,12 +53,16 @@ namespace De1Win10
         const int RefillWaterLevel = 5; // hard code for now
         const int ExtraWaterDepth = 5;  // distance between the water inlet and the bottom of the water tank, hard code for now
         const int ExtraStopTime = 4; // time to record data after stop
+        const double StopTimeFlowCoeff = 1.5; // flow multiplier
+        const double StopTimeFlowAddOn = 0.0; // flow add-on
+
 
         De1OtherSetnClass de1OtherSetn = new De1OtherSetnClass();
 
         DateTime StopFlushTime = DateTime.MaxValue;
         DateTime StartEsproTime = DateTime.MaxValue;
         DateTime StopClickedTime = DateTime.MaxValue;
+        bool StopHasBeenClicked = false;
         double StopWeight = double.MaxValue;
 
         string ProfileName = "";
@@ -174,6 +177,24 @@ namespace De1Win10
                 if (!DecodeDe1StateInfo(de1_state_result.Value, ref state, ref substate))
                     return "Error, expected to find one DE1 characteristics";
                 UpdateDe1StateInfo(state, substate);
+
+
+                // Characteristic  A00F Shot Description Header    R/W/-  --------------------------------------------------
+                result_charact = await service.GetCharacteristicsForUuidAsync(new Guid(ChrDe1ShotHeaderString), bleCacheMode);
+
+                if (result_charact.Status != GattCommunicationStatus.Success) { return "Failed to get DE1 characteristic " + result_charact.Status.ToString(); }
+                if (result_charact.Characteristics.Count != 1) { return "Error, expected to find one DE1 characteristics"; }
+
+                chrDe1ShotHeader = result_charact.Characteristics[0];
+
+
+                // Characteristic  A010 Shot Frame                 R/W/-  --------------------------------------------------
+                result_charact = await service.GetCharacteristicsForUuidAsync(new Guid(ChrDe1ShotFrameString), bleCacheMode);
+
+                if (result_charact.Status != GattCommunicationStatus.Success) { return "Failed to get DE1 characteristic " + result_charact.Status.ToString(); }
+                if (result_charact.Characteristics.Count != 1) { return "Error, expected to find one DE1 characteristics"; }
+
+                chrDe1ShotFrame = result_charact.Characteristics[0];
 
 
                 // Characteristic   A011 Water R/W/N  --------------------------------------------------
@@ -565,6 +586,10 @@ namespace De1Win10
                     result = await chrDe1SetState.WriteValueWithResultAsync(payload.AsBuffer());
                 else if (chr == De1ChrEnum.OtherSetn)
                     result = await chrDe1OtherSetn.WriteValueWithResultAsync(payload.AsBuffer());
+                else if (chr == De1ChrEnum.ShotHeader)
+                    result = await chrDe1ShotHeader.WriteValueWithResultAsync(payload.AsBuffer());
+                else if (chr == De1ChrEnum.ShotFrame)
+                    result = await chrDe1ShotFrame.WriteValueWithResultAsync(payload.AsBuffer());
                 else if (chr == De1ChrEnum.Water)
                     result = await chrDe1Water.WriteValueWithResultAsync(payload.AsBuffer());
                 else
@@ -641,6 +666,7 @@ namespace De1Win10
             TxtBrewTempMix.Text = shot_info.MixTemp.ToString("0.0");
             TxtBrewTempMixTarget.Text = shot_info.SetMixTemp.ToString("0.0");
             TxtSteamTemp.Text = shot_info.SteamTemp.ToString("0");
+            TxtFrameNumber.Text = shot_info.FrameNumber.ToString("0");
 
             RaiseAutomationEvent(TxtBrewFlow);
             RaiseAutomationEvent(TxtBrewFlowTarget);
@@ -651,6 +677,7 @@ namespace De1Win10
             RaiseAutomationEvent(TxtBrewTempMix);
             RaiseAutomationEvent(TxtBrewTempMixTarget);
             RaiseAutomationEvent(TxtSteamTemp);
+            RaiseAutomationEvent(TxtFrameNumber);
 
             if (DateTime.Now >= StopFlushTime)
                 BtnStop_Click(null, null);
@@ -671,13 +698,10 @@ namespace De1Win10
                     var last_flow = CalculateLastEntryWeightFlow(ShotRecords, SmoothWeightFlowSec);
                     TxtBrewWeightRate.Text = last_flow.ToString("0.0");
 
-                    // damian found: after you hit the stop button, the remaining liquid that will end up in the cup is 
-                    // equal to about 2.6 seconds of the current flow rate, minus a 0.4 g adjustment
-
-                    if (StopWeight != double.MaxValue)
+                    if (StopWeight != double.MaxValue && StopHasBeenClicked == false)
                     {
                         var current_weight = WeightAverager.GetValue();
-                        if (current_weight + 1.0 * last_flow >= StopWeight)
+                        if (current_weight + StopTimeFlowCoeff * last_flow + StopTimeFlowAddOn >= StopWeight)
                             BtnStop_Click(null, null);
                     }
                 }
@@ -714,7 +738,7 @@ namespace De1Win10
             else
             {
                 //TxtBrewTime.Text = "---";
-                TxtBrewWeightRate.Text = "---";
+                //TxtBrewWeightRate.Text = "---";
             }
 
             RaiseAutomationEvent(TxtBrewTime);

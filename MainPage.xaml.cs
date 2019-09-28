@@ -21,7 +21,7 @@ namespace De1Win10
 {
     public sealed partial class MainPage : Page
     {
-        private string appVersion = "DE1 Win10     App v1.14   ";
+        private string appVersion = "DE1 Win10     App v1.15   ";
 
         private string deviceIdAcaia = String.Empty;
         private string deviceIdDe1 = String.Empty;
@@ -528,7 +528,6 @@ namespace De1Win10
             var result = await WriteTare();
             if (result != "") { FatalError(result); return; }
 
-            TxtBrewTime.Text = "---";
             UpdateStatus("Tare", NotifyType.StatusMessage);
         }
 
@@ -556,6 +555,7 @@ namespace De1Win10
         {
             ShotRecords.Clear();
             StopClickedTime = DateTime.MaxValue;
+            StopHasBeenClicked = false;
 
             try
             {
@@ -594,8 +594,11 @@ namespace De1Win10
         {
             StopFlushTime = DateTime.MaxValue;
 
-            if(StartEsproTime != DateTime.MaxValue)  // we are recording Espro shot
+            if (StartEsproTime != DateTime.MaxValue)  // we are recording Espro shot
+            {
                 StopClickedTime = DateTime.Now;
+                StopHasBeenClicked = true;
+            }
 
             // AAZ testing
             var result = await WriteDe1State(De1StateEnum.Idle);

@@ -41,7 +41,7 @@
                     <!-- 
                     StackPanel PanelEspresso
                     -->
-                    <StackPanel  x:Name="PanelEspresso" Grid.Row="0" Margin="0,0,0,10" Visibility="Collapsed">
+                    <StackPanel  x:Name="PanelEspresso" Grid.Row="0" Margin="0,0,0,10" Visibility="Visible">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="auto"/>
@@ -97,6 +97,8 @@
                             <TextBlock Grid.Row="3" Grid.Column="0" Text="Flow, mL/s"  Margin="0,10,10,10" FontSize="24"/>
                             <TextBlock Grid.Row="3" Grid.Column="1" x:Name="TxtBrewFlow" Text="---"  Margin="30,10,10,10" FontSize="24" AutomationProperties.LiveSetting="Assertive"/>
                             <TextBlock Grid.Row="3" Grid.Column="2" x:Name="TxtBrewFlowTarget" Text="---"  Margin="30,10,10,10" FontSize="24" AutomationProperties.LiveSetting="Assertive"/>
+                            <TextBlock Grid.Row="3" Grid.Column="4" Text="Frame number"  Margin="0,10,10,10" FontSize="24"/>
+                            <TextBlock Grid.Row="3" Grid.Column="5" x:Name="TxtFrameNumber" Text="---"  Margin="0,10,10,10" FontSize="24" AutomationProperties.LiveSetting="Assertive"/>
 
                             <TextBlock Grid.Row="4" Grid.Column="0" Text="Pressure, bar"  Margin="0,10,10,10" FontSize="24"/>
                             <TextBlock Grid.Row="4" Grid.Column="1" x:Name="TxtBrewPressure" Text="---"  Margin="30,10,10,10" FontSize="24" AutomationProperties.LiveSetting="Assertive"/>
@@ -111,7 +113,7 @@
                             <TextBlock Grid.Row="6" Grid.Column="2" x:Name="TxtBrewTempMixTarget" Text="---"  Margin="30,10,10,10" FontSize="24" AutomationProperties.LiveSetting="Assertive"/>
 
                             <TextBlock Grid.Row="6" Grid.Column="4" Text="Steam, °C"  Margin="0,10,10,10" FontSize="24"/>
-                            <TextBlock Grid.Row="6" Grid.Column="5" x:Name="TxtSteamTemp" Text="---"  Margin="30,10,10,10" FontSize="24" AutomationProperties.LiveSetting="Assertive"/>
+                            <TextBlock Grid.Row="6" Grid.Column="5" x:Name="TxtSteamTemp" Text="---"  Margin="0,10,10,10" FontSize="24" AutomationProperties.LiveSetting="Assertive"/>
 
                         </Grid>
                     </StackPanel>
@@ -160,7 +162,7 @@
                     <!-- 
                     StackPanel PanelSaveRecord
                     -->
-                    <StackPanel  x:Name="PanelSaveRecord" Grid.Row="0" Margin="0,0,0,10" Visibility="Visible">
+                    <StackPanel  x:Name="PanelSaveRecord" Grid.Row="0" Margin="0,0,0,10" Visibility="Collapsed">
 
                         <Button x:Name="BtnSaveLog" Content="Add record" Margin="0,10,30,10" IsEnabled="True" FontSize="24" Click="BtnSaveLog_Click" Width="200" Height="70"/>
                         
