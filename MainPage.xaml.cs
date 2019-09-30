@@ -21,7 +21,7 @@ namespace De1Win10
 {
     public sealed partial class MainPage : Page
     {
-        private string appVersion = "DE1 Win10     App v1.15   ";
+        private string appVersion = "DE1 Win10     App v1.16   ";
 
         private string deviceIdAcaia = String.Empty;
         private string deviceIdDe1 = String.Empty;
@@ -115,6 +115,58 @@ namespace De1Win10
                 UpdateStatus(result, result.StartsWith("Error") ? NotifyType.ErrorMessage : NotifyType.WarningMessage);
                 return;
             }
+
+
+
+
+            // AAZ test profiles   ----------------------------------------------
+            /*
+            var bin_file = await HistoryFolder.GetFileAsync("ws_output3_out_shots_only.txt");
+            var bin_lines = await FileIO.ReadLinesAsync(bin_file);
+
+            var tcl_file = await ProfilesFolder.GetFileAsync("Best overall pressure profile.tcl");
+            var tcl_lines = await FileIO.ReadLinesAsync(tcl_file);
+
+            De1ShotHeaderClass header_ref = new De1ShotHeaderClass();
+            List<De1ShotFrameClass> frames_ref = new List<De1ShotFrameClass>();
+            if(!ShotBinReader(bin_lines, header_ref, frames_ref))
+            {
+                UpdateStatus("ShotBinReader failed", NotifyType.ErrorMessage);
+                return;
+            }
+
+            De1ShotHeaderClass header_my = new De1ShotHeaderClass();
+            List<De1ShotFrameClass> frames_my = new List<De1ShotFrameClass>();
+            if(!ShotTclParser(tcl_lines, header_my, frames_my))
+            {
+                UpdateStatus("ShotTclParser failed", NotifyType.ErrorMessage);
+                return;
+            }
+
+
+            if (header_ref.Compare(header_my) == false)
+            {
+                UpdateStatus("Headers do not match ", NotifyType.ErrorMessage);
+                return;
+            }
+
+            if(frames_ref.Count != frames_my.Count)
+            {
+                UpdateStatus("Different num frames", NotifyType.ErrorMessage);
+                return;
+            }
+
+            for(int i = 0; i < frames_ref.Count; i++)
+            {
+                if (frames_ref[i].Compare(frames_my[i]) == false)
+                {
+                    UpdateStatus("Frame do not match #" + i.ToString(), NotifyType.ErrorMessage);
+                    return;
+                }
+            }
+
+            UpdateStatus("All good", NotifyType.StatusMessage);*/
+            // AAZ test profiles   ----------------------------------------------
         }
 
         private void ScenarioControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -557,34 +609,34 @@ namespace De1Win10
             StopClickedTime = DateTime.MaxValue;
             StopHasBeenClicked = false;
 
-            try
+            if (notifAcaia)
             {
-                StopWeight = Convert.ToDouble(TxtBrewWeightTarget.Text.Trim());
-            }
-            catch(Exception)
-            {
-                StopWeight = double.MaxValue;
+                try
+                {
+                    StopWeight = Convert.ToDouble(TxtBrewWeightTarget.Text.Trim());
+                }
+                catch (Exception)
+                {
+                    StopWeight = double.MaxValue;
+                }
+
+                if (TxtBrewWeight.Text != "0.0") // tare, as I always forget to do this
+                {
+                    var result_t = await WriteTare();
+                    if (result_t != "") { FatalError(result_t); return; }
+                }
             }
 
-            // AAZ testing
             var result = await WriteDe1State(De1StateEnum.Espresso);
             if (result != "") { FatalError(result); return; }
 
 
             /*
-            if (LogBrewWeight.Text != "0.0") // tare, as I always forget to do this
-            {
-                var result = await WriteTare();
-                if (result != "") { FatalError(result); return; }
-            }
-
+            // will sort enable/disable later
             BtnBeansWeight.IsEnabled = false;
             BtnTare.IsEnabled = false;
             BtnStartLog.IsEnabled = false;
             BtnStopLog.IsEnabled = true;
-
-
-            startTimeWeight = DateTime.Now;
             */
 
             UpdateStatus("Espresso ...", NotifyType.StatusMessage);
@@ -600,29 +652,15 @@ namespace De1Win10
                 StopHasBeenClicked = true;
             }
 
-            // AAZ testing
             var result = await WriteDe1State(De1StateEnum.Idle);
             if (result != "") { FatalError(result); return; }
 
-            /*
+            /*            
+            // will sort enable/disable later
             BtnBeansWeight.IsEnabled = true;
             BtnTare.IsEnabled = true;
             BtnStartLog.IsEnabled = true;
             BtnStopLog.IsEnabled = false;
-
-            startTimeWeight = DateTime.MinValue;
-
-            weightEverySec.Stop(0);
-            pressureEverySec.Stop(weightEverySec.GetActualNumValues());
-
-            DetailDateTime.Text = DateTime.Now.ToString("yyyy MMM dd ddd HH:mm");
-            DetailCoffeeWeight.Text = LogBrewWeight.Text;
-            DetailTime.Text = weightEverySec.GetActualTimingString();
-            DetailCoffeeRatio.Text = GetRatioString();
-
-            // switch to brew details page
-            BtnSaveLog.IsEnabled = true;
-            ScenarioControl.SelectedIndex = 1;
             */
 
             UpdateStatus("Stopped", NotifyType.StatusMessage);
