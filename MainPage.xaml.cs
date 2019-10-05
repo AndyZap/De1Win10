@@ -21,7 +21,7 @@ namespace De1Win10
 {
     public sealed partial class MainPage : Page
     {
-        private string appVersion = "DE1 Win10     App v1.16   ";
+        private string appVersion = "DE1 Win10     App v1.17   ";
 
         private string deviceIdAcaia = String.Empty;
         private string deviceIdDe1 = String.Empty;
@@ -905,7 +905,53 @@ namespace De1Win10
             if (ListBoxProfiles.SelectedIndex != -1)
             {
                 ProfileName = Profiles[ListBoxProfiles.SelectedIndex].profileName;
-                TxtDe1Profile.Text = "Profile: "+ Profiles[ListBoxProfiles.SelectedIndex].profileName;
+
+
+                var tcl_file = await ProfilesFolder.GetFileAsync(ProfileName + ".tcl");
+                var tcl_lines = await FileIO.ReadLinesAsync(tcl_file);
+
+                De1ShotHeaderClass header = new De1ShotHeaderClass();
+                List<De1ShotFrameClass> frames = new List<De1ShotFrameClass>();
+                if (!ShotTclParser(tcl_lines, header, frames))
+                {
+                    UpdateStatus("Failed to encode profile " + ProfileName + ", try to load another profile", NotifyType.ErrorMessage);
+                    return;
+                }
+
+
+                var res_header = await writeToDE(header.bytes, De1ChrEnum.ShotHeader);
+                if (res_header != "")
+                {
+                    UpdateStatus("Error " + res_header, NotifyType.ErrorMessage);
+                    return;
+                }
+
+                foreach(var fr in frames)
+                {
+                    var res_frames = await writeToDE(fr.bytes, De1ChrEnum.ShotFrame);
+                    if (res_frames != "")
+                    {
+                        UpdateStatus("Error " + res_frames, NotifyType.ErrorMessage);
+                        return;
+                    }
+                }
+
+                // check if we need to send the new water temp
+                if (de1OtherSetn.TargetGroupTemp != frames[0].Temp)
+                {
+                    de1OtherSetn.TargetGroupTemp = frames[0].Temp;
+                    var bytes = EncodeDe1OtherSetn(de1OtherSetn);
+                    var res_water = await writeToDE(bytes, De1ChrEnum.OtherSetn);
+                    if(res_water != "")
+                    {
+                        UpdateStatus("Error " + res_water, NotifyType.ErrorMessage);
+                        return;
+                    }
+
+                }
+
+                // all good
+                TxtDe1Profile.Text = "Profile: " + Profiles[ListBoxProfiles.SelectedIndex].profileName;
                 UpdateStatus("Loaded " + TxtDe1Profile.Text, NotifyType.StatusMessage);
 
                 ApplicationDataContainer localSettings = ApplicationData.Current.LocalSettings;
