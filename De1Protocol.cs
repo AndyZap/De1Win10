@@ -13,6 +13,7 @@ using Windows.UI.Core;
 using Windows.UI.Xaml.Automation.Peers;
 using Windows.Storage;
 using Windows.UI.Xaml.Media;
+using System.Text;
 
 namespace De1Win10
 {
@@ -50,8 +51,9 @@ namespace De1Win10
         private bool notifDe1Water = false;
 
         // global values
-        const int RefillWaterLevel = 5; // hard code for now
-        const int ExtraWaterDepth = 5;  // distance between the water inlet and the bottom of the water tank, hard code for now
+        const int RefillWaterLevel = 5; // AAZ TODO hard-coded - read from 0.shot instead
+        const int ExtraWaterDepth = 5;  // distance between the water inlet and the bottom of the water tank, AAZ TODO hard-coded - read from 0.shot instead
+
         const int ExtraStopTime = 4; // time to record data after stop
         const double StopTimeFlowCoeff = 1.5; // flow multiplier
         const double StopTimeFlowAddOn = 0.0; // flow add-on
@@ -134,9 +136,9 @@ namespace De1Win10
                 if (de1_watersteam_result.Status != GattCommunicationStatus.Success) { return "Failed to read DE1 characteristic " + de1_watersteam_result.Status.ToString(); }
 
                 if (!DecodeDe1OtherSetn(de1_watersteam_result.Value, de1OtherSetn)) { return "Failed to decode DE1 Water Steam"; }
-                if(TxtHotWaterTemp.Text == "")
+                if (TxtHotWaterTemp.Text == "")
                     TxtHotWaterTemp.Text = de1OtherSetn.TargetHotWaterTemp.ToString();
-                if(TxtHotWaterMl.Text == "")
+                if (TxtHotWaterMl.Text == "")
                     TxtHotWaterMl.Text = de1OtherSetn.TargetHotWaterVol.ToString();
                 if (TxtSteamSec.Text == "")
                     TxtSteamSec.Text = de1OtherSetn.TargetSteamLength.ToString();
@@ -572,7 +574,7 @@ namespace De1Win10
             }
         }
         private bool DecodeDe1StateInfo(IBuffer buffer, ref De1StateEnum state, ref De1SubStateEnum substate)
-        { 
+        {
             byte[] data;
             CryptographicBuffer.CopyToByteArray(buffer, out data);
             return DecodeDe1StateInfo(data, ref state, ref substate);
@@ -635,7 +637,7 @@ namespace De1Win10
 
             RaiseAutomationEvent(TxtDe1Status);
 
-            if (state == De1StateEnum.Espresso  && StartEsproTime == DateTime.MaxValue &&     // save the start time of the shot
+            if (state == De1StateEnum.Espresso && StartEsproTime == DateTime.MaxValue &&     // save the start time of the shot
                (substate == De1SubStateEnum.Preinfusion || substate == De1SubStateEnum.Pouring))
                 StartEsproTime = DateTime.Now;
         }
@@ -713,7 +715,7 @@ namespace De1Win10
 
                 RaiseAutomationEvent(TxtBrewTime);
 
-                if(StopClickedTime != DateTime.MaxValue)
+                if (StopClickedTime != DateTime.MaxValue)
                 {
                     TimeSpan ts_extra = DateTime.Now - StopClickedTime;
 
@@ -758,60 +760,11 @@ namespace De1Win10
         private Task<string> WriteDeWaterRefillLevel(int refill_level)
         {
             byte[] payload = new byte[] { 0x0, 0x0, 0x0, 0x0 };
-            payload[2] = (byte) refill_level;
+            payload[2] = (byte)refill_level;
 
             return writeToDE(payload, De1ChrEnum.Water);
         }
 
-        /*
-        proc spec_shotdescheader {} {
-        set spec {
-        HeaderV {char {} {} {unsigned} {}}
-        NumberOfFrames {char {} {} {unsigned} {}}
-        NumberOfPreinfuseFrames {char {} {} {unsigned} {}}
-        MinimumPressure {char {} {} {unsigned} {
-        MaximumFlow {char {} {} {unsigned} {
-        }
-
-        }
-
-        proc spec_shotframe {} {
-        set spec {
-        FrameToWrite {char {} {} {unsigned} {}}
-        Flag {char {} {} {unsigned} {}}
-        SetVal {char {} {} {unsigned} {
-        Temp {char {} {} {unsigned} {
-        FrameLen {char {} {} {unsigned} {[convert_F8_1_7_to_float
-        TriggerVal {char {} {} {unsigned} {
-        MaxVol {Short {} {} {unsigned} {[convert_bottom_10_of_U10P0
-        }
-        return
-        }
-
-
-        # enum T_E_FrameFlags : U8 {
-        #
-        #  // FrameFlag of zero and pressure of 0 means end of shot, unless we are at the tenth frame, in which case it's the end of shot no matter what
-        #  CtrlF       = 0x01, // Are we in Pressure or Flow priority mode?
-        #  DoCompare   = 0x02, // Do a compare, early exit current frame if compare true
-        #  DC_GT       = 0x04, // If we are doing a compare, then 0 = less than, 1 = greater than
-        #  DC_CompF    = 0x08, // Compare Pressure or Flow?
-        #  TMixTemp    = 0x10, // Disable shower head temperature compensation. Target Mix Temp instead.
-        #  Interpolate = 0x20, // Hard jump to target value, or ramp?
-        #  IgnoreLimit = 0x40, // Ignore minimum pressure and max flow settings
-        #
-        // note these flags are not used !!!
-        #  DontInterpolate = 0, // Don't interpolate, just go to or hold target value
-        #  CtrlP = 0,
-        #  DC_CompP = 0,
-        #  DC_LT = 0,
-        #  TBasketTemp = 0       // Target the basket temp, not the mix temp
-        #};
-
-        // Re how to pack settings - look at proc de1_packed_shot {} {
-
-
-        */
 
         // ------------------ shot header/frame encoding / decoding ------------------------------
 
@@ -820,18 +773,22 @@ namespace De1Win10
             public byte HeaderV = 1;    // hard-coded
             public byte NumberOfFrames = 0;    // total num frames
             public byte NumberOfPreinfuseFrames = 0;    // num preinf frames
-            public byte MinimumPressure = 0;    // hard-coded, read as {$val / 16.0}}
-            public byte MaximumFlow = 0x60; // hard-coded, read as {$val / 16.0}} 0x60 = 96, /16=6mL/s
+            public byte MinimumPressure = 0;    // hard-coded, read as {
+            public byte MaximumFlow = 0x60; // hard-coded, read as {
+
+            public byte[] bytes;  // to compare bytes
 
             public De1ShotHeaderClass() { }
 
-            public bool Compare(De1ShotHeaderClass sh)
+            public bool CompareBytes(De1ShotHeaderClass sh)
             {
-                if (HeaderV != sh.HeaderV) return false;
-                if (NumberOfFrames != sh.NumberOfFrames) return false;
-                if (NumberOfPreinfuseFrames != sh.NumberOfPreinfuseFrames) return false;
-                if (MinimumPressure != sh.MinimumPressure) return false;
-                if (MaximumFlow != sh.MaximumFlow) return false;
+                if (sh.bytes.Length != bytes.Length)
+                    return false;
+                for (int i = 0; i < sh.bytes.Length; i++)
+                {
+                    if (sh.bytes[i] != bytes[i])
+                        return false;
+                }
 
                 return true;
             }
@@ -842,33 +799,48 @@ namespace De1Win10
             }
         }
         public class De1ShotFrameClass  // proc spec_shotframe
+
         {
-            public byte     FrameToWrite = 0;
-            public byte     Flag = 0;
-            public double   SetVal = 0;         // {$val / 16.0}}
-            public double   Temp = 0;           // {$val / 2.0}}
-            public double   FrameLen = 0.0;     // convert_F8_1_7_to_float
-            public double   TriggerVal = 0;     // {$val / 16.0}}
-            public double   MaxVol = 0.0;       // convert_bottom_10_of_U10P0
+            public byte FrameToWrite = 0;
+            public byte Flag = 0;
+            public double SetVal = 0;         // {
+            public double Temp = 0;           // {
+            public double FrameLen = 0.0;     // convert_F8_1_7_to_float
+            public double TriggerVal = 0;     // {
+            public double MaxVol = 0.0;       // convert_bottom_10_of_U10P0
+
+            public byte[] bytes;  // to compare bytes
 
             public De1ShotFrameClass() { }
 
-
-            public bool Compare(De1ShotFrameClass sf)
+            public bool CompareBytes(De1ShotFrameClass sh)
             {
-                if (FrameToWrite != sf.FrameToWrite) return false;
-                if (Flag != sf.Flag) return false;
-                if (SetVal != sf.SetVal) return false;
-                if (Temp != sf.Temp) return false;
-                if (FrameLen != sf.FrameLen) return false;
-                if (TriggerVal != sf.TriggerVal) return false;
-                if (MaxVol != sf.MaxVol) return false;
+                if (sh.bytes.Length != bytes.Length)
+                    return false;
+                for (int i = 0; i < sh.bytes.Length; i++)
+                {
+                    if (sh.bytes[i] != bytes[i])
+                        return false;
+                }
 
                 return true;
             }
+
+            public override string ToString()
+            {
+                StringBuilder sb = new StringBuilder();
+                foreach (var b in bytes)
+                    sb.Append(b.ToString("X") + "-");
+
+                return FrameToWrite.ToString() + "    " + Flag.ToString() + "    " +
+
+                SetVal.ToString() + "    " + Temp.ToString() + "    " +
+                FrameLen.ToString() + "    " + TriggerVal.ToString() + "    " +
+                MaxVol.ToString() + "   " + sb.ToString();
+            }
         }
 
-        private bool DecodeDe1ShotHeader(byte[] data, De1ShotHeaderClass shot_header)
+        private bool DecodeDe1ShotHeader(byte[] data, De1ShotHeaderClass shot_header, bool check_encoding = false)
         {
             if (data == null)
                 return false;
@@ -879,14 +851,27 @@ namespace De1Win10
             try
             {
                 int index = 0;
-                shot_header.HeaderV                 = data[index]; index++;
-                shot_header.NumberOfFrames          = data[index]; index++;
+                shot_header.HeaderV = data[index]; index++;
+                shot_header.NumberOfFrames = data[index]; index++;
                 shot_header.NumberOfPreinfuseFrames = data[index]; index++;
-                shot_header.MinimumPressure         = data[index]; index++;
-                shot_header.MaximumFlow             = data[index]; index++;
+                shot_header.MinimumPressure = data[index]; index++;
+                shot_header.MaximumFlow = data[index]; index++;
 
-                if(shot_header.HeaderV != 1)  // this is 1 for now
+                if (shot_header.HeaderV != 1)  // this is 1 for now
                     return false;
+
+                if (check_encoding)
+                {
+                    var new_bytes = EncodeDe1ShotHeader(shot_header);
+                    if (new_bytes.Length != data.Length)
+                        return false;
+                    for (int i = 0; i < new_bytes.Length; i++)
+                    {
+
+                        if (new_bytes[i] != data[i])
+                            return false;
+                    }
+                }
 
                 return true;
             }
@@ -896,8 +881,7 @@ namespace De1Win10
             }
         }
 
-
-        private bool DecodeDe1ShotFrame(byte[] data, De1ShotFrameClass shot_frame)
+        private bool DecodeDe1ShotFrame(byte[] data, De1ShotFrameClass shot_frame, bool check_encoding = false)
         {
             if (data == null)
                 return false;
@@ -908,13 +892,26 @@ namespace De1Win10
             try
             {
                 int index = 0;
-                shot_frame.FrameToWrite     = data[index]; index++;
-                shot_frame.Flag             = data[index]; index++;
-                shot_frame.SetVal           = data[index] / 16.0; index++;
-                shot_frame.Temp             = data[index] / 2.0; index++;
-                shot_frame.FrameLen         = convert_F8_1_7_to_float(data[index]); index++;  // convert_F8_1_7_to_float
-                shot_frame.TriggerVal       = data[index] / 16.0; index++;
-                shot_frame.MaxVol           = convert_bottom_10_of_U10P0((256 * (int)(data[index])) + data[index+1]); // convert_bottom_10_of_U10P0
+                shot_frame.FrameToWrite = data[index]; index++;
+                shot_frame.Flag = data[index]; index++;
+                shot_frame.SetVal = data[index] / 16.0; index++;
+                shot_frame.Temp = data[index] / 2.0; index++;
+                shot_frame.FrameLen = convert_F8_1_7_to_float(data[index]); index++;  // convert_F8_1_7_to_float
+                shot_frame.TriggerVal = data[index] / 16.0; index++;
+                shot_frame.MaxVol = convert_bottom_10_of_U10P0(256 * data[index] + data[index + 1]); // convert_bottom_10_of_U10P0
+
+                if (check_encoding)
+
+                {
+                    var new_bytes = EncodeDe1ShotFrame(shot_frame);
+                    if (new_bytes.Length != data.Length)
+                        return false;
+                    for (int i = 0; i < new_bytes.Length; i++)
+                    {
+                        if (new_bytes[i] != data[i])
+                            return false;
+                    }
+                }
 
                 return true;
             }
@@ -931,79 +928,37 @@ namespace De1Win10
             else
                 return (x & 127);
         }
+
+        byte convert_float_to_F8_1_7(double x)
+        {
+            if (x >= 12.75)  // need to set the high bit on (0x80);
+            {
+                if (x > 127)
+                    return 127 | 0x80;
+
+                else
+                    return (byte)(0x80 | (int)(0.5 + x));
+
+            }
+            else
+            {
+                return (byte)(0.5 + x * 10);
+            }
+        }
+
         double convert_bottom_10_of_U10P0(int x)
         {
             return (x & 1023);
         }
 
-//  a shot is a packed struct of this type:
-//  
-//  struct PACKEDATTR T_ShotDesc {
-//    U8P0 HeaderV;           // Set to 1 for this type of shot description
-//    U8P0 NumberOfFrames;    // Total number of frames.
-//    U8P0 NumberOfPreinfuseFrames; // Number of frames that are preinfusion
-//    U8P4 MinimumPressure;   // In flow priority modes, this is the minimum pressure we'll allow
-//    U8P4 MaximumFlow;       // In pressure priority modes, this is the maximum flow rate we'll allow
-//    T_ShotFrame Frames[10];
-//  };
-//  
-//  where T_ShotFrame is:
-//  
-//  struct PACKEDATTR T_ShotFrame {
-//    U8P0   Flag;       // See T_E_FrameFlags
-//    U8P4   SetVal;     // SetVal is a 4.4 fixed point number, setting either pressure or flow rate, as per mode
-//    U8P1   Temp;       // Temperature in 0.5 C steps from 0 - 127.5
-//    F8_1_7 FrameLen;   // FrameLen is the length of this frame. It's a 1/7 bit floating point number as described in the F8_1_7 a struct
-//    U8P4   TriggerVal; // Trigger value. Could be a flow or pressure.
-//    U10P0  MaxVol;     // Exit current frame if the volume/weight exceeds this value. 0 means ignore
-//  };
+        void convert_float_to_U10P0(double x, byte[] data, int index)
+        {
+            int ival = (int)x;
+            var b1 = (byte)(ival / 256);
 
-
-        /*proc convert_F8_1_7_to_float {in} {
-
-  set highbit [expr {$in & 128}]
-  if {$highbit == 0} {
-	set out [expr {$in / 10.0}]
-  } else {
-  	set out [expr {$in & 127}]
-  }
-  return $out
-}
-proc convert_bottom_10_of_U10P0 {in} {
-  set lowbits [expr {$in & 1023}]
-  return $lowbits
-}
-
-proc convert_float_to_F8_1_7 {in} {
-
-	if {$in >= 12.75} {
-		if {$in > 127} {
-			puts "Numbers over 127 are not allowed this F8_1_7"
-			set in 127
-		}
-		return [expr {round($in) | 128}]
-
-	} else {
-		return [expr {round($in * 10)}]
-	}
-}
-
-proc convert_float_to_U10P0 {in} {
-	return [expr {round($in) | 1024}]
-}
-
-
-         */
-
-        // FrameFlag of zero and pressure of 0 means end of shot, unless we are at the tenth frame, in which case it's the end of shot no matter what
-        const byte CtrlF       = 0x01; // Are we in Pressure or Flow priority mode?
-        const byte DoCompare   = 0x02; // Do a compare, early exit current frame if compare true
-        const byte DC_GT       = 0x04; // If we are doing a compare, then 0 = less than, 1 = greater than
-        const byte DC_CompF    = 0x08; // Compare Pressure or Flow?
-        const byte TMixTemp    = 0x10; // Disable shower head temperature compensation. Target Mix Temp instead.
-        const byte Interpolate = 0x20; // Hard jump to target value, or ramp?
-        const byte IgnoreLimit = 0x40; // Ignore minimum pressure and max flow settings
-
+            data[index] = (byte)(b1 | 0x4); // this is "| 1024" in DE code, need to flip this bit
+            data[index + 1] = (byte)(ival - b1 * 256);
+        }
         private byte[] EncodeDe1ShotHeader(De1ShotHeaderClass shot_header)
         {
             byte[] data = new byte[5];
@@ -1016,31 +971,58 @@ proc convert_float_to_U10P0 {in} {
             data[index] = shot_header.MaximumFlow; index++;
 
             return data;
+
         }
+        private byte[] EncodeDe1ShotFrame(De1ShotFrameClass shot_frame)
+        {
+            byte[] data = new byte[8];
+
+            int index = 0;
+            data[index] = shot_frame.FrameToWrite; index++;
+            data[index] = shot_frame.Flag; index++;
+            data[index] = (byte)(0.5 + shot_frame.SetVal * 16.0); index++; // note to add 0.5, as "round" is used, not truncate
+            data[index] = (byte)(0.5 + shot_frame.Temp * 2.0); index++;
+            data[index] = convert_float_to_F8_1_7(shot_frame.FrameLen); index++;
+            data[index] = (byte)(0.5 + shot_frame.TriggerVal * 16.0); index++;
+            convert_float_to_U10P0(shot_frame.MaxVol, data, index);
+
+            return data;
+        }
+
         private bool ShotTclParser(IList<string> lines, De1ShotHeaderClass shot_header, List<De1ShotFrameClass> shot_frames)
         {
-            foreach(var line in lines)
+            foreach (var line in lines)
             {
                 if (line == ("settings_profile_type settings_2a"))
                     return ShotTclParserPressure(lines, shot_header, shot_frames);
                 else if (line == ("settings_profile_type settings_2b"))
                     return ShotTclParserFlow(lines, shot_header, shot_frames);
-                else if (line == ("settings_profile_type settings_2c"))
+                else if (line == ("settings_profile_type settings_2c") || line == ("settings_profile_type settings_2c2"))
                     return ShotTclParserAdvanced(lines, shot_header, shot_frames);
             }
 
             return false;
         }
-
         private static void TryToGetDoubleFromTclLine(string line, string key, ref double var)
         {
+
             if (!line.StartsWith(key + " ")) // need space separator to match string
                 return;
 
-            var =  Convert.ToDouble(line.Replace(key, "").Trim());
+            var = Convert.ToDouble(line.Replace(key, "").Trim());
         }
 
-        private bool ShotTclParserPressure(IList<string> lines, De1ShotHeaderClass shot_header, List<De1ShotFrameClass> shot_frames) // proc de1_packed_shot
+        // FrameFlag of zero and pressure of 0 means end of shot, unless we are at the tenth frame, in which case
+        // it's the end of shot no matter what
+        const byte CtrlF = 0x01; // Are we in Pressure or Flow priority mode?
+        const byte DoCompare = 0x02; // Do a compare, early exit current frame if compare true
+        const byte DC_GT = 0x04; // If we are doing a compare, then 0 = less than, 1 = greater than
+        const byte DC_CompF = 0x08; // Compare Pressure or Flow?
+        const byte TMixTemp = 0x10; // Disable shower head temperature compensation. Target Mix Temp instead.
+        const byte Interpolate = 0x20; // Hard jump to target value, or ramp?
+        const byte IgnoreLimit = 0x40; // Ignore minimum pressure and max flow settings
+
+        private bool ShotTclParserPressure(IList<string> lines, De1ShotHeaderClass shot_header, List<De1ShotFrameClass> shot_frames)
         {
             // header
             shot_header.NumberOfFrames = 3;
@@ -1052,6 +1034,15 @@ proc convert_float_to_U10P0 {in} {
             double preinfusion_time = double.MinValue;
             double preinfusion_stop_pressure = double.MinValue;
 
+            // hold vars
+            double espresso_pressure = double.MinValue;
+            double espresso_hold_time = double.MinValue;
+
+            // decline vars
+
+            double pressure_end = double.MinValue;
+            double espresso_decline_time = double.MinValue;
+
             try
             {
                 foreach (var line in lines)
@@ -1060,16 +1051,27 @@ proc convert_float_to_U10P0 {in} {
                     TryToGetDoubleFromTclLine(line, "espresso_temperature", ref espresso_temperature);
                     TryToGetDoubleFromTclLine(line, "preinfusion_time", ref preinfusion_time);
                     TryToGetDoubleFromTclLine(line, "preinfusion_stop_pressure", ref preinfusion_stop_pressure);
+
+                    TryToGetDoubleFromTclLine(line, "espresso_pressure", ref espresso_pressure);
+                    TryToGetDoubleFromTclLine(line, "espresso_hold_time", ref espresso_hold_time);
+
+                    TryToGetDoubleFromTclLine(line, "pressure_end", ref pressure_end);
+                    TryToGetDoubleFromTclLine(line, "espresso_decline_time", ref espresso_decline_time);
                 }
             }
-            catch(Exception)
+            catch (Exception)
             {
                 return false;
             }
 
             // make sure all is loaded
-            if (preinfusion_flow_rate == double.MinValue || espresso_temperature == double.MinValue || preinfusion_time == double.MinValue || preinfusion_stop_pressure == double.MinValue)
+            if (preinfusion_flow_rate == double.MinValue || espresso_temperature == double.MinValue ||
+            preinfusion_time == double.MinValue || preinfusion_stop_pressure == double.MinValue ||
+            espresso_pressure == double.MinValue || espresso_hold_time == double.MinValue ||
+            pressure_end == double.MinValue || espresso_decline_time == double.MinValue
+            )
                 return false;
+
 
 
             // build the shot frames
@@ -1077,57 +1079,338 @@ proc convert_float_to_U10P0 {in} {
             // preinfusion
             De1ShotFrameClass frame1 = new De1ShotFrameClass();
             frame1.FrameToWrite = 0;
-            frame1.Flag = CtrlF + DoCompare + DC_GT + IgnoreLimit;
+            frame1.Flag = CtrlF | DoCompare | DC_GT | IgnoreLimit;
             frame1.SetVal = preinfusion_flow_rate;
             frame1.Temp = espresso_temperature;
             frame1.FrameLen = preinfusion_time;
             frame1.MaxVol = 0; // MaxVol feature has been disabled 5/11/18
             frame1.TriggerVal = preinfusion_stop_pressure;
-
             shot_frames.Add(frame1);
 
             // hold
             De1ShotFrameClass frame2 = new De1ShotFrameClass();
             frame2.FrameToWrite = 1;
-
-            /*
-            frame2.Flag = CtrlF + DoCompare + DC_GT + IgnoreLimit;
-            frame2.SetVal = preinfusion_flow_rate;
+            frame2.Flag = IgnoreLimit;
+            frame2.SetVal = espresso_pressure;
             frame2.Temp = espresso_temperature;
-            frame2.FrameLen = preinfusion_time;
+            frame2.FrameLen = espresso_hold_time;
+            frame2.MaxVol = 0; // MaxVol feature has been disabled 5/11/18
+            frame2.TriggerVal = 0;
+            shot_frames.Add(frame2);
+
+            // decline
+            De1ShotFrameClass frame3 = new De1ShotFrameClass();
+            frame3.FrameToWrite = 2;
+            frame3.Flag = IgnoreLimit | Interpolate;
+            frame3.SetVal = pressure_end;
+            frame3.Temp = espresso_temperature;
+            frame3.FrameLen = espresso_decline_time;
+            frame3.MaxVol = 0; // MaxVol feature has been disabled 5/11/18
+            frame3.TriggerVal = 0;
+
+            shot_frames.Add(frame3);
+
+            // update the byte array inside shot header and frame, so we are ready to write it to DE
+            EncodeHeaderAndFrames(shot_header, shot_frames);
+
+            return true;
+        }
+        private bool ShotTclParserFlow(IList<string> lines, De1ShotHeaderClass shot_header, List<De1ShotFrameClass> shot_frames)
+        {
+            // header
+            shot_header.NumberOfFrames = 4;
+            shot_header.NumberOfPreinfuseFrames = 1;
+
+            // preinfusion vars
+            double preinfusion_flow_rate = double.MinValue;
+            double espresso_temperature = double.MinValue;
+            double preinfusion_time = double.MinValue;
+            double preinfusion_stop_pressure = double.MinValue;
+
+            // pressure rise vars
+            double preinfusion_guarantee = double.MinValue;
+            double flow_rise_timeout = double.MinValue;
+
+            // hold vars
+            double flow_profile_hold = double.MinValue;
+            double espresso_hold_time = double.MinValue;
+
+            // decline vars
+            double flow_profile_decline = double.MinValue;
+            double espresso_decline_time = double.MinValue;
+
+            try
+            {
+
+                foreach (var line in lines)
+                {
+                    TryToGetDoubleFromTclLine(line, "preinfusion_flow_rate", ref preinfusion_flow_rate);
+                    TryToGetDoubleFromTclLine(line, "espresso_temperature", ref espresso_temperature);
+                    TryToGetDoubleFromTclLine(line, "preinfusion_time", ref preinfusion_time);
+                    TryToGetDoubleFromTclLine(line, "preinfusion_stop_pressure", ref preinfusion_stop_pressure);
+
+                    TryToGetDoubleFromTclLine(line, "preinfusion_guarantee", ref preinfusion_guarantee);
+                    TryToGetDoubleFromTclLine(line, "flow_rise_timeout", ref flow_rise_timeout);
+
+                    TryToGetDoubleFromTclLine(line, "flow_profile_hold", ref flow_profile_hold);
+                    TryToGetDoubleFromTclLine(line, "espresso_hold_time", ref espresso_hold_time);
+
+                    TryToGetDoubleFromTclLine(line, "flow_profile_decline", ref flow_profile_decline);
+                    TryToGetDoubleFromTclLine(line, "espresso_decline_time", ref espresso_decline_time);
+                }
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+
+            // make sure all is loaded
+            if (preinfusion_flow_rate == double.MinValue || espresso_temperature == double.MinValue ||
+            preinfusion_time == double.MinValue || preinfusion_stop_pressure == double.MinValue ||
+            preinfusion_guarantee == double.MinValue ||
+            flow_profile_hold == double.MinValue || espresso_hold_time == double.MinValue ||
+            flow_profile_decline == double.MinValue || espresso_decline_time == double.MinValue
+            )
+                return false;
+
+            // flow_rise_timeout is only set with preinfusion_guarantee
+            if (preinfusion_guarantee == 1 && flow_rise_timeout == double.MinValue)
+                flow_rise_timeout = 10.0;  // AAZ TODO hard-coded - read from 0.shot instead
+
+            // build the shot frames
+
+            // preinfusion
+            De1ShotFrameClass frame1 = new De1ShotFrameClass();
+            frame1.FrameToWrite = 0;
+            frame1.Flag = CtrlF | DoCompare | DC_GT | IgnoreLimit;
+            frame1.SetVal = preinfusion_flow_rate;
+            frame1.Temp = espresso_temperature;
+            frame1.FrameLen = preinfusion_time;
+            frame1.MaxVol = 0; // MaxVol feature has been disabled 5/11/18
+            frame1.TriggerVal = preinfusion_stop_pressure;
+            shot_frames.Add(frame1);
+
+            // pressure rise
+            De1ShotFrameClass frame2 = new De1ShotFrameClass();
+            frame2.FrameToWrite = 1;
+            frame2.Flag = DoCompare | DC_GT | IgnoreLimit;
+            frame2.SetVal = preinfusion_stop_pressure;
+            frame2.Temp = espresso_temperature;
             frame2.MaxVol = 0; // MaxVol feature has been disabled 5/11/18
             frame2.TriggerVal = preinfusion_stop_pressure;
-            */
+
+            if (preinfusion_guarantee == 1 && preinfusion_time > 0)
+                frame2.FrameLen = flow_rise_timeout;
+            else
+                frame2.FrameLen = 0; // a length of zero means the DE1+ will skip this frame
 
             shot_frames.Add(frame2);
 
+            // hold
+            De1ShotFrameClass frame3 = new De1ShotFrameClass();
 
+            frame3.FrameToWrite = 2;
+            frame3.Flag = CtrlF | IgnoreLimit;
+            frame3.SetVal = flow_profile_hold;
+            frame3.Temp = espresso_temperature;
+            frame3.FrameLen = espresso_hold_time;
+            frame3.MaxVol = 0; // MaxVol feature has been disabled 5/11/18
+            frame3.TriggerVal = 0;
+            shot_frames.Add(frame3);
+
+
+            // decline
+            De1ShotFrameClass frame4 = new De1ShotFrameClass();
+            frame4.FrameToWrite = 3;
+            frame4.Flag = CtrlF | IgnoreLimit | Interpolate;
+            frame4.SetVal = flow_profile_decline;
+            frame4.Temp = espresso_temperature;
+            frame4.FrameLen = espresso_decline_time;
+            frame4.MaxVol = 0; // MaxVol feature has been disabled 5/11/18
+            frame4.TriggerVal = 0;
+            shot_frames.Add(frame4);
+
+            // update the byte array inside shot header and frame, so we are ready to write it to DE
+            EncodeHeaderAndFrames(shot_header, shot_frames);
 
             return true;
         }
 
-        private bool ShotTclParserFlow(IList<string> lines, De1ShotHeaderClass shot_header, List<De1ShotFrameClass> shot_frames)
+        string TryGetStringFromDict(string key, Dictionary<string, string> dict)
         {
-            foreach (var line in lines)
+            if (!dict.ContainsKey(key))
+                return "";
+
+            return dict[key];
+
+        }
+        double TryGetDoubleFromDict(string key, Dictionary<string, string> dict)
+        {
+            var s = TryGetStringFromDict(key, dict);
+
+            try
             {
-
-
+                return Convert.ToDouble(s);
             }
+            catch (Exception)
+            {
+                return double.MinValue;
+            }
+        }
 
-            return true;
+        string FixNamesWithSpaces(string str)
+        {
+            int level_counter = 0;
+            StringBuilder sb = new StringBuilder();
+            foreach (char c in str)
+            {
+                if (c == '{')
+                    level_counter++;
+
+                if (level_counter >= 3)
+                {
+                    if (c != '{' && c != '}' && c != ' ')
+                        sb.Append(c);
+                }
+                else
+                    sb.Append(c);
+
+                if (c == '}')
+
+                    level_counter--;
+            }
+            return sb.ToString();
         }
 
         private bool ShotTclParserAdvanced(IList<string> lines, De1ShotHeaderClass shot_header, List<De1ShotFrameClass> shot_frames)
         {
+            string adv_shot_line_orig = "";
             foreach (var line in lines)
             {
-
-
+                if (line.Trim().StartsWith("advanced_shot"))
+                {
+                    adv_shot_line_orig = line.Trim();
+                    break;
+                }
             }
+            if (adv_shot_line_orig == "")
+                return false;
+
+            var adv_shot_line = FixNamesWithSpaces(adv_shot_line_orig);
+
+            var frame_strings = adv_shot_line.Split('{');
+            foreach (var frame_str in frame_strings)
+            {
+                var fs = frame_str.Replace("}", "").Trim();
+                if (fs == "" || fs == "advanced_shot")
+                    continue;
+
+                var words = fs.Split(' ');
+
+                if (words.Length % 2 == 1)  // odd number of words, this is a mistake, cannot make a dictionary
+                    return false;
+
+                Dictionary<string, string> dict = new Dictionary<string, string>();
+
+                for (int i = 0; i < words.Length; i += 2)
+                    dict[words[i]] = words[i + 1];
+
+                // OK, dict is ready, build the frame
+
+                De1ShotFrameClass frame = new De1ShotFrameClass();
+                var features = IgnoreLimit;
+
+                // flow control
+                var pump = TryGetStringFromDict("pump", dict); if (pump == "") return false;
+                if (pump == "flow")
+                {
+                    features |= CtrlF;
+                    var flow = TryGetDoubleFromDict("flow", dict); if (flow == double.MinValue) return false;
+                    frame.SetVal = flow;
+                }
+                else
+                {
+                    var pressure = TryGetDoubleFromDict("pressure", dict); if (pressure == double.MinValue) return false;
+                    frame.SetVal = pressure;
+                }
+
+                // use boiler water temperature as the goal
+                var sensor = TryGetStringFromDict("sensor", dict); if (sensor == "") return false;
+                if (sensor == "water")
+                    features |= TMixTemp;
+
+                var transition = TryGetStringFromDict("transition", dict); if (transition == "") return false;
+
+                if (transition == "smooth")
+                    features |= Interpolate;
+
+                // "move on if...."
+                var exit_if = TryGetDoubleFromDict("exit_if", dict); if (exit_if == double.MinValue) return false;
+                if (exit_if == 1)
+                {
+                    var exit_type = TryGetStringFromDict("exit_type", dict);
+                    if (exit_type == "pressure_under")
+                    {
+                        features |= DoCompare;
+                        var exit_pressure_under = TryGetDoubleFromDict("exit_pressure_under", dict);
+                        if (exit_pressure_under == double.MinValue) return false;
+                        frame.TriggerVal = exit_pressure_under;
+                    }
+                    else if (exit_type == "pressure_over")
+                    {
+                        features |= DoCompare | DC_GT;
+                        var exit_pressure_over = TryGetDoubleFromDict("exit_pressure_over", dict);
+                        if (exit_pressure_over == double.MinValue) return false;
+                        frame.TriggerVal = exit_pressure_over;
+                    }
+                    else if (exit_type == "flow_under")
+                    {
+                        features |= DoCompare | DC_CompF;
+                        var exit_flow_under = TryGetDoubleFromDict("exit_flow_under", dict);
+                        if (exit_flow_under == double.MinValue) return false;
+                        frame.TriggerVal = exit_flow_under;
+                    }
+                    else if (exit_type == "flow_over")
+                    {
+                        features |= DoCompare | DC_GT | DC_CompF;
+                        var exit_flow_over = TryGetDoubleFromDict("exit_flow_over", dict);
+
+                        if (exit_flow_over == double.MinValue) return false;
+                        frame.TriggerVal = exit_flow_over;
+                    }
+                    else if (exit_type == "") // no exit condition was checked
+                        frame.TriggerVal = 0;
+                }
+                else
+                    frame.TriggerVal = 0; // no exit condition was checked
+
+                var temperature = TryGetDoubleFromDict("temperature", dict); if (temperature == double.MinValue) return false;
+                var seconds = TryGetDoubleFromDict("seconds", dict); if (seconds == double.MinValue) return false;
+
+                frame.FrameToWrite = (byte)shot_frames.Count;
+                frame.Flag = features;
+                frame.Temp = temperature;
+                frame.FrameLen = seconds;
+                frame.MaxVol = 0; // MaxVol feature has been disabled 5/11/18
+                shot_frames.Add(frame);
+            }
+
+            // header
+            shot_header.NumberOfFrames = (byte)shot_frames.Count;
+            shot_header.NumberOfPreinfuseFrames = 1;
+
+            // update the byte array inside shot header and frame, so we are ready to write it to DE
+            EncodeHeaderAndFrames(shot_header, shot_frames);
 
             return true;
         }
+        private void EncodeHeaderAndFrames(De1ShotHeaderClass shot_header, List<De1ShotFrameClass> shot_frames)
+        {
+            shot_header.bytes = EncodeDe1ShotHeader(shot_header);
+            foreach (var frame in shot_frames)
 
+                frame.bytes = EncodeDe1ShotFrame(frame);
+        }
 
         public static byte[] StringToByteArray(string hex)
         {
@@ -1145,7 +1428,7 @@ proc convert_float_to_U10P0 {in} {
 
             foreach (var line in lines)
             {
-                if (!line.StartsWith("*"))
+                if (line.StartsWith("#"))
                     continue;
 
                 var words = line.Split('\t');
@@ -1153,18 +1436,71 @@ proc convert_float_to_U10P0 {in} {
 
                 if (first_line)
                 {
-                    if (!DecodeDe1ShotHeader(bytes, shot_header))
+                    if (!DecodeDe1ShotHeader(bytes, shot_header, check_encoding: true))
                         return false;
 
+                    shot_header.bytes = bytes;
                     first_line = false;
                 }
+
                 else
                 {
                     De1ShotFrameClass sf = new De1ShotFrameClass();
-                    if (!DecodeDe1ShotFrame(bytes, sf))
+                    if (!DecodeDe1ShotFrame(bytes, sf, check_encoding: true))
                         return false;
 
+                    sf.bytes = bytes;
+
                     shot_frames.Add(sf);
+                }
+            }
+
+            return true;
+        }
+
+        private async Task<bool> TestProfileEncoding(string name)
+        {
+            var bin_file = await ProfilesFolder.GetFileAsync(name + ".bin");
+            var bin_lines = await FileIO.ReadLinesAsync(bin_file);
+
+            var tcl_file = await ProfilesFolder.GetFileAsync(name + ".tcl");
+            var tcl_lines = await FileIO.ReadLinesAsync(tcl_file);
+
+            De1ShotHeaderClass header_ref = new De1ShotHeaderClass();
+            List<De1ShotFrameClass> frames_ref = new List<De1ShotFrameClass>();
+            if (!ShotBinReader(bin_lines, header_ref, frames_ref))
+            {
+                UpdateStatus(name + " ShotBinReader failed", NotifyType.ErrorMessage);
+                return false;
+            }
+
+            De1ShotHeaderClass header_my = new De1ShotHeaderClass();
+            List<De1ShotFrameClass> frames_my = new List<De1ShotFrameClass>();
+            if (!ShotTclParser(tcl_lines, header_my, frames_my))
+            {
+                UpdateStatus(name + " ShotTclParser failed", NotifyType.ErrorMessage);
+                return false;
+            }
+
+
+            if (header_ref.CompareBytes(header_my) == false)
+            {
+                UpdateStatus(name + " Headers do not match ", NotifyType.ErrorMessage);
+                return false;
+            }
+
+            if (frames_ref.Count != frames_my.Count)
+            {
+                UpdateStatus(name + " Different num frames", NotifyType.ErrorMessage);
+                return false;
+            }
+
+            for (int i = 0; i < frames_ref.Count; i++)
+            {
+                if (frames_ref[i].CompareBytes(frames_my[i]) == false)
+                {
+                    UpdateStatus(name + " Frame do not match #" + i.ToString(), NotifyType.ErrorMessage);
+                    return false;
                 }
             }
 

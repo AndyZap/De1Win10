@@ -117,56 +117,19 @@ namespace De1Win10
             }
 
 
-
-
-            // AAZ test profiles   ----------------------------------------------
-            /*
-            var bin_file = await HistoryFolder.GetFileAsync("ws_output3_out_shots_only.txt");
-            var bin_lines = await FileIO.ReadLinesAsync(bin_file);
-
-            var tcl_file = await ProfilesFolder.GetFileAsync("Best overall pressure profile.tcl");
-            var tcl_lines = await FileIO.ReadLinesAsync(tcl_file);
-
-            De1ShotHeaderClass header_ref = new De1ShotHeaderClass();
-            List<De1ShotFrameClass> frames_ref = new List<De1ShotFrameClass>();
-            if(!ShotBinReader(bin_lines, header_ref, frames_ref))
+            /*// AAZ test all profiles
+            var files = await ProfilesFolder.GetFilesAsync();
+            List<string> to_test = new List<string>();
+            foreach(var f in files)
             {
-                UpdateStatus("ShotBinReader failed", NotifyType.ErrorMessage);
-                return;
+                if (f.Name.EndsWith(".tcl"))
+                    to_test.Add(f.Name.Replace(".tcl", ""));
             }
 
-            De1ShotHeaderClass header_my = new De1ShotHeaderClass();
-            List<De1ShotFrameClass> frames_my = new List<De1ShotFrameClass>();
-            if(!ShotTclParser(tcl_lines, header_my, frames_my))
-            {
-                UpdateStatus("ShotTclParser failed", NotifyType.ErrorMessage);
-                return;
-            }
+            foreach (var test in to_test)
+                if (!(await TestProfileEncoding(test))) return;
 
-
-            if (header_ref.Compare(header_my) == false)
-            {
-                UpdateStatus("Headers do not match ", NotifyType.ErrorMessage);
-                return;
-            }
-
-            if(frames_ref.Count != frames_my.Count)
-            {
-                UpdateStatus("Different num frames", NotifyType.ErrorMessage);
-                return;
-            }
-
-            for(int i = 0; i < frames_ref.Count; i++)
-            {
-                if (frames_ref[i].Compare(frames_my[i]) == false)
-                {
-                    UpdateStatus("Frame do not match #" + i.ToString(), NotifyType.ErrorMessage);
-                    return;
-                }
-            }
-
-            UpdateStatus("All good", NotifyType.StatusMessage);*/
-            // AAZ test profiles   ----------------------------------------------
+            UpdateStatus("All good", NotifyType.StatusMessage); */
         }
 
         private void ScenarioControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
