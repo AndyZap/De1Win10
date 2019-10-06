@@ -21,7 +21,7 @@ namespace De1Win10
 {
     public sealed partial class MainPage : Page
     {
-        private string appVersion = "DE1 Win10     App v1.17   ";
+        private string appVersion = "DE1 Win10     App v1.19   ";
 
         private string deviceIdAcaia = String.Empty;
         private string deviceIdDe1 = String.Empty;
@@ -802,10 +802,67 @@ namespace De1Win10
             }
             catch (Exception) { }
         }
-        private void ChkAcaia_Toggled(object sender, RoutedEventArgs e)
+        private async void ChkAcaia_Toggled(object sender, RoutedEventArgs e)
         {
             ApplicationDataContainer localSettings = ApplicationData.Current.LocalSettings;
             localSettings.Values["ChkAcaia"] = ChkAcaia.IsOn ? "true" : "false";
+
+            // connect/disconnect Acaia without disconnecting DE1
+
+            if (BtnDisconnect.IsEnabled && (ChkAcaia.IsOn == true))  // connect
+            {
+                UpdateStatus("Connecting Acaia ... ", NotifyType.StatusMessage);
+
+                bool need_device_watcher = false;
+
+                statusAcaia = StatusEnum.Disconnected;
+
+                if (statusAcaia != StatusEnum.Disabled)  // Acaia could be disabled
+                {
+                    if (deviceIdAcaia != String.Empty) // try to connect if we already know the DeviceID
+                    {
+                        try
+                        {
+                            bleDeviceAcaia = await BluetoothLEDevice.FromIdAsync(deviceIdAcaia);
+                        }
+                        catch (Exception) { }
+                    }
+
+                    if (bleDeviceAcaia == null) // Failed to connect with the device ID, need to search for the scale
+                    {
+                        if (deviceWatcher == null)
+                            need_device_watcher = true;
+                    }
+                    else // we have bluetoothLeDevice, connect to the characteristic
+                    {
+                        statusAcaia = StatusEnum.Discovered;
+                    }
+                }
+
+                if (need_device_watcher)
+                {
+                    StartBleDeviceWatcher();
+                    UpdateStatus("Device watcher started", NotifyType.StatusMessage);
+                }
+            }
+
+            if (BtnDisconnect.IsEnabled && (ChkAcaia.IsOn == false)) // disconnect
+            {
+                if (notifAcaia)
+                {
+                    await chrAcaia.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.None);
+                    chrAcaia.ValueChanged -= CharacteristicAcaia_ValueChanged;
+                    notifAcaia = false;
+                }
+
+                bleDeviceAcaia?.Dispose();
+                bleDeviceAcaia = null;
+
+                chrAcaia = null;
+                statusAcaia = StatusEnum.Disabled;
+
+                UpdateStatus("Disconnected Acaia", NotifyType.StatusMessage);
+            }
         }
         private async Task<string> LoadFolders()
         {
@@ -879,14 +936,11 @@ namespace De1Win10
                     Profiles.Add(new ProfileClass(name));
 
                     if (name == ProfileName)
-                    {
                         found = true;
-                        TxtDe1Profile.Text = "Profile: " + name;
-                    }
                 }
 
                 if (!found)
-                    return "Profile list has been loaded, please now select profile to use";
+                    ProfileName = "";
             }
 
             return "";

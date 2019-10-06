@@ -218,7 +218,7 @@ namespace De1Win10
 
 
                 // finally: load the last profile
-                if(ProfilesFolder != null && ProfileName != "")
+                if (ProfilesFolder != null && ProfileName != "")
                 {
                     var result_profile = await LoadProfile(ProfileName);
                     if (result_profile != "")
@@ -765,7 +765,7 @@ namespace De1Win10
         }
         private void UpdateDe1WaterImpl(double level)
         {
-            TxtWaterLevel.Text = "Water: " + level.ToString("0") + " mm";
+            TxtWaterLevel.Text = "Water: " + level.ToString("0") + " mm / " + mm_to_ml[(int)(0.5 + level)].ToString() + " ml";
             RaiseAutomationEvent(TxtWaterLevel);
         }
         private Task<string> WriteDeWaterRefillLevel(int refill_level)
@@ -776,6 +776,10 @@ namespace De1Win10
             return writeToDE(payload, De1ChrEnum.Water);
         }
 
+        int[] mm_to_ml = new int[] { 0, 16, 43, 70, 97, 124, 151, 179, 206, 233, 261, 288, 316, 343, 371, 398, 426, 453, 481, 509, 537,
+            564, 592, 620, 648, 676, 704, 732, 760, 788, 816, 844, 872, 900, 929, 957, 985, 1013, 1042, 1070, 1104, 1138, 1172, 1207,
+            1242, 1277, 1312, 1347, 1382, 1417, 1453, 1488, 1523, 1559, 1594, 1630, 1665, 1701, 1736, 1772, 1808, 1843, 1879, 1915,
+            1951, 1986, 2022, 2058 };
 
         // ------------------ shot header/frame encoding / decoding ------------------------------
 
