@@ -215,6 +215,17 @@ namespace De1Win10
                 chrDe1Water.ValueChanged += CharacteristicDe1Water_ValueChanged;
                 await chrDe1Water.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.Notify);
                 notifDe1Water = true;
+
+
+                // finally: load the last profile
+                if(ProfilesFolder != null && ProfileName != "")
+                {
+                    var result_profile = await LoadProfile(ProfileName);
+                    if (result_profile != "")
+                        return result_profile;
+
+                    TxtDe1Profile.Text = "Profile: " + ProfileName;
+                }
             }
             catch (Exception ex)
             {
@@ -660,9 +671,9 @@ namespace De1Win10
         private void UpdateDe1ShotInfoImpl(De1ShotInfoClass shot_info)
         {
             TxtBrewFlow.Text = shot_info.GroupFlow.ToString("0.0");
-            TxtBrewFlowTarget.Text = shot_info.SetGroupFlow.ToString("0.0");
+            TxtBrewFlowTarget.Text = shot_info.SetGroupFlow == 0.0 ? "" : shot_info.SetGroupFlow.ToString("0.0");
             TxtBrewPressure.Text = shot_info.GroupPressure.ToString("0.0");
-            TxtBrewPressureTarget.Text = shot_info.SetGroupPressure.ToString("0.0");
+            TxtBrewPressureTarget.Text = shot_info.SetGroupPressure == 0.0 ? "" : shot_info.SetGroupPressure.ToString("0.0");
             TxtBrewTempHead.Text = shot_info.HeadTemp.ToString("0.0");
             TxtBrewTempHeadTarget.Text = shot_info.SetHeadTemp.ToString("0.0");
             TxtBrewTempMix.Text = shot_info.MixTemp.ToString("0.0");

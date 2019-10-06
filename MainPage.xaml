@@ -41,7 +41,7 @@
                     <!-- 
                     StackPanel PanelEspresso
                     -->
-                    <StackPanel  x:Name="PanelEspresso" Grid.Row="0" Margin="0,0,0,10" Visibility="Visible">
+                    <StackPanel  x:Name="PanelEspresso" Grid.Row="0" Margin="0,0,0,10" Visibility="Collapsed">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="auto"/>
@@ -208,7 +208,7 @@
                     Grid GridProfiles and ScrollViewerProfiles
                     -->
 
-                    <Grid x:Name="GridProfiles" Grid.Row="0" Margin="0,0,0,10" Visibility="Collapsed">
+                    <Grid x:Name="GridProfiles" Grid.Row="0" Margin="0,0,0,10" Visibility="Visible">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="auto"/>
                             <ColumnDefinition Width="auto"/>

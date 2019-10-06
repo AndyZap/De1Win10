@@ -54,7 +54,7 @@ namespace De1Win10
             ApplicationDataContainer localSettings = ApplicationData.Current.LocalSettings;
 
             var val = localSettings.Values["DeviceIdAcaia"] as string;
-            deviceIdAcaia = val == null? "" : val;
+            deviceIdAcaia = val == null ? "" : val;
 
             val = localSettings.Values["DeviceIdDe1"] as string;
             deviceIdDe1 = val == null ? "" : val;
@@ -144,7 +144,7 @@ namespace De1Win10
                 GridProfiles.Visibility = Visibility.Visible;
                 ScrollViewerProfiles.Visibility = Visibility.Visible;
             }
-            else if(scenarioListBox.SelectedIndex == 1)  // >  Espresso
+            else if (scenarioListBox.SelectedIndex == 1)  // >  Espresso
             {
                 PanelSaveRecord.Visibility = Visibility.Collapsed;
                 PanelWaterSteam.Visibility = Visibility.Collapsed;
@@ -422,7 +422,7 @@ namespace De1Win10
 
             StopBleDeviceWatcher();
 
-            if(chrDe1SetState != null)
+            if (chrDe1SetState != null)
                 await WriteDe1State(De1StateEnum.Sleep);
 
             if (notifAcaia)
@@ -478,7 +478,7 @@ namespace De1Win10
             BtnStop.IsEnabled = false;
 
             statusDe1 = StatusEnum.Disconnected;
-            statusAcaia  = ChkAcaia.IsOn ? StatusEnum.Disconnected : StatusEnum.Disabled;
+            statusAcaia = ChkAcaia.IsOn ? StatusEnum.Disconnected : StatusEnum.Disabled;
 
             TxtBrewWeight.Text = "---";
             TxtBrewTime.Text = "---";
@@ -500,7 +500,7 @@ namespace De1Win10
 
             double weight_gramm = 0.0;
             bool is_stable = true;
-            if(DecodeWeight(data, ref weight_gramm, ref is_stable))
+            if (DecodeWeight(data, ref weight_gramm, ref is_stable))
                 UpdateWeight(weight_gramm);
         }
         private void CharacteristicDe1StateInfo_ValueChanged(GattCharacteristic sender, GattValueChangedEventArgs args)
@@ -678,7 +678,6 @@ namespace De1Win10
             UpdateStatus("Steam ...", NotifyType.StatusMessage);
         }
 
-
         private static bool IsCtrlKeyPressed()
         {
             var ctrlState = CoreWindow.GetForCurrentThread().GetKeyState(VirtualKey.Control);
@@ -829,7 +828,7 @@ namespace De1Win10
                     }
                     else
                     {
-                        return  "Error: DE1 source folder has not been selected";
+                        return "Error: DE1 source folder has not been selected";
                     }
                 }
                 else
@@ -886,7 +885,7 @@ namespace De1Win10
                     }
                 }
 
-                if(!found)
+                if (!found)
                     return "Profile list has been loaded, please now select profile to use";
             }
 
@@ -895,7 +894,7 @@ namespace De1Win10
         private async void BtnChooseProfile_Click(object sender, RoutedEventArgs e)
         {
             var result = await LoadFolders();
-            if(result != "")
+            if (result != "")
             {
                 UpdateStatus(result, result.StartsWith("Error") ? NotifyType.ErrorMessage : NotifyType.ErrorMessage);
                 return;
@@ -906,59 +905,62 @@ namespace De1Win10
             {
                 ProfileName = Profiles[ListBoxProfiles.SelectedIndex].profileName;
 
-
-                var tcl_file = await ProfilesFolder.GetFileAsync(ProfileName + ".tcl");
-                var tcl_lines = await FileIO.ReadLinesAsync(tcl_file);
-
-                De1ShotHeaderClass header = new De1ShotHeaderClass();
-                List<De1ShotFrameClass> frames = new List<De1ShotFrameClass>();
-                if (!ShotTclParser(tcl_lines, header, frames))
+                var result_profile = await LoadProfile(ProfileName);
+                if (result_profile != "")
                 {
-                    UpdateStatus("Failed to encode profile " + ProfileName + ", try to load another profile", NotifyType.ErrorMessage);
+                    UpdateStatus(result_profile, NotifyType.ErrorMessage);
+                    ProfileName = "";
+                    TxtDe1Profile.Text = "Profile: n/a";
                     return;
                 }
 
-
-                var res_header = await writeToDE(header.bytes, De1ChrEnum.ShotHeader);
-                if (res_header != "")
-                {
-                    UpdateStatus("Error " + res_header, NotifyType.ErrorMessage);
-                    return;
-                }
-
-                foreach(var fr in frames)
-                {
-                    var res_frames = await writeToDE(fr.bytes, De1ChrEnum.ShotFrame);
-                    if (res_frames != "")
-                    {
-                        UpdateStatus("Error " + res_frames, NotifyType.ErrorMessage);
-                        return;
-                    }
-                }
-
-                // check if we need to send the new water temp
-                if (de1OtherSetn.TargetGroupTemp != frames[0].Temp)
-                {
-                    de1OtherSetn.TargetGroupTemp = frames[0].Temp;
-                    var bytes = EncodeDe1OtherSetn(de1OtherSetn);
-                    var res_water = await writeToDE(bytes, De1ChrEnum.OtherSetn);
-                    if(res_water != "")
-                    {
-                        UpdateStatus("Error " + res_water, NotifyType.ErrorMessage);
-                        return;
-                    }
-
-                }
-
-                // all good
-                TxtDe1Profile.Text = "Profile: " + Profiles[ListBoxProfiles.SelectedIndex].profileName;
-                UpdateStatus("Loaded " + TxtDe1Profile.Text, NotifyType.StatusMessage);
+                TxtDe1Profile.Text = "Profile: " + ProfileName;
+                UpdateStatus("Loaded profile " + ProfileName, NotifyType.StatusMessage);
 
                 ApplicationDataContainer localSettings = ApplicationData.Current.LocalSettings;
                 localSettings.Values["ProfileName"] = ProfileName;
             }
             else
                 UpdateStatus("Please select profile to use", NotifyType.WarningMessage);
+        }
+
+        private async Task<string> LoadProfile(string profile_name)
+        {
+            if (await ProfilesFolder.TryGetItemAsync(profile_name + ".tcl") == null)
+            {
+                return "Error: cannot find file " + profile_name + ".tcl in \"profiles\" folder, please select another profile file";
+            }
+
+            var tcl_file = await ProfilesFolder.GetFileAsync(profile_name + ".tcl");
+            var tcl_lines = await FileIO.ReadLinesAsync(tcl_file);
+
+            De1ShotHeaderClass header = new De1ShotHeaderClass();
+            List<De1ShotFrameClass> frames = new List<De1ShotFrameClass>();
+            if (!ShotTclParser(tcl_lines, header, frames))
+                return "Failed to encode profile " + profile_name + ", try to load another profile";
+
+            var res_header = await writeToDE(header.bytes, De1ChrEnum.ShotHeader);
+            if (res_header != "")
+                return "Error writing profile header " + res_header;
+
+            foreach (var fr in frames)
+            {
+                var res_frames = await writeToDE(fr.bytes, De1ChrEnum.ShotFrame);
+                if (res_frames != "")
+                    return "Error writing shot frame " + res_frames;
+            }
+
+            // check if we need to send the new water temp
+            if (de1OtherSetn.TargetGroupTemp != frames[0].Temp)
+            {
+                de1OtherSetn.TargetGroupTemp = frames[0].Temp;
+                var bytes = EncodeDe1OtherSetn(de1OtherSetn);
+                var res_water = await writeToDE(bytes, De1ChrEnum.OtherSetn);
+                if (res_water != "")
+                    return "Error " + res_water;
+            }
+
+            return "";
         }
     }
 }
