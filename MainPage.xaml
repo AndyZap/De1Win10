@@ -57,7 +57,7 @@
                             <Button Grid.Row="0" Grid.Column="1" x:Name="BtnEspresso" Content="Espresso" Margin="0,10,30,10" IsEnabled="False" FontSize="24" Click="BtnEspresso_Click" Width="200" Height="70"/>
                             <Button Grid.Row="0" Grid.Column="2" x:Name="BtnStop" Content="Stop" Margin="0,10,30,10" IsEnabled="False" FontSize="24" Click="BtnStop_Click" Width="200"  Height="70"/>
                             <Button Grid.Row="0" Grid.Column="4" x:Name="BtnTare" Content="Tare" Margin="10,10,10,10" IsEnabled="False" FontSize="24" Click="BtnTare_Click" Width="200" Height="70"/>
-                            <Button Grid.Row="0" Grid.Column="5" x:Name="BtnBeansWeight" Content="Bean weight" Margin="10,10,20,10" IsEnabled="True" FontSize="24" Click="BtnBeansWeight_Click" Width="200" Height="70"/>                            
+                            <Button Grid.Row="0" Grid.Column="5" x:Name="BtnBeansWeight" Content="Bean weight" Margin="10,10,20,10" IsEnabled="False" FontSize="24" Click="BtnBeansWeight_Click" Width="200" Height="70"/>                            
                         </Grid>
 
                         <Grid>
@@ -142,17 +142,17 @@
                             <TextBlock Grid.Row="0" Grid.Column="2" VerticalAlignment="Center" Text="°C"  Margin="0,10,10,10" FontSize="24"/>
                             <TextBox   Grid.Row="0" Grid.Column="3" x:Name="TxtHotWaterMl" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="20,10,10,10" Text="" FontSize="24" Height="auto" Width ="auto" TextWrapping="Wrap"/>
                             <TextBlock Grid.Row="0" Grid.Column="4" VerticalAlignment="Center" Text="mL"  Margin="0,10,10,10" FontSize="24"/>
-                            <Button    Grid.Row="0" Grid.Column="0" x:Name="BtnHotWater" Content="Hot Water" Margin="0,10,10,10" IsEnabled="True" FontSize="24" Click="BtnWater_Click" Width="200" Height="70" />
+                            <Button    Grid.Row="0" Grid.Column="0" x:Name="BtnHotWater" Content="Hot Water" Margin="0,10,10,10" IsEnabled="False" FontSize="24" Click="BtnWater_Click" Width="200" Height="70" />
 
                             <TextBox   Grid.Row="1" Grid.Column="1" x:Name="TxtFlushSec" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="20,10,10,10" Text="" FontSize="24" Height="auto" Width ="auto" TextWrapping="Wrap"/>
                             <TextBlock Grid.Row="1" Grid.Column="2" VerticalAlignment="Center" Text="sec"  Margin="0,10,10,10" FontSize="24"/>
-                            <Button    Grid.Row="1" Grid.Column="0" x:Name="BtnFlush" Content="Flush" Margin="0,10,10,10" IsEnabled="True" FontSize="24" Click="BtnFlush_Click" Width="200" Height="70" />
+                            <Button    Grid.Row="1" Grid.Column="0" x:Name="BtnFlush" Content="Flush" Margin="0,10,10,10" IsEnabled="False" FontSize="24" Click="BtnFlush_Click" Width="200" Height="70" />
 
                             <TextBox   Grid.Row="2" Grid.Column="1" x:Name="TxtSteamSec" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="20,10,10,10" Text="" FontSize="24" Height="auto" Width ="auto" TextWrapping="Wrap"/>
                             <TextBlock Grid.Row="2" Grid.Column="2" VerticalAlignment="Center" Text="sec"  Margin="0,10,10,10" FontSize="24"/>
-                            <Button    Grid.Row="2" Grid.Column="0" x:Name="BtnSteam" Content="Steam" Margin="0,10,10,10" IsEnabled="True" FontSize="24" Click="BtnSteam_Click" Width="200" Height="70" />
+                            <Button    Grid.Row="2" Grid.Column="0" x:Name="BtnSteam" Content="Steam" Margin="0,10,10,10" IsEnabled="False" FontSize="24" Click="BtnSteam_Click" Width="200" Height="70" />
 
-                            <Button    Grid.Row="3" Grid.Column="0" x:Name="BtnStopLog1" Content="Stop" Margin="0,10,10,10" IsEnabled="True" FontSize="24" Click="BtnStop_Click" Width="200" Height="70" />
+                            <Button    Grid.Row="3" Grid.Column="0" x:Name="BtnStopLog1" Content="Stop" Margin="0,10,10,10" IsEnabled="False" FontSize="24" Click="BtnStop_Click" Width="200" Height="70" />
 
                         </Grid>
                     </StackPanel>
@@ -225,7 +225,7 @@
                         <Button  Grid.Row="0" Grid.Column="2" x:Name="BtnDisconnect" Content="Disconnect" Margin="10,10,10,10" IsEnabled="False" FontSize="24" Click="BtnDisconnect_Click" Width="150"/>
                         <ToggleSwitch  Grid.Row="0" Grid.Column="3" x:Name="ChkAcaia" Header="Acaia" Margin="30,10,10,10" VerticalAlignment="Stretch" FontSize="18" Toggled="ChkAcaia_Toggled" Width="120"/>
 
-                        <Button  Grid.Row="0" Grid.Column="4" x:Name="BtnChooseProfile" Content="Choose profile" Margin="10,10,10,10" FontSize="24" Click="BtnChooseProfile_Click" />
+                        <Button  Grid.Row="0" Grid.Column="4" x:Name="BtnChooseProfile" Content="Choose profile" Margin="10,10,10,10" IsEnabled="False" FontSize="24" Click="BtnChooseProfile_Click" />
                     </Grid>
 
                     <ScrollViewer x:Name="ScrollViewerProfiles" VerticalScrollMode="Auto" VerticalScrollBarVisibility="Auto" Margin="0,10,0,0"

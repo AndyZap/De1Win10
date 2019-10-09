@@ -21,7 +21,7 @@ namespace De1Win10
 {
     public sealed partial class MainPage : Page
     {
-        private string appVersion = "DE1 Win10     App v1.19   ";
+        private string appVersion = "DE1 Win10     App v1.20   ";
 
         private string deviceIdAcaia = String.Empty;
         private string deviceIdDe1 = String.Empty;
@@ -333,9 +333,8 @@ namespace De1Win10
                 var result = await CreateDe1Characteristics();
                 if (result != "") { FatalError(result); return; }
 
-                // AAZ: disable auto-powering the machine until the app is ready
-                //result = await WriteDe1State(De1StateEnum.Idle);
-                //if (result != "") { FatalError(result); return; }
+                result = await WriteDe1State(De1StateEnum.Idle);
+                if (result != "") { FatalError(result); return; }
 
                 statusDe1 = StatusEnum.CharacteristicConnected;
 
@@ -343,10 +342,14 @@ namespace De1Win10
 
                 PanelConnectDisconnect.Background = new SolidColorBrush(Windows.UI.Colors.Green);
 
-                BtnBeansWeight.IsEnabled = true;
-                BtnTare.IsEnabled = true;
+                // Buttons
+                BtnChooseProfile.IsEnabled = true;
                 BtnEspresso.IsEnabled = true;
                 BtnStop.IsEnabled = true;
+                BtnStopLog1.IsEnabled = true;
+                BtnHotWater.IsEnabled = true;
+                BtnFlush.IsEnabled = true;
+                BtnSteam.IsEnabled = true;
             }
             else if (statusDe1 == StatusEnum.CharacteristicConnected)
             {
@@ -393,6 +396,10 @@ namespace De1Win10
                 statusAcaia = StatusEnum.CharacteristicConnected;
 
                 message_acaia = "Connected to Acaia ";
+
+                // Buttons
+                BtnBeansWeight.IsEnabled = true;
+                BtnTare.IsEnabled = true;
             }
             else if (statusAcaia == StatusEnum.CharacteristicConnected)
             {
@@ -468,14 +475,22 @@ namespace De1Win10
 
             chrAcaia = null;
 
-
+            // Buttons
             BtnConnect.IsEnabled = true;
+
             BtnDisconnect.IsEnabled = false;
+            BtnChooseProfile.IsEnabled = false;
+
+            BtnEspresso.IsEnabled = false;
+            BtnStop.IsEnabled = false;
+            BtnStopLog1.IsEnabled = false;
+            BtnHotWater.IsEnabled = false;
+            BtnSteam.IsEnabled = false;
+            BtnFlush.IsEnabled = false;
 
             BtnBeansWeight.IsEnabled = false;
             BtnTare.IsEnabled = false;
-            BtnEspresso.IsEnabled = false;
-            BtnStop.IsEnabled = false;
+
 
             statusDe1 = StatusEnum.Disconnected;
             statusAcaia = ChkAcaia.IsOn ? StatusEnum.Disconnected : StatusEnum.Disabled;
@@ -717,8 +732,7 @@ namespace De1Win10
                         break;
 
                     case VirtualKey.S:
-                        if (BtnStop.IsEnabled)
-                            BtnStop_Click(null, null);
+                        BtnStop_Click(null, null);
                         break;
 
                     case VirtualKey.E:
@@ -860,6 +874,9 @@ namespace De1Win10
 
                 chrAcaia = null;
                 statusAcaia = StatusEnum.Disabled;
+
+                BtnBeansWeight.IsEnabled = false;
+                BtnTare.IsEnabled = false;
 
                 UpdateStatus("Disconnected Acaia", NotifyType.StatusMessage);
             }
