@@ -55,6 +55,7 @@ namespace De1Win10
         const int ExtraWaterDepth = 5;  // distance between the water inlet and the bottom of the water tank, AAZ TODO hard-coded - read from 0.shot instead
 
         const int ExtraStopTime = 4; // time to record data after stop
+        const int QuickPurgeTime = 7; // purge time
         const double StopTimeFlowCoeff = 1.5; // flow multiplier
         const double StopTimeFlowAddOn = 0.0; // flow add-on
 

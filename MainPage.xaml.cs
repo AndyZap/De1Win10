@@ -21,7 +21,7 @@ namespace De1Win10
 {
     public sealed partial class MainPage : Page
     {
-        private string appVersion = "DE1 Win10     App v1.20   ";
+        private string appVersion = "DE1 Win10     App v1.21   ";
 
         private string deviceIdAcaia = String.Empty;
         private string deviceIdDe1 = String.Empty;
@@ -350,6 +350,7 @@ namespace De1Win10
                 BtnHotWater.IsEnabled = true;
                 BtnFlush.IsEnabled = true;
                 BtnSteam.IsEnabled = true;
+                BtnQuickPurge.IsEnabled = true;
             }
             else if (statusDe1 == StatusEnum.CharacteristicConnected)
             {
@@ -486,6 +487,7 @@ namespace De1Win10
             BtnStopLog1.IsEnabled = false;
             BtnHotWater.IsEnabled = false;
             BtnSteam.IsEnabled = false;
+            BtnQuickPurge.IsEnabled = false;
             BtnFlush.IsEnabled = false;
 
             BtnBeansWeight.IsEnabled = false;
@@ -693,6 +695,17 @@ namespace De1Win10
             UpdateStatus("Steam ...", NotifyType.StatusMessage);
         }
 
+        private async void BtnQuickPurge_Click(object sender, RoutedEventArgs e)
+        {
+            TimeSpan ts = new TimeSpan(0, 0, QuickPurgeTime);
+            StopFlushTime = DateTime.Now + ts;
+
+            var result = await WriteDe1State(De1StateEnum.Steam);
+            if (result != "") { FatalError(result); return; }
+
+            UpdateStatus("Quick purge ...", NotifyType.StatusMessage);
+        }
+
         private static bool IsCtrlKeyPressed()
         {
             var ctrlState = CoreWindow.GetForCurrentThread().GetKeyState(VirtualKey.Control);
@@ -703,7 +716,7 @@ namespace De1Win10
         {
             string help_message = "Shortcuts\r\nF1\tHelp\r\nCtrl-C\tConnect\r\nCtrl-D\tDisconnect\r\n";
             help_message += "Ctrl-B\tBeans weight\r\nCtrl-T\tTare\r\nCtrl-S\tStop\r\nCtrl-E\tEspresso\r\n";
-            help_message += "Ctrl-W\tHot water\r\nCtrl-F\tFlash\r\nCtrl-M\tMilk (Steam)\r\n";
+            help_message += "Ctrl-W\tHot water\r\nCtrl-F\tFlash\r\nCtrl-M\tMilk (Steam)\r\nCtrl-Q\tQuick purge (Steam)\r\n";
             help_message += "Ctrl-Up\tGrind +\r\nCtrl-Dn\tGrind -\r\n\r\nCtrl-A\tAdd to log\r\n";
             help_message += "Ctrl-1\tMenu item 1, etc";
 
@@ -753,6 +766,11 @@ namespace De1Win10
                     case VirtualKey.M:
                         if (BtnSteam.IsEnabled)
                             BtnSteam_Click(null, null);
+                        break;
+
+                    case VirtualKey.Q:
+                        if (BtnQuickPurge.IsEnabled)
+                            BtnQuickPurge_Click(null, null);
                         break;
 
                     case VirtualKey.Down:

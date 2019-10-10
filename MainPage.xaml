@@ -122,7 +122,7 @@
                     <!-- 
                     StackPanel PanelWaterSteam
                     -->
-                    <StackPanel  x:Name="PanelWaterSteam" Grid.Row="0" Margin="0,0,0,10" Visibility="Collapsed">
+                    <StackPanel  x:Name="PanelWaterSteam" Grid.Row="0" Margin="0,0,0,10" Visibility="Visible">
                         <Grid >
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="auto"/>
@@ -151,6 +151,8 @@
                             <TextBox   Grid.Row="2" Grid.Column="1" x:Name="TxtSteamSec" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="20,10,10,10" Text="" FontSize="24" Height="auto" Width ="auto" TextWrapping="Wrap"/>
                             <TextBlock Grid.Row="2" Grid.Column="2" VerticalAlignment="Center" Text="sec"  Margin="0,10,10,10" FontSize="24"/>
                             <Button    Grid.Row="2" Grid.Column="0" x:Name="BtnSteam" Content="Steam" Margin="0,10,10,10" IsEnabled="False" FontSize="24" Click="BtnSteam_Click" Width="200" Height="70" />
+                            <Button    Grid.Row="2" Grid.Column="4" x:Name="BtnQuickPurge" Content="Quick Purge" Margin="0,10,10,10" IsEnabled="False" FontSize="24" Click="BtnQuickPurge_Click" Width="200" Height="70" />
+
 
                             <Button    Grid.Row="3" Grid.Column="0" x:Name="BtnStopLog1" Content="Stop" Margin="0,10,10,10" IsEnabled="False" FontSize="24" Click="BtnStop_Click" Width="200" Height="70" />
 
@@ -208,7 +210,7 @@
                     Grid GridProfiles and ScrollViewerProfiles
                     -->
 
-                    <Grid x:Name="GridProfiles" Grid.Row="0" Margin="0,0,0,10" Visibility="Visible">
+                    <Grid x:Name="GridProfiles" Grid.Row="0" Margin="0,0,0,10" Visibility="Collapsed">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="auto"/>
                             <ColumnDefinition Width="auto"/>
