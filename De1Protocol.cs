@@ -59,16 +59,16 @@ namespace De1Win10
         const double StopTimeFlowCoeff = 1.5; // flow multiplier
         const double StopTimeFlowAddOn = 0.0; // flow add-on
 
+        De1OtherSetnClass De1OtherSetn = new De1OtherSetnClass();
+        int      FlushTimeSec = 4;
 
-        De1OtherSetnClass de1OtherSetn = new De1OtherSetnClass();
-
-        DateTime StopFlushTime = DateTime.MaxValue;
+        DateTime StopFlushAndSteamTime = DateTime.MaxValue;
         DateTime StartEsproTime = DateTime.MaxValue;
         DateTime StopClickedTime = DateTime.MaxValue;
-        bool StopHasBeenClicked = false;
-        double StopWeight = double.MaxValue;
+        bool     StopHasBeenClicked = false;
+        double   StopWeight = double.MaxValue;
 
-        string ProfileName = "";
+        string   ProfileName = "";
 
         List<De1ShotRecordClass> ShotRecords = new List<De1ShotRecordClass>();
 
@@ -136,13 +136,13 @@ namespace De1Win10
                 var de1_watersteam_result = await chrDe1OtherSetn.ReadValueAsync(bleCacheMode);
                 if (de1_watersteam_result.Status != GattCommunicationStatus.Success) { return "Failed to read DE1 characteristic " + de1_watersteam_result.Status.ToString(); }
 
-                if (!DecodeDe1OtherSetn(de1_watersteam_result.Value, de1OtherSetn)) { return "Failed to decode DE1 Water Steam"; }
+                if (!DecodeDe1OtherSetn(de1_watersteam_result.Value, De1OtherSetn)) { return "Failed to decode DE1 Water Steam"; }
                 if (TxtHotWaterTemp.Text == "")
-                    TxtHotWaterTemp.Text = de1OtherSetn.TargetHotWaterTemp.ToString();
+                    TxtHotWaterTemp.Text = De1OtherSetn.TargetHotWaterTemp.ToString();
                 if (TxtHotWaterMl.Text == "")
-                    TxtHotWaterMl.Text = de1OtherSetn.TargetHotWaterVol.ToString();
+                    TxtHotWaterMl.Text = De1OtherSetn.TargetHotWaterVol.ToString();
                 if (TxtSteamSec.Text == "")
-                    TxtSteamSec.Text = de1OtherSetn.TargetSteamLength.ToString();
+                    TxtSteamSec.Text = De1OtherSetn.TargetSteamLength.ToString();
 
 
 
@@ -504,21 +504,21 @@ namespace De1Win10
                 return "WARNING: Error reading hot water volume, please supply a valid integer value";
             }
 
-            if (de1OtherSetn.TargetSteamLength != targetSteamLength ||
-                de1OtherSetn.TargetHotWaterTemp != targetHotWaterTemp ||
-                de1OtherSetn.TargetHotWaterVol != targetHotWaterVol)
+            if (De1OtherSetn.TargetSteamLength != targetSteamLength ||
+                De1OtherSetn.TargetHotWaterTemp != targetHotWaterTemp ||
+                De1OtherSetn.TargetHotWaterVol != targetHotWaterVol)
             {
 
-                de1OtherSetn.TargetSteamLength = targetSteamLength;
-                de1OtherSetn.TargetHotWaterTemp = targetHotWaterTemp;
-                de1OtherSetn.TargetHotWaterVol = targetHotWaterVol;
+                De1OtherSetn.TargetSteamLength = targetSteamLength;
+                De1OtherSetn.TargetHotWaterTemp = targetHotWaterTemp;
+                De1OtherSetn.TargetHotWaterVol = targetHotWaterVol;
 
                 ApplicationDataContainer localSettings = ApplicationData.Current.LocalSettings;
                 localSettings.Values["TxtHotWaterTemp"] = TxtHotWaterTemp.Text;
                 localSettings.Values["TxtHotWaterMl"] = TxtHotWaterMl.Text;
                 localSettings.Values["TxtSteamSec"] = TxtSteamSec.Text;
 
-                var bytes = EncodeDe1OtherSetn(de1OtherSetn);
+                var bytes = EncodeDe1OtherSetn(De1OtherSetn);
                 return await writeToDE(bytes, De1ChrEnum.OtherSetn);
             }
             else
@@ -526,10 +526,9 @@ namespace De1Win10
         }
         private string UpdateFlushSecFromGui()
         {
-            int flushSec;
             try
             {
-                flushSec = Convert.ToInt32(TxtFlushSec.Text.Trim());
+                FlushTimeSec = Convert.ToInt32(TxtFlushSec.Text.Trim());
             }
             catch (Exception)
             {
@@ -538,9 +537,6 @@ namespace De1Win10
 
             ApplicationDataContainer localSettings = ApplicationData.Current.LocalSettings;
             localSettings.Values["TxtFlushSec"] = TxtFlushSec.Text;
-
-            TimeSpan ts = new TimeSpan(0, 0, flushSec);
-            StopFlushTime = DateTime.Now + ts;
 
             return "";
         }
@@ -693,7 +689,7 @@ namespace De1Win10
             RaiseAutomationEvent(TxtSteamTemp);
             RaiseAutomationEvent(TxtFrameNumber);
 
-            if (DateTime.Now >= StopFlushTime)
+            if (DateTime.Now >= StopFlushAndSteamTime)
                 BtnStop_Click(null, null);
 
             if (StartEsproTime != DateTime.MaxValue) // we are recording the shot

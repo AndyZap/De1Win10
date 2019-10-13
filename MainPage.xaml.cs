@@ -21,7 +21,7 @@ namespace De1Win10
 {
     public sealed partial class MainPage : Page
     {
-        private string appVersion = "DE1 Win10     App v1.21   ";
+        private string appVersion = "DE1 Win10     App v1.22   ";
 
         private string deviceIdAcaia = String.Empty;
         private string deviceIdDe1 = String.Empty;
@@ -624,7 +624,7 @@ namespace De1Win10
 
         private async void BtnStop_Click(object sender, RoutedEventArgs e)
         {
-            StopFlushTime = DateTime.MaxValue;
+            StopFlushAndSteamTime = DateTime.MaxValue;
 
             if (StartEsproTime != DateTime.MaxValue)  // we are recording Espro shot
             {
@@ -672,6 +672,9 @@ namespace De1Win10
                 return;
             }
 
+            TimeSpan ts = new TimeSpan(0, 0, FlushTimeSec);
+            StopFlushAndSteamTime = DateTime.Now + ts;
+
             result = await WriteDe1State(De1StateEnum.HotWaterRinse);
             if (result != "") { FatalError(result); return; }
 
@@ -689,16 +692,18 @@ namespace De1Win10
                 return;
             }
 
+            TimeSpan ts = new TimeSpan(0, 0, De1OtherSetn.TargetSteamLength);
+            StopFlushAndSteamTime = DateTime.Now + ts;
+
             result = await WriteDe1State(De1StateEnum.Steam);
             if (result != "") { FatalError(result); return; }
 
             UpdateStatus("Steam ...", NotifyType.StatusMessage);
         }
-
         private async void BtnQuickPurge_Click(object sender, RoutedEventArgs e)
         {
             TimeSpan ts = new TimeSpan(0, 0, QuickPurgeTime);
-            StopFlushTime = DateTime.Now + ts;
+            StopFlushAndSteamTime = DateTime.Now + ts;
 
             var result = await WriteDe1State(De1StateEnum.Steam);
             if (result != "") { FatalError(result); return; }
@@ -1040,10 +1045,10 @@ namespace De1Win10
             }
 
             // check if we need to send the new water temp
-            if (de1OtherSetn.TargetGroupTemp != frames[0].Temp)
+            if (De1OtherSetn.TargetGroupTemp != frames[0].Temp)
             {
-                de1OtherSetn.TargetGroupTemp = frames[0].Temp;
-                var bytes = EncodeDe1OtherSetn(de1OtherSetn);
+                De1OtherSetn.TargetGroupTemp = frames[0].Temp;
+                var bytes = EncodeDe1OtherSetn(De1OtherSetn);
                 var res_water = await writeToDE(bytes, De1ChrEnum.OtherSetn);
                 if (res_water != "")
                     return "Error " + res_water;
