@@ -321,9 +321,9 @@ namespace De1Win10
                 version_string += " BLE " + BLE1.ToString() + "." + BLE2.ToString() + "." + BLE3.ToString() + "." + BLE4.ToString() + " SHA ";
 
                 version_string += data[index].ToString("X"); index++;
-                version_string += data[index].ToString("X"); index++;
-                version_string += data[index].ToString("X"); index++;
-                version_string += data[index].ToString("X"); index++;
+                version_string += data[index].ToString("X2"); index++;
+                version_string += data[index].ToString("X2"); index++;
+                version_string += data[index].ToString("X2"); index++;
 
                 return version_string;
             }
