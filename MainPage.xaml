@@ -41,7 +41,7 @@
                     <!-- 
                     StackPanel PanelEspresso
                     -->
-                    <StackPanel  x:Name="PanelEspresso" Grid.Row="0" Margin="0,0,0,10" Visibility="Collapsed">
+                    <StackPanel  x:Name="PanelEspresso" Grid.Row="0" Margin="0,0,0,10" Visibility="Visible">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="auto"/>
@@ -164,7 +164,7 @@
                     <!-- 
                     StackPanel PanelSaveRecord
                     -->
-                    <StackPanel  x:Name="PanelSaveRecord" Grid.Row="0" Margin="0,0,0,10" Visibility="Visible">
+                    <StackPanel  x:Name="PanelSaveRecord" Grid.Row="0" Margin="0,0,0,10" Visibility="Collapsed">
 
                         <Button x:Name="BtnSaveLog" Content="Add record" Margin="0,10,30,10" IsEnabled="True" FontSize="24" Click="BtnSaveLog_Click" Width="200" Height="70"/>
                         
@@ -236,7 +236,7 @@
                         <Button  Grid.Row="0" Grid.Column="2" x:Name="BtnDisconnect" Content="Disconnect" Margin="10,10,10,10" IsEnabled="False" FontSize="24" Click="BtnDisconnect_Click" Width="150"/>
                         <ToggleSwitch  Grid.Row="0" Grid.Column="3" x:Name="ChkAcaia" Header="Acaia" Margin="30,10,10,10" VerticalAlignment="Stretch" FontSize="18" Toggled="ChkAcaia_Toggled" Width="120"/>
 
-                        <Button  Grid.Row="0" Grid.Column="4" x:Name="BtnChooseProfile" Content="Choose profile" Margin="10,10,10,10" IsEnabled="False" FontSize="24" Click="BtnChooseProfile_Click" />
+                        <Button  Grid.Row="0" Grid.Column="4" x:Name="BtnSetProfile" Content="Set profile" Margin="10,10,10,10" IsEnabled="False" FontSize="24" Click="BtnSetProfile_Click" />
                     </Grid>
 
                     <ScrollViewer x:Name="ScrollViewerProfiles" VerticalScrollMode="Auto" VerticalScrollBarVisibility="Auto" Margin="0,10,0,0"

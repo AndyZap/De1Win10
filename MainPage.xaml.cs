@@ -360,7 +360,7 @@ namespace De1Win10
                 PanelConnectDisconnect.Background = new SolidColorBrush(Windows.UI.Colors.Green);
 
                 // Buttons
-                BtnChooseProfile.IsEnabled = true;
+                BtnSetProfile.IsEnabled = true;
                 BtnEspresso.IsEnabled = true;
                 BtnStop.IsEnabled = true;
                 BtnStopLog1.IsEnabled = true;
@@ -497,7 +497,7 @@ namespace De1Win10
             BtnConnect.IsEnabled = true;
 
             BtnDisconnect.IsEnabled = false;
-            BtnChooseProfile.IsEnabled = false;
+            BtnSetProfile.IsEnabled = false;
 
             BtnEspresso.IsEnabled = false;
             BtnStop.IsEnabled = false;
@@ -1002,7 +1002,7 @@ namespace De1Win10
 
             return "";
         }
-        private async void BtnChooseProfile_Click(object sender, RoutedEventArgs e)
+        private async void BtnSetProfile_Click(object sender, RoutedEventArgs e)
         {
             var result = await LoadFolders();
             if (result != "")

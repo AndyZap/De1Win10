@@ -121,7 +121,12 @@ namespace De1Win10
         private void SaveBeanNameHistory()
         {
             var name = DetailBeansName.Text.Trim();
-            int index = BeanNameHistory.FindIndex(r => r.Equals(name, StringComparison.InvariantCultureIgnoreCase));
+
+            if (name == "") // do not save blanks
+                return;
+
+            int index = BeanNameHistory.FindIndex(r => r.Equals(name, StringComparison.CurrentCultureIgnoreCase));
+
             if (index == 0)  // already at the first index, do not need to do anything
                 return;
 
@@ -129,12 +134,15 @@ namespace De1Win10
             {
                 BeanNameHistory.Insert(0, name);
             }
-            else
+            else  // at index, move to the first position
             {
-
+                BeanNameHistory.RemoveAt(index);
+                BeanNameHistory.Insert(0, name);
             }
 
             // remove extra elements
+            while (BeanNameHistory.Count > 6)
+                BeanNameHistory.RemoveAt(6);
 
             ApplicationDataContainer localSettings = ApplicationData.Current.LocalSettings;
             localSettings.Values["BeanNameHistory0"] = BeanNameHistory[0];
@@ -154,7 +162,7 @@ namespace De1Win10
 
         private async void BtnSaveLog_Click(object sender, RoutedEventArgs e)
         {
-            // SaveBeanNameHistory();
+            SaveBeanNameHistory();
 
             var now = DateTime.Now;
             var sec_now = DateTimeOffset.Now.ToUnixTimeSeconds();
