@@ -17,6 +17,8 @@ namespace De1Win10
         const string De1FolderToken = "De1FolderToken";
         IList<string> ReferenceShotFile = null;
 
+        List<string> BeanNameHistory = new List<string>();
+
         public ObservableCollection<ProfileClass> Profiles { get; } = new ObservableCollection<ProfileClass>();
         private string ToCsvFile(string s) // make sure we do not save commas into csv, a quick hack
         {
@@ -116,16 +118,44 @@ namespace De1Win10
             espresso_temperature_goal.Append("}");
         }
 
-        /* 
-         * DateTime dt = DateTimeOffset.FromUnixTimeSeconds(1568407877).LocalDateTime;
+        private void SaveBeanNameHistory()
+        {
+            var name = DetailBeansName.Text.Trim();
+            int index = BeanNameHistory.FindIndex(r => r.Equals(name, StringComparison.InvariantCultureIgnoreCase));
+            if (index == 0)  // already at the first index, do not need to do anything
+                return;
 
-            //var sec = DateTimeOffset.Now.ToUnixTimeSeconds()
-            var dt0 = new DateTimeOffset(dt);
-            var sec = dt0.ToUnixTimeSeconds();  // back to 1568407877
-         */
+            if (index == -1)  // not there at all
+            {
+                BeanNameHistory.Insert(0, name);
+            }
+            else
+            {
+
+            }
+
+            // remove extra elements
+
+            ApplicationDataContainer localSettings = ApplicationData.Current.LocalSettings;
+            localSettings.Values["BeanNameHistory0"] = BeanNameHistory[0];
+            localSettings.Values["BeanNameHistory1"] = BeanNameHistory[1];
+            localSettings.Values["BeanNameHistory2"] = BeanNameHistory[2];
+            localSettings.Values["BeanNameHistory3"] = BeanNameHistory[3];
+            localSettings.Values["BeanNameHistory4"] = BeanNameHistory[4];
+            localSettings.Values["BeanNameHistory5"] = BeanNameHistory[5];
+
+            BtnBeanName0.Content = BeanNameHistory[0];
+            BtnBeanName1.Content = BeanNameHistory[1];
+            BtnBeanName2.Content = BeanNameHistory[2];
+            BtnBeanName3.Content = BeanNameHistory[3];
+            BtnBeanName4.Content = BeanNameHistory[4];
+            BtnBeanName5.Content = BeanNameHistory[5];
+        }
 
         private async void BtnSaveLog_Click(object sender, RoutedEventArgs e)
         {
+            // SaveBeanNameHistory();
+
             var now = DateTime.Now;
             var sec_now = DateTimeOffset.Now.ToUnixTimeSeconds();
             string file_name = now.ToString("yyyyMMdd") + "T" + now.ToString("HHmmss") + ".shot";

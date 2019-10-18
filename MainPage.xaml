@@ -172,6 +172,7 @@
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="auto"/>
                                 <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="auto"/>
                             </Grid.ColumnDefinitions>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="auto"/>
@@ -202,6 +203,14 @@
                                 <Button x:Name="BtnGrindPlus" Content="+" Margin="0,10,0,10"  FontSize="24" Click="BtnGrindPlus_Click" />
                             </StackPanel>
                             <TextBox Grid.Row="5" Grid.Column="1" x:Name="DetailNotes" HorizontalAlignment="Left" Margin="20,10,10,10" Text="" FontSize="24" Height="auto" Width ="auto" TextWrapping="Wrap"/>
+
+                            <Button Grid.Row="0" Grid.Column="2" x:Name="BtnBeanName0" Content="" Margin="0,10,30,10" IsEnabled="True" FontSize="24" Click="BtnBeanName_Click" Width="200"/>
+                            <Button Grid.Row="1" Grid.Column="2" x:Name="BtnBeanName1" Content="" Margin="0,10,30,10" IsEnabled="True" FontSize="24" Click="BtnBeanName_Click" Width="200"/>
+                            <Button Grid.Row="2" Grid.Column="2" x:Name="BtnBeanName2" Content="" Margin="0,10,30,10" IsEnabled="True" FontSize="24" Click="BtnBeanName_Click" Width="200"/>
+                            <Button Grid.Row="3" Grid.Column="2" x:Name="BtnBeanName3" Content="" Margin="0,10,30,10" IsEnabled="True" FontSize="24" Click="BtnBeanName_Click" Width="200"/>
+                            <Button Grid.Row="4" Grid.Column="2" x:Name="BtnBeanName4" Content="" Margin="0,10,30,10" IsEnabled="True" FontSize="24" Click="BtnBeanName_Click" Width="200"/>
+                            <Button Grid.Row="5" Grid.Column="2" x:Name="BtnBeanName5" Content="" Margin="0,10,30,10" IsEnabled="True" FontSize="24" Click="BtnBeanName_Click" Width="200"/>
+
                         </Grid>
                     </StackPanel>
 

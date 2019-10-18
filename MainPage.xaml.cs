@@ -21,7 +21,7 @@ namespace De1Win10
 {
     public sealed partial class MainPage : Page
     {
-        private string appVersion = "DE1 Win10     App v1.23   ";
+        private string appVersion = "DE1 Win10     App v1.24   ";
 
         private string deviceIdAcaia = String.Empty;
         private string deviceIdDe1 = String.Empty;
@@ -85,6 +85,23 @@ namespace De1Win10
 
             val = localSettings.Values["ProfileName"] as string;
             ProfileName = val == null ? "" : val;
+
+
+            BeanNameHistory.Clear();
+            val = localSettings.Values["BeanNameHistory0"] as string; BeanNameHistory.Add(val == null ? "" : val);
+            val = localSettings.Values["BeanNameHistory1"] as string; BeanNameHistory.Add(val == null ? "" : val);
+            val = localSettings.Values["BeanNameHistory2"] as string; BeanNameHistory.Add(val == null ? "" : val);
+            val = localSettings.Values["BeanNameHistory3"] as string; BeanNameHistory.Add(val == null ? "" : val);
+            val = localSettings.Values["BeanNameHistory4"] as string; BeanNameHistory.Add(val == null ? "" : val);
+            val = localSettings.Values["BeanNameHistory5"] as string; BeanNameHistory.Add(val == null ? "" : val);
+
+            BtnBeanName0.Content = BeanNameHistory[0];
+            BtnBeanName1.Content = BeanNameHistory[1];
+            BtnBeanName2.Content = BeanNameHistory[2];
+            BtnBeanName3.Content = BeanNameHistory[3];
+            BtnBeanName4.Content = BeanNameHistory[4];
+            BtnBeanName5.Content = BeanNameHistory[5];
+
 
             Header.Text = appVersion;
         }
@@ -1017,7 +1034,6 @@ namespace De1Win10
             else
                 UpdateStatus("Please select profile to use", NotifyType.WarningMessage);
         }
-
         private async Task<string> LoadProfile(string profile_name)
         {
             if (await ProfilesFolder.TryGetItemAsync(profile_name + ".tcl") == null)
@@ -1055,6 +1071,11 @@ namespace De1Win10
             }
 
             return "";
+        }
+        private void BtnBeanName_Click(object sender, RoutedEventArgs e)
+        {
+            Button b = sender as Button;
+            DetailBeansName.Text = (string)b.Content;
         }
     }
 }
