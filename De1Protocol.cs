@@ -2,7 +2,6 @@ using System;
 using Windows.Devices.Bluetooth.GenericAttributeProfile;
 using Windows.UI.Xaml.Controls;
 using System.Runtime.InteropServices.WindowsRuntime;
-using System.Linq;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Windows.Security.Cryptography;
@@ -310,22 +309,19 @@ namespace De1Win10
 
             try
             {
-                string version_string = " DE1 API v.";
                 int index = 0;
-                version_string += data[index].ToString(); index++;
+                var APIVersion = data[index].ToString(); index++;
+                var Release = convert_F8_1_7_to_float(data[index]).ToString(); index++;
+                var Commits = (256 * data[index] + data[index + 1]).ToString(); index += 2;
+                var Changes = data[index]; index++;
 
-                var BLE2 = data[index]; index++;
-                var BLE1 = data[index]; index++;
-                var BLE4 = data[index]; index++;
-                var BLE3 = data[index]; index++;
-                version_string += " BLE " + BLE1.ToString() + "." + BLE2.ToString() + "." + BLE3.ToString() + "." + BLE4.ToString() + " SHA ";
+                var SHA = " SHA ";
+                SHA += data[index].ToString("X"); index++;
+                SHA += data[index].ToString("X2"); index++;
+                SHA += data[index].ToString("X2"); index++;
+                SHA += data[index].ToString("X2"); index++;
 
-                version_string += data[index].ToString("X"); index++;
-                version_string += data[index].ToString("X2"); index++;
-                version_string += data[index].ToString("X2"); index++;
-                version_string += data[index].ToString("X2"); index++;
-
-                return version_string;
+                return " DE1 API v." + APIVersion + " BLE " + Release + "." + Changes + "." + Commits + SHA;
             }
             catch (Exception)
             {
