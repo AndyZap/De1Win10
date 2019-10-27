@@ -707,8 +707,9 @@ namespace De1Win10
                 return;
             }
 
-            TimeSpan ts = new TimeSpan(0, 0, De1OtherSetn.TargetSteamLength);
-            StopFlushAndSteamTime = DateTime.Now + ts;
+            // Enable this if you want steam to stop by a timer followed by autopurge (I did not like it, back to default)
+            //TimeSpan ts = new TimeSpan(0, 0, De1OtherSetn.TargetSteamLength);
+            //StopFlushAndSteamTime = DateTime.Now + ts;
 
             result = await WriteDe1State(De1StateEnum.Steam);
             if (result != "") { FatalError(result); return; }
