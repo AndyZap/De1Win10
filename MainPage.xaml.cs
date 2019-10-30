@@ -19,7 +19,7 @@ namespace De1Win10
 {
     public sealed partial class MainPage : Page
     {
-        private string appVersion = "DE1 Win10     App v1.25   ";
+        private string appVersion = "DE1 Win10     App v1.26   ";
 
         private string deviceIdAcaia = String.Empty;
         private string deviceIdDe1 = String.Empty;
@@ -77,6 +77,9 @@ namespace De1Win10
 
             val = localSettings.Values["TxtSteamSec"] as string;
             TxtSteamSec.Text = val == null ? "" : val;
+
+            val = localSettings.Values["TxtSteamTemp"] as string;
+            TxtSteamTemp.Text = val == null ? "" : val;
 
             val = localSettings.Values["TxtRatio"] as string;
             TxtRatio.Text = val == null ? "" : val;

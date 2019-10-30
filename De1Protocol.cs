@@ -142,8 +142,8 @@ namespace De1Win10
                     TxtHotWaterMl.Text = De1OtherSetn.TargetHotWaterVol.ToString();
                 if (TxtSteamSec.Text == "")
                     TxtSteamSec.Text = De1OtherSetn.TargetSteamLength.ToString();
-
-
+                if(TxtSteamTemp.Text == "")
+                    TxtSteamTemp.Text = De1OtherSetn.TargetSteamTemp.ToString();
 
                 // Characteristic   A00D Shot Info R/-/N   --------------------------------------------------
                 result_charact = await service.GetCharacteristicsForUuidAsync(new Guid(ChrDe1ShotInfoString), bleCacheMode);
@@ -480,6 +480,16 @@ namespace De1Win10
                 return "WARNING: Error reading steam length, please supply a valid integer value";
             }
 
+            int targetSteamTemp;
+            try
+            {
+                targetSteamTemp = Convert.ToInt32(TxtSteamTemp.Text.Trim());
+            }
+            catch (Exception)
+            {
+                return "WARNING: Error reading steam temperature, please supply a valid integer value";
+            }
+
             int targetHotWaterTemp;
             try
             {
@@ -501,11 +511,13 @@ namespace De1Win10
             }
 
             if (De1OtherSetn.TargetSteamLength != targetSteamLength ||
+                De1OtherSetn.TargetSteamTemp != targetSteamTemp ||
                 De1OtherSetn.TargetHotWaterTemp != targetHotWaterTemp ||
                 De1OtherSetn.TargetHotWaterVol != targetHotWaterVol)
             {
 
                 De1OtherSetn.TargetSteamLength = targetSteamLength;
+                De1OtherSetn.TargetSteamTemp = targetSteamTemp;
                 De1OtherSetn.TargetHotWaterTemp = targetHotWaterTemp;
                 De1OtherSetn.TargetHotWaterVol = targetHotWaterVol;
 
@@ -513,6 +525,7 @@ namespace De1Win10
                 localSettings.Values["TxtHotWaterTemp"] = TxtHotWaterTemp.Text;
                 localSettings.Values["TxtHotWaterMl"] = TxtHotWaterMl.Text;
                 localSettings.Values["TxtSteamSec"] = TxtSteamSec.Text;
+                localSettings.Values["TxtSteamTemp"] = TxtSteamTemp.Text;
 
                 var bytes = EncodeDe1OtherSetn(De1OtherSetn);
                 return await writeToDE(bytes, De1ChrEnum.OtherSetn);
@@ -671,7 +684,7 @@ namespace De1Win10
             TxtBrewTempHeadTarget.Text = shot_info.SetHeadTemp.ToString("0.0");
             TxtBrewTempMix.Text = shot_info.MixTemp.ToString("0.0");
             TxtBrewTempMixTarget.Text = shot_info.SetMixTemp.ToString("0.0");
-            TxtSteamTemp.Text = shot_info.SteamTemp.ToString("0");
+            TxtBrewSteamTemp.Text = shot_info.SteamTemp.ToString("0");
             TxtFrameNumber.Text = shot_info.FrameNumber.ToString("0");
 
             RaiseAutomationEvent(TxtBrewFlow);
@@ -682,7 +695,7 @@ namespace De1Win10
             RaiseAutomationEvent(TxtBrewTempHeadTarget);
             RaiseAutomationEvent(TxtBrewTempMix);
             RaiseAutomationEvent(TxtBrewTempMixTarget);
-            RaiseAutomationEvent(TxtSteamTemp);
+            RaiseAutomationEvent(TxtBrewSteamTemp);
             RaiseAutomationEvent(TxtFrameNumber);
 
             if (DateTime.Now >= StopFlushAndSteamTime)

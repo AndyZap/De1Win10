@@ -41,7 +41,7 @@
                     <!-- 
                     StackPanel PanelEspresso
                     -->
-                    <StackPanel  x:Name="PanelEspresso" Grid.Row="0" Margin="0,0,0,10" Visibility="Visible">
+                    <StackPanel  x:Name="PanelEspresso" Grid.Row="0" Margin="0,0,0,10" Visibility="Collapsed">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="auto"/>
@@ -113,7 +113,7 @@
                             <TextBlock Grid.Row="6" Grid.Column="2" x:Name="TxtBrewTempMixTarget" Text="---"  Margin="30,10,10,10" FontSize="24" AutomationProperties.LiveSetting="Assertive"/>
 
                             <TextBlock Grid.Row="6" Grid.Column="4" Text="Steam, °C"  Margin="0,10,10,10" FontSize="24"/>
-                            <TextBlock Grid.Row="6" Grid.Column="5" x:Name="TxtSteamTemp" Text="---"  Margin="0,10,10,10" FontSize="24" AutomationProperties.LiveSetting="Assertive"/>
+                            <TextBlock Grid.Row="6" Grid.Column="5" x:Name="TxtBrewSteamTemp" Text="---"  Margin="0,10,10,10" FontSize="24" AutomationProperties.LiveSetting="Assertive"/>
 
                         </Grid>
                     </StackPanel>
@@ -122,13 +122,14 @@
                     <!-- 
                     StackPanel PanelWaterSteam
                     -->
-                    <StackPanel  x:Name="PanelWaterSteam" Grid.Row="0" Margin="0,0,0,10" Visibility="Collapsed">
+                    <StackPanel  x:Name="PanelWaterSteam" Grid.Row="0" Margin="0,0,0,10" Visibility="Visible">
                         <Grid >
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="auto"/>
                                 <ColumnDefinition Width="auto"/>
                                 <ColumnDefinition Width="auto"/>
                                 <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="auto"/>
                             </Grid.ColumnDefinitions>
                             <Grid.RowDefinitions>
@@ -148,11 +149,12 @@
                             <TextBlock Grid.Row="1" Grid.Column="2" VerticalAlignment="Center" Text="sec"  Margin="0,10,10,10" FontSize="24"/>
                             <Button    Grid.Row="1" Grid.Column="0" x:Name="BtnFlush" Content="Flush" Margin="0,10,10,10" IsEnabled="False" FontSize="24" Click="BtnFlush_Click" Width="200" Height="70" />
 
+                            <Button    Grid.Row="2" Grid.Column="0" x:Name="BtnSteam" Content="Steam" Margin="0,10,10,10" IsEnabled="False" FontSize="24" Click="BtnSteam_Click" Width="200" Height="70" />
                             <TextBox   Grid.Row="2" Grid.Column="1" x:Name="TxtSteamSec" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="20,10,10,10" Text="" FontSize="24" Height="auto" Width ="auto" TextWrapping="Wrap"/>
                             <TextBlock Grid.Row="2" Grid.Column="2" VerticalAlignment="Center" Text="sec"  Margin="0,10,10,10" FontSize="24"/>
-                            <Button    Grid.Row="2" Grid.Column="0" x:Name="BtnSteam" Content="Steam" Margin="0,10,10,10" IsEnabled="False" FontSize="24" Click="BtnSteam_Click" Width="200" Height="70" />
-                            <Button    Grid.Row="2" Grid.Column="4" x:Name="BtnQuickPurge" Content="Quick Purge" Margin="0,10,10,10" IsEnabled="False" FontSize="24" Click="BtnQuickPurge_Click" Width="200" Height="70" />
-
+                            <TextBox   Grid.Row="2" Grid.Column="3" x:Name="TxtSteamTemp" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="20,10,10,10" Text="" FontSize="24" Height="auto" Width ="auto" TextWrapping="Wrap"/>
+                            <TextBlock Grid.Row="2" Grid.Column="4" VerticalAlignment="Center" Text="°C"  Margin="0,10,10,10" FontSize="24"/>
+                            <Button    Grid.Row="2" Grid.Column="5" x:Name="BtnQuickPurge" Content="Quick Purge" Margin="0,10,10,10" IsEnabled="False" FontSize="24" Click="BtnQuickPurge_Click" Width="200" Height="70" />
 
                             <Button    Grid.Row="3" Grid.Column="0" x:Name="BtnStopLog1" Content="Stop" Margin="0,10,10,10" IsEnabled="False" FontSize="24" Click="BtnStop_Click" Width="200" Height="70" />
 
