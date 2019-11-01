@@ -19,7 +19,7 @@ namespace De1Win10
 {
     public sealed partial class MainPage : Page
     {
-        private string appVersion = "DE1 Win10     App v1.26   ";
+        private string appVersion = "DE1 Win10     App v1.27   ";
 
         private string deviceIdAcaia = String.Empty;
         private string deviceIdDe1 = String.Empty;
@@ -511,6 +511,7 @@ namespace De1Win10
             BtnBeansWeight.IsEnabled = false;
             BtnTare.IsEnabled = false;
 
+            EspressoRunning = false;
 
             statusDe1 = StatusEnum.Disconnected;
             statusAcaia = ChkAcaia.IsOn ? StatusEnum.Disconnected : StatusEnum.Disabled;
@@ -638,10 +639,12 @@ namespace De1Win10
             */
 
             UpdateStatus("Espresso ...", NotifyType.StatusMessage);
+            EspressoRunning = true;
         }
 
         private async void BtnStop_Click(object sender, RoutedEventArgs e)
         {
+            EspressoRunning = false;
             StopFlushAndSteamTime = DateTime.MaxValue;
 
             if (StartEsproTime != DateTime.MaxValue)  // we are recording Espro shot
@@ -662,6 +665,16 @@ namespace De1Win10
             */
 
             UpdateStatus("Stopped", NotifyType.StatusMessage);
+        }
+        private async void BtnNextFrame()
+        {
+            if (!EspressoRunning)
+                return;
+
+            var result = await WriteDe1State(De1StateEnum.SkipToNext);
+            if (result != "") { FatalError(result); return; }
+
+            UpdateStatus("Next frame", NotifyType.StatusMessage);
         }
 
         private async void BtnWater_Click(object sender, RoutedEventArgs e)
@@ -834,6 +847,10 @@ namespace De1Win10
                     case VirtualKey.F1:
                         var messageDialog = new MessageDialog(help_message);
                         await messageDialog.ShowAsync();
+                        break;
+                    case VirtualKey.Escape:
+                        if (EspressoRunning)
+                            BtnNextFrame();
                         break;
                 }
             }

@@ -66,6 +66,7 @@ namespace De1Win10
         DateTime StopClickedTime = DateTime.MaxValue;
         bool     StopHasBeenClicked = false;
         double   StopWeight = double.MaxValue;
+        bool     EspressoRunning = false;
 
         string   ProfileName = "";
 
