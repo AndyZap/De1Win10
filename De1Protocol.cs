@@ -59,16 +59,16 @@ namespace De1Win10
         const double StopTimeFlowAddOn = 0.0; // flow add-on
 
         De1OtherSetnClass De1OtherSetn = new De1OtherSetnClass();
-        int      FlushTimeSec = 4;
+        int FlushTimeSec = 4;
 
         DateTime StopFlushAndSteamTime = DateTime.MaxValue;
         DateTime StartEsproTime = DateTime.MaxValue;
         DateTime StopClickedTime = DateTime.MaxValue;
-        bool     StopHasBeenClicked = false;
-        double   StopWeight = double.MaxValue;
-        bool     EspressoRunning = false;
+        bool StopHasBeenClicked = false;
+        double StopWeight = double.MaxValue;
+        bool EspressoRunning = false;
 
-        string   ProfileName = "";
+        string ProfileName = "";
 
         List<De1ShotRecordClass> ShotRecords = new List<De1ShotRecordClass>();
 
@@ -133,18 +133,20 @@ namespace De1Win10
                 if (result_charact.Characteristics.Count != 1) { return "Error, expected to find one DE1 characteristics"; }
 
                 chrDe1OtherSetn = result_charact.Characteristics[0];
+
+                // read currently stored settings in the machine
                 var de1_watersteam_result = await chrDe1OtherSetn.ReadValueAsync(bleCacheMode);
                 if (de1_watersteam_result.Status != GattCommunicationStatus.Success) { return "Failed to read DE1 characteristic " + de1_watersteam_result.Status.ToString(); }
 
                 if (!DecodeDe1OtherSetn(de1_watersteam_result.Value, De1OtherSetn)) { return "Failed to decode DE1 Water Steam"; }
-                if (TxtHotWaterTemp.Text == "")
-                    TxtHotWaterTemp.Text = De1OtherSetn.TargetHotWaterTemp.ToString();
-                if (TxtHotWaterMl.Text == "")
-                    TxtHotWaterMl.Text = De1OtherSetn.TargetHotWaterVol.ToString();
-                if (TxtSteamSec.Text == "")
-                    TxtSteamSec.Text = De1OtherSetn.TargetSteamLength.ToString();
-                if(TxtSteamTemp.Text == "")
-                    TxtSteamTemp.Text = De1OtherSetn.TargetSteamTemp.ToString();
+
+                // write required values from GUI
+                var result_de1_watersteam = await UpdateOtherSetnFromGui();
+                if (result_de1_watersteam != "")
+                    return result_de1_watersteam;
+
+
+
 
                 // Characteristic   A00D Shot Info R/-/N   --------------------------------------------------
                 result_charact = await service.GetCharacteristicsForUuidAsync(new Guid(ChrDe1ShotInfoString), bleCacheMode);
@@ -469,8 +471,12 @@ namespace De1Win10
 
             return data;
         }
+
+        bool SteamTempHasChanged = false;
         private async Task<string> UpdateOtherSetnFromGui()
         {
+            SteamTempHasChanged = false;
+
             int targetSteamLength;
             try
             {
@@ -510,6 +516,9 @@ namespace De1Win10
             {
                 return "WARNING: Error reading hot water volume, please supply a valid integer value";
             }
+
+            if (De1OtherSetn.TargetSteamTemp != targetSteamTemp)
+                SteamTempHasChanged = true;
 
             if (De1OtherSetn.TargetSteamLength != targetSteamLength ||
                 De1OtherSetn.TargetSteamTemp != targetSteamTemp ||
@@ -787,6 +796,71 @@ namespace De1Win10
             564, 592, 620, 648, 676, 704, 732, 760, 788, 816, 844, 872, 900, 929, 957, 985, 1013, 1042, 1070, 1104, 1138, 1172, 1207,
             1242, 1277, 1312, 1347, 1382, 1417, 1453, 1488, 1523, 1559, 1594, 1630, 1665, 1701, 1736, 1772, 1808, 1843, 1879, 1915,
             1951, 1986, 2022, 2058 };
+
+        public enum CalibTargetEnum { flow, pres, temp } // 0,1,2
+        public enum CalibCommandEnum { current, factory } // 0,3
+        public class De1CalibClass
+        {
+            public bool WriteKey = false;
+            public CalibCommandEnum CalCommand = CalibCommandEnum.current;
+            public CalibTargetEnum CalTarget = CalibTargetEnum.flow;
+            public double DE1ReportedVal = 0.0;
+            public double MeasuredVal = 0.0;
+
+            public De1CalibClass() { }
+
+            public override string ToString()
+            {
+                return (WriteKey ? "W" : "N") +
+                " Command " + CalCommand.ToString() +
+                " Target " + CalTarget.ToString() +
+                " Reported " + DE1ReportedVal.ToString() +
+                " Measured " + MeasuredVal.ToString();
+            }
+        }
+
+        private bool DecodeDe1Calib(byte[] data, De1CalibClass calib)
+        {
+            if (data == null)
+                return false;
+
+            if (data.Length != 14)
+                return false;
+
+            try
+            {
+                int index = 0;
+
+                Array.Reverse(data, index, 4);
+                uint wk = BitConverter.ToUInt32(data, index); index += 4;
+                calib.WriteKey = wk == 1;
+
+                int cc = data[index]; index++;
+                if (cc == 0) calib.CalCommand = CalibCommandEnum.current;
+                else if (cc == 3) calib.CalCommand = CalibCommandEnum.factory;
+                else return false;
+
+                int ct = data[index]; index++;
+                if (ct == 0) calib.CalTarget = CalibTargetEnum.flow;
+                else if (ct == 1) calib.CalTarget = CalibTargetEnum.pres;
+                else if (ct == 2) calib.CalTarget = CalibTargetEnum.temp;
+                else return false;
+
+                Array.Reverse(data, index, 4);
+                uint rv = BitConverter.ToUInt32(data, index); index += 4;
+                calib.DE1ReportedVal = Math.Round(100.0 * (rv / 65536.0)) / 100.0;
+
+                Array.Reverse(data, index, 4);
+                int mv = BitConverter.ToInt32(data, index); index += 4; // note int here
+                calib.MeasuredVal = Math.Round(100.0 * (mv / 65536.0)) / 100.0;
+
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
 
         // ------------------ shot header/frame encoding / decoding ------------------------------
 
@@ -1528,10 +1602,5 @@ namespace De1Win10
 
             return true;
         }
-
-        // work on calibration
-
-
-
     }
 }

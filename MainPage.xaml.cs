@@ -19,7 +19,7 @@ namespace De1Win10
 {
     public sealed partial class MainPage : Page
     {
-        private string appVersion = "DE1 Win10     App v1.27   ";
+        private string appVersion = "DE1 Win10     App v1.28   ";
 
         private string deviceIdAcaia = String.Empty;
         private string deviceIdDe1 = String.Empty;
@@ -67,22 +67,22 @@ namespace De1Win10
             ChkAcaia.IsOn = val == null ? false : val == "true";
 
             val = localSettings.Values["TxtHotWaterTemp"] as string;
-            TxtHotWaterTemp.Text = val == null ? "" : val;
+            TxtHotWaterTemp.Text = val == null ? "80" : val;
 
             val = localSettings.Values["TxtHotWaterMl"] as string;
-            TxtHotWaterMl.Text = val == null ? "" : val;
+            TxtHotWaterMl.Text = val == null ? "40" : val;
 
             val = localSettings.Values["TxtFlushSec"] as string;
-            TxtFlushSec.Text = val == null ? "" : val;
+            TxtFlushSec.Text = val == null ? "5" : val;
 
             val = localSettings.Values["TxtSteamSec"] as string;
-            TxtSteamSec.Text = val == null ? "" : val;
+            TxtSteamSec.Text = val == null ? "30" : val;
 
             val = localSettings.Values["TxtSteamTemp"] as string;
-            TxtSteamTemp.Text = val == null ? "" : val;
+            TxtSteamTemp.Text = val == null ? "150" : val;
 
             val = localSettings.Values["TxtRatio"] as string;
-            TxtRatio.Text = val == null ? "" : val;
+            TxtRatio.Text = val == null ? "2" : val;
 
             val = localSettings.Values["ProfileName"] as string;
             ProfileName = val == null ? "" : val;
@@ -629,15 +629,6 @@ namespace De1Win10
             var result = await WriteDe1State(De1StateEnum.Espresso);
             if (result != "") { FatalError(result); return; }
 
-
-            /*
-            // will sort enable/disable later
-            BtnBeansWeight.IsEnabled = false;
-            BtnTare.IsEnabled = false;
-            BtnStartLog.IsEnabled = false;
-            BtnStopLog.IsEnabled = true;
-            */
-
             UpdateStatus("Espresso ...", NotifyType.StatusMessage);
             EspressoRunning = true;
         }
@@ -655,14 +646,6 @@ namespace De1Win10
 
             var result = await WriteDe1State(De1StateEnum.Idle);
             if (result != "") { FatalError(result); return; }
-
-            /*            
-            // will sort enable/disable later
-            BtnBeansWeight.IsEnabled = true;
-            BtnTare.IsEnabled = true;
-            BtnStartLog.IsEnabled = true;
-            BtnStopLog.IsEnabled = false;
-            */
 
             UpdateStatus("Stopped", NotifyType.StatusMessage);
         }
@@ -686,6 +669,15 @@ namespace De1Win10
                     UpdateStatus(result.Replace("WARNING:", ""), NotifyType.ErrorMessage);
                 else
                     FatalError(result);
+                return;
+            }
+
+            if(SteamTempHasChanged)
+            {
+                var messageDialog = new MessageDialog("Steam temperature has changed, need to disconnect to apply as required by the current firmware");
+                await messageDialog.ShowAsync();
+
+                Disconnect();
                 return;
             }
 
@@ -720,6 +712,15 @@ namespace De1Win10
                     UpdateStatus(result.Replace("WARNING:", ""), NotifyType.ErrorMessage);
                 else
                     FatalError(result);
+                return;
+            }
+
+            if (SteamTempHasChanged)
+            {
+                var messageDialog = new MessageDialog("Steam temperature has changed, need to disconnect to apply as required by the current firmware");
+                await messageDialog.ShowAsync();
+
+                Disconnect();
                 return;
             }
 
