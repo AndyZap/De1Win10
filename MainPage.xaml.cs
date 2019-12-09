@@ -19,7 +19,7 @@ namespace De1Win10
 {
     public sealed partial class MainPage : Page
     {
-        private string appVersion = "DE1 Win10     App v1.28   ";
+        private string appVersion = "DE1 Win10     App v1.29   ";
 
         private string deviceIdAcaia = String.Empty;
         private string deviceIdDe1 = String.Empty;
@@ -423,7 +423,10 @@ namespace De1Win10
             else if (statusAcaia == StatusEnum.CharacteristicConnected)
             {
                 var result = await WriteHeartBeat();
-                if (result != "") { FatalError(result); return; }
+
+                // try warning instead of FatalError
+                if (result != "") 
+                    UpdateStatus(DateTime.Now.ToLongTimeString() + " " + result, NotifyType.WarningMessage);
             }
             else
             {
