@@ -164,7 +164,7 @@ namespace De1Win10
 
         private void UpdateWeightImpl(double weight_gramm)
         {
-            TxtBrewWeight.Text = WeightAverager.NewReading(weight_gramm).ToString("0.0");
+            TxtBrewWeight.Text = WeightAverager.NewReading(weight_gramm).ToString("0.00");
 
             RaiseAutomationEvent(TxtBrewWeight);
         }
