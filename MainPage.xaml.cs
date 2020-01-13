@@ -19,7 +19,7 @@ namespace De1Win10
 {
     public sealed partial class MainPage : Page
     {
-        private string appVersion = "DE1 Win10     App v1.30   ";
+        private string appVersion = "DE1 Win10     App v1.31   ";
 
         private string deviceIdAcaia = String.Empty;
         private string deviceIdDe1 = String.Empty;
@@ -708,6 +708,10 @@ namespace De1Win10
         }
         private async void BtnSteam_Click(object sender, RoutedEventArgs e)
         {
+            ShotRecords.Clear();
+            StopClickedTime = DateTime.MaxValue;
+            StopHasBeenClicked = false;
+
             var result = await UpdateOtherSetnFromGui();
             if (result != "")
             {

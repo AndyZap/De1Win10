@@ -29,6 +29,7 @@ namespace De1Win10
         string SrvDe1String = "0000A000-0000-1000-8000-00805F9B34FB";
         string ChrDe1VersionString = "0000A001-0000-1000-8000-00805F9B34FB";    // A001 Versions                   R/-/-
         string ChrDe1SetStateString = "0000A002-0000-1000-8000-00805F9B34FB";   // A002 Set State                  R/W/-
+        string ChrDe1MmrString = "0000A005-0000-1000-8000-00805F9B34FB";        // A005 MMR (tank, fan)            R/W/-
         string ChrDe1OtherSetnString = "0000A00B-0000-1000-8000-00805F9B34FB";  // A00B Other Settings             R/W/-
         string ChrDe1ShotInfoString = "0000A00D-0000-1000-8000-00805F9B34FB";   // A00D Shot Info                  R/-/N
         string ChrDe1StateInfoString = "0000A00E-0000-1000-8000-00805F9B34FB";  // A00E State Info                 R/-/N
@@ -38,6 +39,7 @@ namespace De1Win10
 
         GattCharacteristic chrDe1Version = null;
         GattCharacteristic chrDe1SetState = null;
+        GattCharacteristic chrDe1Mmr = null;
         GattCharacteristic chrDe1OtherSetn = null;
         GattCharacteristic chrDe1ShotInfo = null;
         GattCharacteristic chrDe1StateInfo = null;
@@ -372,6 +374,7 @@ namespace De1Win10
             public double espresso_pressure_goal = 0.0;
             public double espresso_flow_goal = 0.0;
             public double espresso_temperature_goal = 0.0;
+            public double espresso_temperature_steam = 0.0;
             public De1ShotRecordClass(double time_sec, De1ShotInfoClass info)
             {
                 espresso_elapsed = time_sec;
@@ -383,6 +386,7 @@ namespace De1Win10
                 espresso_pressure_goal = info.SetGroupPressure == 0.0 ? -1.0 : info.SetGroupPressure;
                 espresso_flow_goal = info.SetGroupFlow == 0.0 ? -1.0 : info.SetGroupFlow;
                 espresso_temperature_goal = info.SetHeadTemp;
+                espresso_temperature_steam = info.SteamTemp;
             }
 
             public void UpdateWeightFromScale(double weight)
@@ -664,8 +668,9 @@ namespace De1Win10
 
             RaiseAutomationEvent(TxtDe1Status);
 
-            if (state == De1StateEnum.Espresso && StartEsproTime == DateTime.MaxValue &&     // save the start time of the shot
-               (substate == De1SubStateEnum.Preinfusion || substate == De1SubStateEnum.Pouring))
+            if (   (state == De1StateEnum.Espresso || state == De1StateEnum.Steam)  // save the start time of the shot
+                && StartEsproTime == DateTime.MaxValue 
+                && (substate == De1SubStateEnum.Preinfusion || substate == De1SubStateEnum.Pouring))
                 StartEsproTime = DateTime.Now;
         }
         private Task<string> WriteDe1State(De1StateEnum state)
@@ -753,7 +758,6 @@ namespace De1Win10
 
                         if (ShotRecords.Count >= 1)
                         {
-                            // AAZ TODO prune the values which does not change
                             var last = ShotRecords[ShotRecords.Count - 1];
                             DetailTime.Text = last.espresso_elapsed == 0.0 ? "---" : last.espresso_elapsed.ToString("0.0");
                             DetailCoffeeWeight.Text = last.espresso_weight == 0.0 ? "---" : last.espresso_weight.ToString("0.0");

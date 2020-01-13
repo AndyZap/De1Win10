@@ -68,7 +68,7 @@ namespace De1Win10
             return last_rec.espresso_flow_weight;
         }
 
-        private void CreateStringsFromShotRecords(List<De1ShotRecordClass> list,
+        private void CreateStringsFromShotRecords(List<De1ShotRecordClass> list, bool is_steam_record,
          StringBuilder espresso_elapsed,
          StringBuilder espresso_pressure,
          StringBuilder espresso_weight,
@@ -98,7 +98,10 @@ namespace De1Win10
                 espresso_weight.Append(rec.espresso_weight.ToString("0.0") + " ");
                 espresso_flow.Append(rec.espresso_flow.ToString("0.0#") + " ");
                 espresso_flow_weight.Append(rec.espresso_flow_weight.ToString("0.0#") + " ");
-                espresso_temperature_basket.Append(rec.espresso_temperature_basket.ToString("0.0") + " ");
+                if(is_steam_record)
+                    espresso_temperature_basket.Append(rec.espresso_temperature_steam.ToString("0") + " ");
+                else
+                    espresso_temperature_basket.Append(rec.espresso_temperature_basket.ToString("0.0") + " ");
                 espresso_temperature_mix.Append(rec.espresso_temperature_mix.ToString("0.0") + " ");
                 espresso_pressure_goal.Append(rec.espresso_pressure_goal.ToString("0.0") + " ");
                 espresso_flow_goal.Append(rec.espresso_flow_goal.ToString("0.0") + " ");
@@ -181,7 +184,7 @@ namespace De1Win10
             StringBuilder espresso_flow_goal = new StringBuilder();
             StringBuilder espresso_temperature_goal = new StringBuilder();
 
-            CreateStringsFromShotRecords(ShotRecords,
+            CreateStringsFromShotRecords(ShotRecords, DetailBeansName.Text.Trim().ToLower() == "steam",
                                     espresso_elapsed, espresso_pressure, espresso_weight, espresso_flow, espresso_flow_weight, espresso_temperature_basket,
                                     espresso_temperature_mix, espresso_pressure_goal, espresso_flow_goal, espresso_temperature_goal);
 
