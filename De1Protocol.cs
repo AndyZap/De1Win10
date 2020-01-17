@@ -18,7 +18,7 @@ namespace De1Win10
 {
     public sealed partial class MainPage : Page
     {
-        enum De1ChrEnum { SetState, OtherSetn, ShotHeader, ShotFrame, Water }
+        enum De1ChrEnum { SetState, MmrWrite, OtherSetn, ShotHeader, ShotFrame, Water }
         public enum De1StateEnum
         {
             Sleep, GoingToSleep, Idle, Busy, Espresso, Steam, HotWater, ShortCal, SelfTest, LongCal, Descale,
@@ -29,7 +29,8 @@ namespace De1Win10
         string SrvDe1String = "0000A000-0000-1000-8000-00805F9B34FB";
         string ChrDe1VersionString = "0000A001-0000-1000-8000-00805F9B34FB";    // A001 Versions                   R/-/-
         string ChrDe1SetStateString = "0000A002-0000-1000-8000-00805F9B34FB";   // A002 Set State                  R/W/-
-        string ChrDe1MmrString = "0000A005-0000-1000-8000-00805F9B34FB";        // A005 MMR (tank, fan)            R/W/-
+        //string ChrDe1MmrNotifString = "0000A005-0000-1000-8000-00805F9B34FB";   // A005 MMR notif (tank, fan)      -/W/N
+        string ChrDe1MmrWriteString = "0000A006-0000-1000-8000-00805F9B34FB";   // A006 MMR write (tank, fan)      -/W/-
         string ChrDe1OtherSetnString = "0000A00B-0000-1000-8000-00805F9B34FB";  // A00B Other Settings             R/W/-
         string ChrDe1ShotInfoString = "0000A00D-0000-1000-8000-00805F9B34FB";   // A00D Shot Info                  R/-/N
         string ChrDe1StateInfoString = "0000A00E-0000-1000-8000-00805F9B34FB";  // A00E State Info                 R/-/N
@@ -39,7 +40,7 @@ namespace De1Win10
 
         GattCharacteristic chrDe1Version = null;
         GattCharacteristic chrDe1SetState = null;
-        GattCharacteristic chrDe1Mmr = null;
+        GattCharacteristic chrDe1MmrWrite = null;
         GattCharacteristic chrDe1OtherSetn = null;
         GattCharacteristic chrDe1ShotInfo = null;
         GattCharacteristic chrDe1StateInfo = null;
@@ -125,6 +126,21 @@ namespace De1Win10
                 if (result_charact.Characteristics.Count != 1) { return "Error, expected to find one DE1 characteristics"; }
 
                 chrDe1SetState = result_charact.Characteristics[0];
+
+
+
+                // Characteristic   A006 MMR write (tank, fan)  -/W/-     --------------------------------------------------
+                result_charact = await service.GetCharacteristicsForUuidAsync(new Guid(ChrDe1MmrWriteString), bleCacheMode);
+
+                if (result_charact.Status != GattCommunicationStatus.Success) { return "Failed to get DE1 characteristic " + result_charact.Status.ToString(); }
+                if (result_charact.Characteristics.Count != 1) { return "Error, expected to find one DE1 characteristics"; }
+
+                chrDe1MmrWrite = result_charact.Characteristics[0];
+                
+                // write 45 deg fan temp
+                var result_fan_temp = await WriteMmrFanTemp();
+                if (result_fan_temp != "")
+                    return result_fan_temp;
 
 
 
@@ -476,6 +492,15 @@ namespace De1Win10
             return data;
         }
 
+        private Task<string> WriteMmrFanTemp()
+        {
+            // set to 45 deg (0x2d) as default
+
+            byte[] payload = new byte[] { 0x04, 0x80, 0x38, 0x08, 0x2d, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+            return writeToDE(payload, De1ChrEnum.MmrWrite);
+        }
+
         bool SteamTempHasChanged = false;
         private async Task<string> UpdateOtherSetnFromGui()
         {
@@ -617,6 +642,8 @@ namespace De1Win10
                 GattWriteResult result = null;
                 if (chr == De1ChrEnum.SetState)
                     result = await chrDe1SetState.WriteValueWithResultAsync(payload.AsBuffer());
+                else if (chr == De1ChrEnum.MmrWrite)
+                    result = await chrDe1MmrWrite.WriteValueWithResultAsync(payload.AsBuffer());
                 else if (chr == De1ChrEnum.OtherSetn)
                     result = await chrDe1OtherSetn.WriteValueWithResultAsync(payload.AsBuffer());
                 else if (chr == De1ChrEnum.ShotHeader)
