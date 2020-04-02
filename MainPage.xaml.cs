@@ -765,7 +765,8 @@ namespace De1Win10
             help_message += "Ctrl-Up\tGrind +\r\nCtrl-Dn\tGrind -\r\n\r\nCtrl-A\tAdd to log\r\n";
             help_message += "Ctrl-1\tMenu item 1, etc";
 
-            if (IsCtrlKeyPressed())
+            if (IsCtrlKeyPressed() 
+                || (DetailNotes.FocusState == FocusState.Unfocused && DetailBeansName.FocusState == FocusState.Unfocused))
             {
                 switch (e.Key)
                 {
