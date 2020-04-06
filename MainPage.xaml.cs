@@ -765,8 +765,22 @@ namespace De1Win10
             help_message += "Ctrl-Up\tGrind +\r\nCtrl-Dn\tGrind -\r\n\r\nCtrl-A\tAdd to log\r\n";
             help_message += "Ctrl-1\tMenu item 1, etc";
 
-            if (IsCtrlKeyPressed() 
-                || (DetailNotes.FocusState == FocusState.Unfocused && DetailBeansName.FocusState == FocusState.Unfocused))
+            if (IsCtrlKeyPressed()
+                || (DetailBeansName.FocusState == FocusState.Unfocused
+                 && DetailBeansWeight.FocusState == FocusState.Unfocused
+                 && DetailCoffeeWeight.FocusState == FocusState.Unfocused
+                 && DetailTime.FocusState == FocusState.Unfocused
+                 && DetailGrind.FocusState == FocusState.Unfocused
+                 && DetailNotes.FocusState == FocusState.Unfocused
+                 && TxtRatio.FocusState == FocusState.Unfocused
+                 && TxtBrewWeightTarget.FocusState == FocusState.Unfocused
+                 && TxtBeanWeightMain.FocusState == FocusState.Unfocused
+                 && TxtHotWaterTemp.FocusState == FocusState.Unfocused
+                 && TxtHotWaterMl.FocusState == FocusState.Unfocused
+                 && TxtFlushSec.FocusState == FocusState.Unfocused
+                 && TxtSteamSec.FocusState == FocusState.Unfocused
+                 && TxtSteamTemp.FocusState == FocusState.Unfocused
+                 ))
             {
                 switch (e.Key)
                 {
