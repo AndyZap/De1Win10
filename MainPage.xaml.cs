@@ -19,7 +19,7 @@ namespace De1Win10
 {
     public sealed partial class MainPage : Page
     {
-        private string appVersion = "DE1 Win10     App v1.35   ";
+        private string appVersion = "DE1 Win10     App v1.36   ";
 
         private string deviceIdAcaia = String.Empty;
         private string deviceIdDe1 = String.Empty;
@@ -102,6 +102,15 @@ namespace De1Win10
             BtnBeanName3.Content = BeanNameHistory[3];
             BtnBeanName4.Content = BeanNameHistory[4];
             BtnBeanName5.Content = BeanNameHistory[5];
+
+
+            ProfileNameHistory.Clear();
+            val = localSettings.Values["ProfileNameHistory0"] as string; ProfileNameHistory.Add(val == null ? "" : val);
+            val = localSettings.Values["ProfileNameHistory1"] as string; ProfileNameHistory.Add(val == null ? "" : val);
+            val = localSettings.Values["ProfileNameHistory2"] as string; ProfileNameHistory.Add(val == null ? "" : val);
+            val = localSettings.Values["ProfileNameHistory3"] as string; ProfileNameHistory.Add(val == null ? "" : val);
+            val = localSettings.Values["ProfileNameHistory4"] as string; ProfileNameHistory.Add(val == null ? "" : val);
+            val = localSettings.Values["ProfileNameHistory5"] as string; ProfileNameHistory.Add(val == null ? "" : val);
 
 
             Header.Text = appVersion;
@@ -1040,10 +1049,51 @@ namespace De1Win10
 
                 if (!found)
                     ProfileName = "";
+
+                // add last profiles to the top of the list
+                for(int i = ProfileNameHistory.Count-1; i >= 0; i--)
+                {
+                    if(ProfileNameHistory[i] != "")
+                        Profiles.Insert(0, new ProfileClass(ProfileNameHistory[i]));
+                }
             }
 
             return "";
         }
+
+        private void SaveProfileNameHistory()
+        {
+            if (ProfileName == "") // do not save blanks
+                return;
+
+            int index = ProfileNameHistory.FindIndex(r => r.Equals(ProfileName, StringComparison.CurrentCultureIgnoreCase));
+
+            if (index == 0)  // already at the first index, do not need to do anything
+                return;
+
+            if (index == -1)  // not there at all
+            {
+                ProfileNameHistory.Insert(0, ProfileName);
+            }
+            else  // at index, move to the first position
+            {
+                ProfileNameHistory.RemoveAt(index);
+                ProfileNameHistory.Insert(0, ProfileName);
+            }
+
+            // remove extra elements
+            while (ProfileNameHistory.Count > 6)
+                ProfileNameHistory.RemoveAt(6);
+
+            ApplicationDataContainer localSettings = ApplicationData.Current.LocalSettings;
+            localSettings.Values["ProfileNameHistory0"] = ProfileNameHistory[0];
+            localSettings.Values["ProfileNameHistory1"] = ProfileNameHistory[1];
+            localSettings.Values["ProfileNameHistory2"] = ProfileNameHistory[2];
+            localSettings.Values["ProfileNameHistory3"] = ProfileNameHistory[3];
+            localSettings.Values["ProfileNameHistory4"] = ProfileNameHistory[4];
+            localSettings.Values["ProfileNameHistory5"] = ProfileNameHistory[5];
+        }
+
         private async void BtnSetProfile_Click(object sender, RoutedEventArgs e)
         {
             var result = await LoadFolders();
@@ -1069,6 +1119,8 @@ namespace De1Win10
 
                 TxtDe1Profile.Text = "Profile: " + ProfileName;
                 UpdateStatus("Loaded profile " + ProfileName, NotifyType.StatusMessage);
+
+                SaveProfileNameHistory();
 
                 ApplicationDataContainer localSettings = ApplicationData.Current.LocalSettings;
                 localSettings.Values["ProfileName"] = ProfileName;
