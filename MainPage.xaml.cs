@@ -19,7 +19,7 @@ namespace De1Win10
 {
     public sealed partial class MainPage : Page
     {
-        private string appVersion = "DE1 Win10     App v1.36   ";
+        private string appVersion = "DE1 Win10     App v1.39   ";
 
         private string deviceIdAcaia = String.Empty;
         private string deviceIdDe1 = String.Empty;
@@ -360,9 +360,6 @@ namespace De1Win10
                 var result = await CreateDe1Characteristics();
                 if (result != "") { FatalError(result); return; }
 
-                result = await WriteDe1State(De1StateEnum.Idle);
-                if (result != "") { FatalError(result); return; }
-
                 statusDe1 = StatusEnum.CharacteristicConnected;
 
                 message_de1 = "Connected to DE1 ";
@@ -459,9 +456,6 @@ namespace De1Win10
             heartBeatTimer.Stop();
 
             StopBleDeviceWatcher();
-
-            if (chrDe1SetState != null)
-                await WriteDe1State(De1StateEnum.Sleep);
 
             if (notifAcaia)
             {
@@ -585,6 +579,11 @@ namespace De1Win10
             UpdateStatus("Disconnected", NotifyType.StatusMessage);
             Disconnect();
         }
+        private async void BtnSleep_Click(object sender, RoutedEventArgs e)
+        {
+            UpdateStatus("Sleep", NotifyType.StatusMessage);
+            await WriteDe1State(De1StateEnum.Sleep);
+        }
 
         private async void BtnTare_Click(object sender, RoutedEventArgs e)
         {
@@ -684,15 +683,6 @@ namespace De1Win10
                 return;
             }
 
-            if(SteamTempHasChanged)
-            {
-                var messageDialog = new MessageDialog("Steam temperature has changed, need to disconnect to apply as required by the current firmware");
-                await messageDialog.ShowAsync();
-
-                Disconnect();
-                return;
-            }
-
             result = await WriteDe1State(De1StateEnum.HotWater);
             if (result != "") { FatalError(result); return; }
 
@@ -731,15 +721,6 @@ namespace De1Win10
                 return;
             }
 
-            if (SteamTempHasChanged)
-            {
-                var messageDialog = new MessageDialog("Steam temperature has changed, need to disconnect to apply as required by the current firmware");
-                await messageDialog.ShowAsync();
-
-                Disconnect();
-                return;
-            }
-
             // Enable this if you want steam to stop by a timer followed by autopurge (I did not like it, back to default)
             //TimeSpan ts = new TimeSpan(0, 0, De1OtherSetn.TargetSteamLength);
             //StopFlushAndSteamTime = DateTime.Now + ts;
@@ -768,7 +749,7 @@ namespace De1Win10
 
         private async void Grid_KeyDown(object sender, KeyRoutedEventArgs e)
         {
-            string help_message = "Shortcuts\r\nF1\tHelp\r\nCtrl-C\tConnect\r\nCtrl-D\tDisconnect\r\n";
+            string help_message = "Shortcuts\r\nCtrl-?\tHelp\r\nCtrl-C\tConnect\r\nCtrl-Z\tSleep\r\nCtrl-D\tDisconnect\r\n";
             help_message += "Ctrl-B\tBeans weight\r\nCtrl-T\tTare\r\nCtrl-S\tStop\r\nCtrl-E\tEspresso\r\n";
             help_message += "Ctrl-W\tHot water\r\nCtrl-F\tFlash\r\nCtrl-M\tMilk (Steam)\r\nCtrl-Q\tQuick purge (Steam)\r\n";
             help_message += "Ctrl-Up\tGrind +\r\nCtrl-Dn\tGrind -\r\n\r\nCtrl-A\tAdd to log\r\n";
@@ -796,6 +777,10 @@ namespace De1Win10
                     case VirtualKey.C:
                         if (BtnConnect.IsEnabled)
                             BtnConnect_Click(null, null);
+                        break;
+
+                    case VirtualKey.Z:
+                        BtnSleep_Click(null, null);
                         break;
 
                     case VirtualKey.D:
@@ -866,25 +851,21 @@ namespace De1Win10
                     case VirtualKey.Number4:
                         ScenarioControl.SelectedIndex = 3;
                         break;
+
+                    case VirtualKey.N: // Next
+                        if (EspressoRunning)
+                            BtnNextFrame();
+                        break;
+
+                    case (VirtualKey) 191 : // Help (?)
+                        var messageDialog = new MessageDialog(help_message);
+                        await messageDialog.ShowAsync();
+                        break;
                 }
 
                 // StatusLabel.Text = DateTime.Now.ToString("mm:ss") + " -- " + e.Key.ToString(); // enable to check if app received key events
                 if (ToggleButton.FocusState == FocusState.Unfocused)
                     ToggleButton.Focus(FocusState.Keyboard);
-            }
-            else
-            {
-                switch (e.Key)
-                {
-                    case VirtualKey.F1:
-                        var messageDialog = new MessageDialog(help_message);
-                        await messageDialog.ShowAsync();
-                        break;
-                    case VirtualKey.Escape:
-                        if (EspressoRunning)
-                            BtnNextFrame();
-                        break;
-                }
             }
         }
         private void BtnGrindMinus_Click(object sender, RoutedEventArgs e)

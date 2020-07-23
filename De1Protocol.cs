@@ -501,11 +501,8 @@ namespace De1Win10
             return writeToDE(payload, De1ChrEnum.MmrWrite);
         }
 
-        bool SteamTempHasChanged = false;
         private async Task<string> UpdateOtherSetnFromGui()
         {
-            SteamTempHasChanged = false;
-
             int targetSteamLength;
             try
             {
@@ -545,9 +542,6 @@ namespace De1Win10
             {
                 return "WARNING: Error reading hot water volume, please supply a valid integer value";
             }
-
-            if (De1OtherSetn.TargetSteamTemp != targetSteamTemp)
-                SteamTempHasChanged = true;
 
             if (De1OtherSetn.TargetSteamLength != targetSteamLength ||
                 De1OtherSetn.TargetSteamTemp != targetSteamTemp ||
