@@ -566,6 +566,67 @@ namespace De1Win10
             else
                 return "";
         }
+
+        // AAZ working on the new fields -----------------------
+        /*
+         * from D:\_Kar\__CoffeeData\DE1_source\de1win\src\bluetooth.tcl
+
+         proc set_steam_flow {desired_flow} {
+	#return
+	msg "Setting steam flow rate to '$desired_flow'"
+	mmr_write "set_steam_flow" "803828" "04" [zero_pad [int_to_hex $desired_flow] 2]
+}
+
+proc get_steam_flow {} {
+	msg "Getting steam flow rate"
+	mmr_read "get_steam_flow" "803828" "00"
+}
+
+proc get_3_mmr_cpuboard_machinemodel_firmwareversion {} {
+	mmr_read "cpuboard_machinemodel_firmwareversion" "800008" "02"
+
+}
+
+proc get_cpu_board_model {} {
+	msg "Getting CPU board model"
+	mmr_read "get_cpu_board_model" "800008" "00"
+}
+
+            ASK?   W_A005	0280000800000000000000000000000000000000
+            reply: N_A005	0c800008  14050000 00000000 96040000 00000000
+
+            0x 05 14 = 1300 board model
+            0x 00 00 - # v1.3+ Firmware Model (Unset = 0, DE1 = 1, DE1Plus = 2, DE1Pro = 3, DE1XL = 4, DE1Cafe = 5)
+            0x 04 96 = 1174 fw revision
+            
+
+decode D:\_Kar\__CoffeeData\DE1_source\de1win\src\bluetooth.tcl
+search for } elseif {$cuuid == $::de1(cuuid_05)} {   line 2084
+
+
+
+Also asked for GHC installed and heater voltage
+W_A005	0080381c00000000000000000000000000000000 GHC installed
+W_A005	0180383400000000000000000000000000000000 Heater voltage
+W_A005	0280381000000000000000000000000000000000 Phase 1 flow rate
+
+
+proc get_machine_model {} {
+	msg "Getting machine model"
+	mmr_read "get_machine_model" "80000C" "00"
+}
+
+proc get_firmware_version_number {} {
+	msg "Getting firmware version number"
+	mmr_read "get_firmware_version_number" "800010" "00"
+}
+
+            
+          
+
+
+        */
+
         private string UpdateFlushSecFromGui()
         {
             try
