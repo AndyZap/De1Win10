@@ -19,7 +19,7 @@ namespace De1Win10
 {
     public sealed partial class MainPage : Page
     {
-        private string appVersion = "DE1 Win10     App v1.39   ";
+        private string appVersion = "DE1 Win10     App v1.40   ";
 
         private string deviceIdAcaia = String.Empty;
         private string deviceIdDe1 = String.Empty;
@@ -361,6 +361,7 @@ namespace De1Win10
                 if (result != "") { FatalError(result); return; }
 
                 statusDe1 = StatusEnum.CharacteristicConnected;
+                MmrNotifStatus = De1MmrNotifEnum.CpuMachineFw;
 
                 message_de1 = "Connected to DE1 ";
 
@@ -378,7 +379,11 @@ namespace De1Win10
             }
             else if (statusDe1 == StatusEnum.CharacteristicConnected)
             {
-                // do nothing
+                if (MmrNotifStatus != De1MmrNotifEnum.None)
+                {
+                    var result = await QueryMmrConfigs();
+                    if (result != "") { FatalError(result); return; }
+                }
             }
             else
             {
@@ -471,6 +476,13 @@ namespace De1Win10
                 notifDe1StateInfo = false;
             }
 
+            if (notifDe1Mmr)
+            {
+                await chrDe1MmrNotif.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.None);
+                chrDe1MmrNotif.ValueChanged -= CharacteristicDe1MmrNotif_ValueChanged;
+                notifDe1Mmr = false;
+            }
+
             if (notifDe1ShotInfo)
             {
                 await chrDe1ShotInfo.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.None);
@@ -490,9 +502,13 @@ namespace De1Win10
 
             chrDe1Version = null;
             chrDe1SetState = null;
+            chrDe1MmrNotif = null;
+            chrDe1MmrWrite = null;
             chrDe1OtherSetn = null;
             chrDe1ShotInfo = null;
             chrDe1StateInfo = null;
+            chrDe1ShotHeader = null;
+            chrDe1ShotFrame = null;
             chrDe1Water = null;
 
             bleDeviceAcaia?.Dispose();
@@ -555,6 +571,16 @@ namespace De1Win10
             if (DecodeDe1StateInfo(data, ref state, ref substate))
                 UpdateDe1StateInfo(state, substate);
         }
+
+        private void CharacteristicDe1MmrNotif_ValueChanged(GattCharacteristic sender, GattValueChangedEventArgs args)
+        {
+            byte[] data;
+            CryptographicBuffer.CopyToByteArray(args.CharacteristicValue, out data);
+
+            if (DecodeMmrNotif(data))
+                UpdateDe1MmrNotif();
+        }
+
         private void CharacteristicDe1ShotInfo_ValueChanged(GattCharacteristic sender, GattValueChangedEventArgs args)
         {
             byte[] data;

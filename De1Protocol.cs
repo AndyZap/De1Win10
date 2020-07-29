@@ -18,7 +18,7 @@ namespace De1Win10
 {
     public sealed partial class MainPage : Page
     {
-        enum De1ChrEnum { SetState, MmrWrite, OtherSetn, ShotHeader, ShotFrame, Water }
+        enum De1ChrEnum { SetState, MmrNotif, MmrWrite, OtherSetn, ShotHeader, ShotFrame, Water }
         public enum De1StateEnum
         {
             Sleep, GoingToSleep, Idle, Busy, Espresso, Steam, HotWater, ShortCal, SelfTest, LongCal, Descale,
@@ -26,10 +26,12 @@ namespace De1Win10
         }
         public enum De1SubStateEnum { Ready, Heating, FinalHeating, Stabilising, Preinfusion, Pouring, Ending, Refill }
 
+        enum De1MmrNotifEnum { CpuMachineFw, None }
+
         string SrvDe1String = "0000A000-0000-1000-8000-00805F9B34FB";
         string ChrDe1VersionString = "0000A001-0000-1000-8000-00805F9B34FB";    // A001 Versions                   R/-/-
         string ChrDe1SetStateString = "0000A002-0000-1000-8000-00805F9B34FB";   // A002 Set State                  R/W/-
-        //string ChrDe1MmrNotifString = "0000A005-0000-1000-8000-00805F9B34FB";   // A005 MMR notif (tank, fan)      -/W/N
+        string ChrDe1MmrNotifString = "0000A005-0000-1000-8000-00805F9B34FB";   // A005 MMR notif (tank, fan)      -/W/N
         string ChrDe1MmrWriteString = "0000A006-0000-1000-8000-00805F9B34FB";   // A006 MMR write (tank, fan)      -/W/-
         string ChrDe1OtherSetnString = "0000A00B-0000-1000-8000-00805F9B34FB";  // A00B Other Settings             R/W/-
         string ChrDe1ShotInfoString = "0000A00D-0000-1000-8000-00805F9B34FB";   // A00D Shot Info                  R/-/N
@@ -40,6 +42,7 @@ namespace De1Win10
 
         GattCharacteristic chrDe1Version = null;
         GattCharacteristic chrDe1SetState = null;
+        GattCharacteristic chrDe1MmrNotif = null;
         GattCharacteristic chrDe1MmrWrite = null;
         GattCharacteristic chrDe1OtherSetn = null;
         GattCharacteristic chrDe1ShotInfo = null;
@@ -49,6 +52,7 @@ namespace De1Win10
         GattCharacteristic chrDe1Water = null;
 
         private bool notifDe1StateInfo = false;
+        private bool notifDe1Mmr = false;
         private bool notifDe1ShotInfo = false;
         private bool notifDe1Water = false;
 
@@ -74,6 +78,13 @@ namespace De1Win10
         string ProfileName = "";
 
         List<De1ShotRecordClass> ShotRecords = new List<De1ShotRecordClass>();
+
+        // Configs read from MMR
+        De1MmrNotifEnum MmrNotifStatus = De1MmrNotifEnum.None;
+        int MmrCpu = int.MaxValue;
+        int MmrMachine = int.MaxValue;
+        int MmrFw = int.MaxValue;
+
 
         private async Task<string> CreateDe1Characteristics()
         {
@@ -127,6 +138,18 @@ namespace De1Win10
 
                 chrDe1SetState = result_charact.Characteristics[0];
 
+
+                // Characteristic   A005 MMR write (tank, fan)  -/W/N     --------------------------------------------------
+                result_charact = await service.GetCharacteristicsForUuidAsync(new Guid(ChrDe1MmrNotifString), bleCacheMode);
+
+                if (result_charact.Status != GattCommunicationStatus.Success) { return "Failed to get DE1 characteristic " + result_charact.Status.ToString(); }
+                if (result_charact.Characteristics.Count != 1) { return "Error, expected to find one DE1 characteristics"; }
+
+                chrDe1MmrNotif = result_charact.Characteristics[0];
+
+                chrDe1MmrNotif.ValueChanged += CharacteristicDe1MmrNotif_ValueChanged;
+                await chrDe1MmrNotif.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.Notify);
+                notifDe1Mmr = true;
 
 
                 // Characteristic   A006 MMR write (tank, fan)  -/W/-     --------------------------------------------------
@@ -492,6 +515,19 @@ namespace De1Win10
             return data;
         }
 
+        private async Task<string> QueryMmrConfigs()
+        {
+            if (MmrNotifStatus == De1MmrNotifEnum.CpuMachineFw)
+            {
+                byte[] payload = new byte[] { 0x02, 0x80, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+                return await writeToDE(payload, De1ChrEnum.MmrNotif);
+            }
+            else
+            {
+                return "";
+            }
+        }
+
         private Task<string> WriteMmrFanTemp()
         {
             // set to 45 deg (0x2d) as default
@@ -567,66 +603,6 @@ namespace De1Win10
                 return "";
         }
 
-        // AAZ working on the new fields -----------------------
-        /*
-         * from D:\_Kar\__CoffeeData\DE1_source\de1win\src\bluetooth.tcl
-
-         proc set_steam_flow {desired_flow} {
-	#return
-	msg "Setting steam flow rate to '$desired_flow'"
-	mmr_write "set_steam_flow" "803828" "04" [zero_pad [int_to_hex $desired_flow] 2]
-}
-
-proc get_steam_flow {} {
-	msg "Getting steam flow rate"
-	mmr_read "get_steam_flow" "803828" "00"
-}
-
-proc get_3_mmr_cpuboard_machinemodel_firmwareversion {} {
-	mmr_read "cpuboard_machinemodel_firmwareversion" "800008" "02"
-
-}
-
-proc get_cpu_board_model {} {
-	msg "Getting CPU board model"
-	mmr_read "get_cpu_board_model" "800008" "00"
-}
-
-            ASK?   W_A005	0280000800000000000000000000000000000000
-            reply: N_A005	0c800008  14050000 00000000 96040000 00000000
-
-            0x 05 14 = 1300 board model
-            0x 00 00 - # v1.3+ Firmware Model (Unset = 0, DE1 = 1, DE1Plus = 2, DE1Pro = 3, DE1XL = 4, DE1Cafe = 5)
-            0x 04 96 = 1174 fw revision
-            
-
-decode D:\_Kar\__CoffeeData\DE1_source\de1win\src\bluetooth.tcl
-search for } elseif {$cuuid == $::de1(cuuid_05)} {   line 2084
-
-
-
-Also asked for GHC installed and heater voltage
-W_A005	0080381c00000000000000000000000000000000 GHC installed
-W_A005	0180383400000000000000000000000000000000 Heater voltage
-W_A005	0280381000000000000000000000000000000000 Phase 1 flow rate
-
-
-proc get_machine_model {} {
-	msg "Getting machine model"
-	mmr_read "get_machine_model" "80000C" "00"
-}
-
-proc get_firmware_version_number {} {
-	msg "Getting firmware version number"
-	mmr_read "get_firmware_version_number" "800010" "00"
-}
-
-            
-          
-
-
-        */
-
         private string UpdateFlushSecFromGui()
         {
             try
@@ -684,6 +660,72 @@ proc get_firmware_version_number {} {
                 return false;
             }
         }
+
+        private bool DecodeMmrNotif(byte[] data)
+        {
+            UpdateStatus("Received notif " + MmrNotifStatus.ToString(), NotifyType.StatusMessage);
+
+
+            return true; // TODO
+        }
+
+        // AAZ working on the new fields -----------------------
+        /*
+         * from D:\_Kar\__CoffeeData\DE1_source\de1win\src\bluetooth.tcl
+
+         proc set_steam_flow {desired_flow} {
+	#return
+	msg "Setting steam flow rate to '$desired_flow'"
+	mmr_write "set_steam_flow" "803828" "04" [zero_pad [int_to_hex $desired_flow] 2]
+}
+
+proc get_steam_flow {} {
+	msg "Getting steam flow rate"
+	mmr_read "get_steam_flow" "803828" "00"
+}
+
+proc get_3_mmr_cpuboard_machinemodel_firmwareversion {} {
+	mmr_read "cpuboard_machinemodel_firmwareversion" "800008" "02"
+
+}
+
+proc get_cpu_board_model {} {
+	msg "Getting CPU board model"
+	mmr_read "get_cpu_board_model" "800008" "00"
+}
+
+            ASK?   W_A005	0280000800000000000000000000000000000000
+            reply: N_A005	0c800008  14050000 00000000 96040000 00000000
+
+            0x 05 14 = 1300 board model
+            0x 00 00 - # v1.3+ Firmware Model (Unset = 0, DE1 = 1, DE1Plus = 2, DE1Pro = 3, DE1XL = 4, DE1Cafe = 5)
+            0x 04 96 = 1174 fw revision
+            
+
+decode D:\_Kar\__CoffeeData\DE1_source\de1win\src\bluetooth.tcl
+search for } elseif {$cuuid == $::de1(cuuid_05)} {   line 2084
+
+
+
+Also asked for GHC installed and heater voltage
+W_A005	0080381c00000000000000000000000000000000 GHC installed
+W_A005	0180383400000000000000000000000000000000 Heater voltage
+W_A005	0280381000000000000000000000000000000000 Phase 1 flow rate
+
+
+proc get_machine_model {} {
+	msg "Getting machine model"
+	mmr_read "get_machine_model" "80000C" "00"
+}
+
+proc get_firmware_version_number {} {
+	msg "Getting firmware version number"
+	mmr_read "get_firmware_version_number" "800010" "00"
+}
+         
+
+        */
+
         private bool DecodeDe1StateInfo(IBuffer buffer, ref De1StateEnum state, ref De1SubStateEnum substate)
         {
             byte[] data;
@@ -697,6 +739,8 @@ proc get_firmware_version_number {} {
                 GattWriteResult result = null;
                 if (chr == De1ChrEnum.SetState)
                     result = await chrDe1SetState.WriteValueWithResultAsync(payload.AsBuffer());
+                else if (chr == De1ChrEnum.MmrNotif)
+                    result = await chrDe1MmrNotif.WriteValueWithResultAsync(payload.AsBuffer());
                 else if (chr == De1ChrEnum.MmrWrite)
                     result = await chrDe1MmrWrite.WriteValueWithResultAsync(payload.AsBuffer());
                 else if (chr == De1ChrEnum.OtherSetn)
@@ -721,6 +765,12 @@ proc get_firmware_version_number {} {
             return "";
         }
         void RaiseAutomationEvent(TextBlock t)
+        {
+            var peer = FrameworkElementAutomationPeer.FromElement(t);
+            if (peer != null)
+                peer.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged);
+        }
+        void RaiseAutomationEvent(TextBox t)
         {
             var peer = FrameworkElementAutomationPeer.FromElement(t);
             if (peer != null)
@@ -759,6 +809,35 @@ proc get_firmware_version_number {} {
         {
             byte[] payload = new byte[1]; payload[0] = GetDe1StateAsByte(state);
             return writeToDE(payload, De1ChrEnum.SetState);
+        }
+        public void UpdateDe1MmrNotif()
+        {
+            if (Dispatcher.HasThreadAccess) // If called from the UI thread, then update immediately. Otherwise, schedule a task on the UI thread to perform the update.
+            {
+                UpdateDe1MmrNotifImpl();
+            }
+            else
+            {
+                var task = Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () => UpdateDe1MmrNotifImpl());
+            }
+        }
+        private void UpdateDe1MmrNotifImpl()
+        {
+            StringBuilder sb = new StringBuilder();
+
+            sb.Append("Configs: ");
+
+            //if(MmrCpu != int.MaxValue) sb.Append("Configs: ");
+            //int MmrMachine = int.MaxValue;
+            //int MmrFw = int.MaxValue;
+
+            StatusExtraBlock.Text = sb.ToString();
+
+            RaiseAutomationEvent(StatusExtraBlock);
+
+
+            if (TxtSteamFlow.Text != "")
+                RaiseAutomationEvent(TxtSteamFlow);
         }
         public void UpdateDe1ShotInfo(De1ShotInfoClass shot_info)
         {
