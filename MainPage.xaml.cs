@@ -361,7 +361,7 @@ namespace De1Win10
                 if (result != "") { FatalError(result); return; }
 
                 statusDe1 = StatusEnum.CharacteristicConnected;
-                MmrNotifStatus = De1MmrNotifEnum.CpuMachineFw;
+                MmrNotifStatus = De1MmrNotifEnum.CpuBoardMachineFw;
 
                 message_de1 = "Connected to DE1 ";
 
