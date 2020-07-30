@@ -19,7 +19,7 @@ namespace De1Win10
 {
     public sealed partial class MainPage : Page
     {
-        private string appVersion = "DE1 Win10     App v1.40   ";
+        private string appVersion = "DE1 Win10     App v1.41   ";
 
         private string deviceIdAcaia = String.Empty;
         private string deviceIdDe1 = String.Empty;
@@ -737,7 +737,7 @@ namespace De1Win10
             StopClickedTime = DateTime.MaxValue;
             StopHasBeenClicked = false;
 
-            var result = await UpdateOtherSetnFromGui();
+            var result = await UpdateOtherSetnFromGui(update_steam_flow : true);
             if (result != "")
             {
                 if (result.StartsWith("WARNING:"))
@@ -796,6 +796,7 @@ namespace De1Win10
                  && TxtFlushSec.FocusState == FocusState.Unfocused
                  && TxtSteamSec.FocusState == FocusState.Unfocused
                  && TxtSteamTemp.FocusState == FocusState.Unfocused
+                 && TxtSteamFlow.FocusState == FocusState.Unfocused
                  ))
             {
                 switch (e.Key)

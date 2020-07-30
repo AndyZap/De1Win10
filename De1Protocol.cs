@@ -549,7 +549,18 @@ namespace De1Win10
             return writeToDE(payload, De1ChrEnum.MmrWrite);
         }
 
-        private async Task<string> UpdateOtherSetnFromGui()
+        private Task<string> WriteMmrSteamFlow(double flow)
+        {
+            byte flow_byte = (byte)(0.5 + flow * 100.0);
+
+            byte[] payload = new byte[] { 0x04, 0x80, 0x38, 0x28, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+
+            payload[4] = flow_byte;
+
+            return writeToDE(payload, De1ChrEnum.MmrWrite);
+        }
+
+        private async Task<string> UpdateOtherSetnFromGui(bool update_steam_flow = false)
         {
             int targetSteamLength;
             try
@@ -569,6 +580,19 @@ namespace De1Win10
             catch (Exception)
             {
                 return "WARNING: Error reading steam temperature, please supply a valid integer value";
+            }
+
+            double targetSteamFlow = 1.0;
+            if (update_steam_flow)
+            {
+                try
+                {
+                    targetSteamFlow = Convert.ToDouble(TxtSteamFlow.Text.Trim());
+                }
+                catch (Exception)
+                {
+                    return "WARNING: Error reading steam flow, please supply a valid double value";
+                }
             }
 
             int targetHotWaterTemp;
@@ -609,10 +633,26 @@ namespace De1Win10
                 localSettings.Values["TxtSteamTemp"] = TxtSteamTemp.Text;
 
                 var bytes = EncodeDe1OtherSetn(De1OtherSetn);
-                return await writeToDE(bytes, De1ChrEnum.OtherSetn);
+                var return_status = await writeToDE(bytes, De1ChrEnum.OtherSetn);
+
+                if (return_status != "")
+                    return return_status;
             }
-            else
-                return "";
+
+            if (update_steam_flow)
+            {
+                if (MmrSteamFlow != targetSteamFlow)
+                {
+                    MmrSteamFlow = targetSteamFlow;
+
+                    var return_status = await WriteMmrSteamFlow(MmrSteamFlow);
+
+                    if (return_status != "")
+                        return return_status;
+                }
+            }
+
+            return "";
         }
 
         private string UpdateFlushSecFromGui()
@@ -704,7 +744,7 @@ namespace De1Win10
                     MmrMachine = data[index]; index += 4;
                     MmrFw = data[index] + data[index + 1] * 256; index += 4;
 
-                    UpdateStatus("Received CpuBoardMachineFw", NotifyType.StatusMessage);
+                    //UpdateStatus("Received CpuBoardMachineFw", NotifyType.StatusMessage);
                 }
                 catch (Exception)
                 {
@@ -729,7 +769,7 @@ namespace De1Win10
                     int index = 4;
                     MmrFanTemp = data[index];
 
-                    UpdateStatus("Received FanTemp", NotifyType.StatusMessage);
+                    //UpdateStatus("Received FanTemp", NotifyType.StatusMessage);
                 }
                 catch (Exception)
                 {
@@ -754,7 +794,7 @@ namespace De1Win10
                     int index = 4;
                     MmrSteamFlow = data[index]/100.0;
 
-                    UpdateStatus("Received SteamFlow", NotifyType.StatusMessage);
+                    //UpdateStatus("Received SteamFlow", NotifyType.StatusMessage);
                 }
                 catch (Exception)
                 {
@@ -765,14 +805,6 @@ namespace De1Win10
 
             return true;
         }
-
-        // AAZ working on the new fields -----------------------
-        /*
-            proc set_steam_flow {desired_flow} {
-	        #return
-	        msg "Setting steam flow rate to '$desired_flow'"
-	        mmr_write "set_steam_flow" "803828" "04" [zero_pad [int_to_hex $desired_flow] 2]
-        */
 
         private bool DecodeDe1StateInfo(IBuffer buffer, ref De1StateEnum state, ref De1SubStateEnum substate)
         {
