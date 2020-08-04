@@ -26,7 +26,7 @@ namespace De1Win10
         }
         public enum De1SubStateEnum { Ready, Heating, FinalHeating, Stabilising, Preinfusion, Pouring, Ending, Refill }
 
-        enum De1MmrNotifEnum { CpuBoardMachineFw, FanTemp, SteamFlow, None }
+        enum De1MmrNotifEnum { CpuBoardMachineFw, FanTemp, IdleWaterTemp, SteamFlow, None }
 
         string SrvDe1String = "0000A000-0000-1000-8000-00805F9B34FB";
         string ChrDe1VersionString = "0000A001-0000-1000-8000-00805F9B34FB";    // A001 Versions                   R/-/-
@@ -85,8 +85,8 @@ namespace De1Win10
         int MmrMachine = int.MaxValue;
         int MmrFw = int.MaxValue;
         int MmrFanTemp = int.MaxValue;
+        double MmrIdleWaterTemp = double.MaxValue;
         double MmrSteamFlow = double.MaxValue;
-
 
         private async Task<string> CreateDe1Characteristics()
         {
@@ -167,7 +167,10 @@ namespace De1Win10
                 if (result_fan_temp != "")
                     return result_fan_temp;
 
-
+                // write 85 deg idle water temp
+                var result_idle_water_temp = await WriteMmrIdleWaterTemp();
+                if (result_idle_water_temp != "")
+                    return result_idle_water_temp;
 
                 // Characteristic   A00B Other Settings R/W/-     --------------------------------------------------
                 result_charact = await service.GetCharacteristicsForUuidAsync(new Guid(ChrDe1OtherSetnString), bleCacheMode);
@@ -529,6 +532,11 @@ namespace De1Win10
                 byte[] payload = new byte[] { 0x00, 0x80, 0x38, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
                 return await writeToDE(payload, De1ChrEnum.MmrNotif);
             }
+            else if (MmrNotifStatus == De1MmrNotifEnum.IdleWaterTemp)
+            {
+                byte[] payload = new byte[] { 0x00, 0x80, 0x38, 0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+                return await writeToDE(payload, De1ChrEnum.MmrNotif);
+            }
             else if (MmrNotifStatus == De1MmrNotifEnum.SteamFlow)
             {
                 byte[] payload = new byte[] { 0x00, 0x80, 0x38, 0x28, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
@@ -545,6 +553,15 @@ namespace De1Win10
             // set to 45 deg (0x2d) as default
 
             byte[] payload = new byte[] { 0x04, 0x80, 0x38, 0x08, 0x2d, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+            return writeToDE(payload, De1ChrEnum.MmrWrite);
+        }
+
+        private Task<string> WriteMmrIdleWaterTemp()
+        {
+            // set to 85 deg (850 = 0x52 0x03) as default
+
+            byte[] payload = new byte[] { 0x04, 0x80, 0x38, 0x18, 0x52, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
             return writeToDE(payload, De1ChrEnum.MmrWrite);
         }
@@ -753,7 +770,7 @@ namespace De1Win10
             }
             else if (MmrNotifStatus == De1MmrNotifEnum.FanTemp)
             {
-                MmrNotifStatus = De1MmrNotifEnum.SteamFlow;
+                MmrNotifStatus = De1MmrNotifEnum.IdleWaterTemp;
 
                 byte[] ref_header = new byte[] { 0x04, 0x80, 0x38, 0x08 };
 
@@ -770,6 +787,31 @@ namespace De1Win10
                     MmrFanTemp = data[index];
 
                     //UpdateStatus("Received FanTemp", NotifyType.StatusMessage);
+                }
+                catch (Exception)
+                {
+                    return false;
+                }
+            }
+            else if (MmrNotifStatus == De1MmrNotifEnum.IdleWaterTemp)
+            {
+                MmrNotifStatus = De1MmrNotifEnum.SteamFlow;
+
+                byte[] ref_header = new byte[] { 0x04, 0x80, 0x38, 0x18 };
+
+                if (data[0] != ref_header[0] || data[1] != ref_header[1] || data[2] != ref_header[2] || data[3] != ref_header[3])
+                {
+                    UpdateStatus("Received notif IdleWaterTemp, but data header is not correct: " +
+                        BitConverter.ToString(data) + " vs " + BitConverter.ToString(ref_header), NotifyType.WarningMessage);
+                    return false;
+                }
+
+                try
+                {
+                    int index = 4;
+                    MmrIdleWaterTemp = (data[index] + data[index + 1] * 256.0) / 10.0;
+
+                    // UpdateStatus("Received IdleWaterTemp " + BitConverter.ToString(data), NotifyType.StatusMessage);
                 }
                 catch (Exception)
                 {
@@ -910,6 +952,7 @@ namespace De1Win10
             if (MmrMachine != int.MaxValue) sb.Append(" Machine=" + MmrMachine.ToString());
             if (MmrFw != int.MaxValue) sb.Append(" FW=" + MmrFw.ToString());
             if (MmrFanTemp != int.MaxValue) sb.Append(" Fan=" + MmrFanTemp.ToString() + "°C");
+            if (MmrIdleWaterTemp != double.MaxValue) sb.Append(" IdleWater=" + MmrIdleWaterTemp.ToString("0") + "°C");
 
             StatusExtraBlock.Text = sb.ToString();
             RaiseAutomationEvent(StatusExtraBlock);
