@@ -26,7 +26,7 @@ namespace De1Win10
         }
         public enum De1SubStateEnum { Ready, Heating, FinalHeating, Stabilising, Preinfusion, Pouring, Ending, Refill }
 
-        enum De1MmrNotifEnum { CpuBoardMachineFw, FanTemp, IdleWaterTemp, SteamFlow, None }
+        enum De1MmrNotifEnum { CpuBoardMachineFw, FanTemp, IdleWaterTemp, HeaterWarmupFlow, HeaterTestFlow, HeaterTestTime, SteamFlow, None }
 
         string SrvDe1String = "0000A000-0000-1000-8000-00805F9B34FB";
         string ChrDe1VersionString = "0000A001-0000-1000-8000-00805F9B34FB";    // A001 Versions                   R/-/-
@@ -86,6 +86,9 @@ namespace De1Win10
         int MmrFw = int.MaxValue;
         int MmrFanTemp = int.MaxValue;
         double MmrIdleWaterTemp = double.MaxValue;
+        double MmrHeaterWarmupFlow = double.MaxValue;
+        double MmrHeaterTestFlow = double.MaxValue;
+        double MmrHeaterTestTime = double.MaxValue;
         double MmrSteamFlow = double.MaxValue;
 
         private async Task<string> CreateDe1Characteristics()
@@ -171,6 +174,11 @@ namespace De1Win10
                 var result_idle_water_temp = await WriteMmrIdleWaterTemp();
                 if (result_idle_water_temp != "")
                     return result_idle_water_temp;
+
+                // write 4 mls heater test flow
+                var result_heater_test_flow = await WriteMmrHeaterTestFlow();
+                if (result_heater_test_flow != "")
+                    return result_heater_test_flow;
 
                 // Characteristic   A00B Other Settings R/W/-     --------------------------------------------------
                 result_charact = await service.GetCharacteristicsForUuidAsync(new Guid(ChrDe1OtherSetnString), bleCacheMode);
@@ -537,6 +545,21 @@ namespace De1Win10
                 byte[] payload = new byte[] { 0x00, 0x80, 0x38, 0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
                 return await writeToDE(payload, De1ChrEnum.MmrNotif);
             }
+            else if (MmrNotifStatus == De1MmrNotifEnum.HeaterWarmupFlow)
+            {
+                byte[] payload = new byte[] { 0x00, 0x80, 0x38, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+                return await writeToDE(payload, De1ChrEnum.MmrNotif);
+            }
+            else if (MmrNotifStatus == De1MmrNotifEnum.HeaterTestFlow)
+            {
+                byte[] payload = new byte[] { 0x00, 0x80, 0x38, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+                return await writeToDE(payload, De1ChrEnum.MmrNotif);
+            }
+            else if (MmrNotifStatus == De1MmrNotifEnum.HeaterTestTime)
+            {
+                byte[] payload = new byte[] { 0x00, 0x80, 0x38, 0x38, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+                return await writeToDE(payload, De1ChrEnum.MmrNotif);
+            }
             else if (MmrNotifStatus == De1MmrNotifEnum.SteamFlow)
             {
                 byte[] payload = new byte[] { 0x00, 0x80, 0x38, 0x28, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
@@ -562,6 +585,15 @@ namespace De1Win10
             // set to 85 deg (850 = 0x52 0x03) as default
 
             byte[] payload = new byte[] { 0x04, 0x80, 0x38, 0x18, 0x52, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+
+            return writeToDE(payload, De1ChrEnum.MmrWrite);
+        }
+
+        private Task<string> WriteMmrHeaterTestFlow()
+        {
+            // set to 4 mls
+
+            byte[] payload = new byte[] { 0x04, 0x80, 0x38, 0x14, 0x28, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
             return writeToDE(payload, De1ChrEnum.MmrWrite);
         }
@@ -795,7 +827,7 @@ namespace De1Win10
             }
             else if (MmrNotifStatus == De1MmrNotifEnum.IdleWaterTemp)
             {
-                MmrNotifStatus = De1MmrNotifEnum.SteamFlow;
+                MmrNotifStatus = De1MmrNotifEnum.HeaterWarmupFlow;
 
                 byte[] ref_header = new byte[] { 0x04, 0x80, 0x38, 0x18 };
 
@@ -812,6 +844,81 @@ namespace De1Win10
                     MmrIdleWaterTemp = (data[index] + data[index + 1] * 256.0) / 10.0;
 
                     // UpdateStatus("Received IdleWaterTemp " + BitConverter.ToString(data), NotifyType.StatusMessage);
+                }
+                catch (Exception)
+                {
+                    return false;
+                }
+            }
+            else if (MmrNotifStatus == De1MmrNotifEnum.HeaterWarmupFlow)
+            {
+                MmrNotifStatus = De1MmrNotifEnum.HeaterTestFlow;
+
+                byte[] ref_header = new byte[] { 0x04, 0x80, 0x38, 0x10 };
+
+                if (data[0] != ref_header[0] || data[1] != ref_header[1] || data[2] != ref_header[2] || data[3] != ref_header[3])
+                {
+                    UpdateStatus("Received notif HeaterWarmupFlow, but data header is not correct: " +
+                        BitConverter.ToString(data) + " vs " + BitConverter.ToString(ref_header), NotifyType.WarningMessage);
+                    return false;
+                }
+
+                try
+                {
+                    int index = 4;
+                    MmrHeaterWarmupFlow = (data[index] + data[index + 1] * 256.0) / 10.0;
+
+                    // UpdateStatus("Received MmrHeaterWarmupFlow " + BitConverter.ToString(data), NotifyType.StatusMessage);
+                }
+                catch (Exception)
+                {
+                    return false;
+                }
+            }
+            else if (MmrNotifStatus == De1MmrNotifEnum.HeaterTestFlow)
+            {
+                MmrNotifStatus = De1MmrNotifEnum.HeaterTestTime;
+
+                byte[] ref_header = new byte[] { 0x04, 0x80, 0x38, 0x14 };
+
+                if (data[0] != ref_header[0] || data[1] != ref_header[1] || data[2] != ref_header[2] || data[3] != ref_header[3])
+                {
+                    UpdateStatus("Received notif HeaterTestFlow, but data header is not correct: " +
+                        BitConverter.ToString(data) + " vs " + BitConverter.ToString(ref_header), NotifyType.WarningMessage);
+                    return false;
+                }
+
+                try
+                {
+                    int index = 4;
+                    MmrHeaterTestFlow = (data[index] + data[index + 1] * 256.0) / 10.0;
+
+                    // UpdateStatus("Received MmrHeaterTestFlow " + BitConverter.ToString(data), NotifyType.StatusMessage);
+                }
+                catch (Exception)
+                {
+                    return false;
+                }
+            }
+            else if (MmrNotifStatus == De1MmrNotifEnum.HeaterTestTime)
+            {
+                MmrNotifStatus = De1MmrNotifEnum.SteamFlow;
+
+                byte[] ref_header = new byte[] { 0x04, 0x80, 0x38, 0x38 };
+
+                if (data[0] != ref_header[0] || data[1] != ref_header[1] || data[2] != ref_header[2] || data[3] != ref_header[3])
+                {
+                    UpdateStatus("Received notif HeaterTestTime, but data header is not correct: " +
+                        BitConverter.ToString(data) + " vs " + BitConverter.ToString(ref_header), NotifyType.WarningMessage);
+                    return false;
+                }
+
+                try
+                {
+                    int index = 4;
+                    MmrHeaterTestTime = (data[index] + data[index + 1] * 256.0) / 10.0;
+
+                    // UpdateStatus("Received MmrHeaterTestTime " + BitConverter.ToString(data), NotifyType.StatusMessage);
                 }
                 catch (Exception)
                 {
@@ -953,6 +1060,9 @@ namespace De1Win10
             if (MmrFw != int.MaxValue) sb.Append(" FW=" + MmrFw.ToString());
             if (MmrFanTemp != int.MaxValue) sb.Append(" Fan=" + MmrFanTemp.ToString() + "°C");
             if (MmrIdleWaterTemp != double.MaxValue) sb.Append(" IdleWater=" + MmrIdleWaterTemp.ToString("0") + "°C");
+            if (MmrHeaterWarmupFlow != double.MaxValue) sb.Append(" HeaterWarmup=" + MmrHeaterWarmupFlow.ToString("0.0") + "ml/s");
+            if (MmrHeaterTestFlow != double.MaxValue) sb.Append(" HeaterTest=" + MmrHeaterTestFlow.ToString("0.0") + "ml/s");
+            if (MmrHeaterTestTime != double.MaxValue) sb.Append(" HeaterTest=" + MmrHeaterTestTime.ToString("0") + "sec");
 
             StatusExtraBlock.Text = sb.ToString();
             RaiseAutomationEvent(StatusExtraBlock);
