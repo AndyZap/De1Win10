@@ -26,7 +26,8 @@ namespace De1Win10
         }
         public enum De1SubStateEnum { Ready, Heating, FinalHeating, Stabilising, Preinfusion, Pouring, Ending, Refill }
 
-        enum De1MmrNotifEnum { CpuBoardMachineFw, FanTemp, IdleWaterTemp, HeaterWarmupFlow, HeaterTestFlow, HeaterTestTime, SteamFlow, None }
+        enum De1MmrNotifEnum { CpuBoardMachineFw, FanTemp, IdleWaterTemp, HeaterWarmupFlow, HeaterTestFlow, HeaterTestTime, 
+                               SteamHiStart, SteamFlow, None }
 
         string SrvDe1String = "0000A000-0000-1000-8000-00805F9B34FB";
         string ChrDe1VersionString = "0000A001-0000-1000-8000-00805F9B34FB";    // A001 Versions                   R/-/-
@@ -89,6 +90,7 @@ namespace De1Win10
         double MmrHeaterWarmupFlow = double.MaxValue;
         double MmrHeaterTestFlow = double.MaxValue;
         double MmrHeaterTestTime = double.MaxValue;
+        double MmrSteamHiStart = double.MaxValue;
         double MmrSteamFlow = double.MaxValue;
 
         private async Task<string> CreateDe1Characteristics()
@@ -165,7 +167,7 @@ namespace De1Win10
 
                 chrDe1MmrWrite = result_charact.Characteristics[0];
                 
-                // write 45 deg fan temp
+                // write 50 deg fan temp
                 var result_fan_temp = await WriteMmrFanTemp();
                 if (result_fan_temp != "")
                     return result_fan_temp;
@@ -560,6 +562,11 @@ namespace De1Win10
                 byte[] payload = new byte[] { 0x00, 0x80, 0x38, 0x38, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
                 return await writeToDE(payload, De1ChrEnum.MmrNotif);
             }
+            else if (MmrNotifStatus == De1MmrNotifEnum.SteamHiStart)
+            {
+                byte[] payload = new byte[] { 0x00, 0x80, 0x38, 0x2c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+                return await writeToDE(payload, De1ChrEnum.MmrNotif);
+            }
             else if (MmrNotifStatus == De1MmrNotifEnum.SteamFlow)
             {
                 byte[] payload = new byte[] { 0x00, 0x80, 0x38, 0x28, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
@@ -573,9 +580,9 @@ namespace De1Win10
 
         private Task<string> WriteMmrFanTemp()
         {
-            // set to 45 deg (0x2d) as default
+            // set to 50 deg (0x32) as default
 
-            byte[] payload = new byte[] { 0x04, 0x80, 0x38, 0x08, 0x2d, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+            byte[] payload = new byte[] { 0x04, 0x80, 0x38, 0x08, 0x32, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
             return writeToDE(payload, De1ChrEnum.MmrWrite);
         }
@@ -902,7 +909,7 @@ namespace De1Win10
             }
             else if (MmrNotifStatus == De1MmrNotifEnum.HeaterTestTime)
             {
-                MmrNotifStatus = De1MmrNotifEnum.SteamFlow;
+                MmrNotifStatus = De1MmrNotifEnum.SteamHiStart;
 
                 byte[] ref_header = new byte[] { 0x04, 0x80, 0x38, 0x38 };
 
@@ -919,6 +926,31 @@ namespace De1Win10
                     MmrHeaterTestTime = (data[index] + data[index + 1] * 256.0) / 10.0;
 
                     // UpdateStatus("Received MmrHeaterTestTime " + BitConverter.ToString(data), NotifyType.StatusMessage);
+                }
+                catch (Exception)
+                {
+                    return false;
+                }
+            }
+            else if (MmrNotifStatus == De1MmrNotifEnum.SteamHiStart)
+            {
+                MmrNotifStatus = De1MmrNotifEnum.SteamFlow;
+
+                byte[] ref_header = new byte[] { 0x04, 0x80, 0x38, 0x2c };
+
+                if (data[0] != ref_header[0] || data[1] != ref_header[1] || data[2] != ref_header[2] || data[3] != ref_header[3])
+                {
+                    UpdateStatus("Received notif SteamHiStart, but data header is not correct: " +
+                        BitConverter.ToString(data) + " vs " + BitConverter.ToString(ref_header), NotifyType.WarningMessage);
+                    return false;
+                }
+
+                try
+                {
+                    int index = 4;
+                    MmrSteamHiStart = (data[index] + data[index + 1] * 256.0) / 10.0;
+
+                    // UpdateStatus("Received MmrSteamHiStart " + BitConverter.ToString(data), NotifyType.StatusMessage);
                 }
                 catch (Exception)
                 {
@@ -1063,6 +1095,7 @@ namespace De1Win10
             if (MmrHeaterWarmupFlow != double.MaxValue) sb.Append(" HeaterWarmup=" + MmrHeaterWarmupFlow.ToString("0.0") + "ml/s");
             if (MmrHeaterTestFlow != double.MaxValue) sb.Append(" HeaterTest=" + MmrHeaterTestFlow.ToString("0.0") + "ml/s");
             if (MmrHeaterTestTime != double.MaxValue) sb.Append(" HeaterTest=" + MmrHeaterTestTime.ToString("0") + "sec");
+            if (MmrSteamHiStart != double.MaxValue) sb.Append(" SteamHiStart=" + MmrSteamHiStart.ToString("0.0") + "ml/s");
 
             StatusExtraBlock.Text = sb.ToString();
             RaiseAutomationEvent(StatusExtraBlock);
