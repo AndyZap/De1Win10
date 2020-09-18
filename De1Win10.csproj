@@ -25,7 +25,7 @@
     <AppInstallerUpdateFrequency>0</AppInstallerUpdateFrequency>
     <AppInstallerCheckForUpdateFrequency>OnApplicationRun</AppInstallerCheckForUpdateFrequency>
     <AppxSymbolPackageEnabled>False</AppxSymbolPackageEnabled>
-    <PackageCertificateThumbprint>31FE22164035783F1C1D545B28E0B67D45C86036</PackageCertificateThumbprint>
+    <PackageCertificateThumbprint>9FA1CC8D94175A908464B4E8F9DB9E98349ECE2A</PackageCertificateThumbprint>
     <PackageCertificateKeyFile />
     <AppxPackageSigningEnabled>True</AppxPackageSigningEnabled>
     <GenerateTestArtifacts>True</GenerateTestArtifacts>
