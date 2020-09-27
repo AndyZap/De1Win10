@@ -26,7 +26,7 @@ namespace De1Win10
         }
         public enum De1SubStateEnum { Ready, Heating, FinalHeating, Stabilising, Preinfusion, Pouring, Ending, Refill }
 
-        enum De1MmrNotifEnum { CpuBoardMachineFw, FanTemp, IdleWaterTemp, HeaterWarmupFlow, HeaterTestFlow, HeaterTestTime, 
+        enum De1MmrNotifEnum { CpuBoardMachineFw, GhcInfo, SerialNum, FanTemp, IdleWaterTemp, HeaterWarmupFlow, HeaterTestFlow, HeaterTestTime, 
                                SteamHiStartSec, SteamFlow, None }
 
         string SrvDe1String = "0000A000-0000-1000-8000-00805F9B34FB";
@@ -85,6 +85,8 @@ namespace De1Win10
         double MmrCpuBoard = double.MaxValue;
         int MmrMachine = int.MaxValue;
         int MmrFw = int.MaxValue;
+        int MmrGhcInfo = int.MaxValue;
+        int MmrSerialNum = int.MaxValue;
         int MmrFanTemp = int.MaxValue;
         double MmrIdleWaterTemp = double.MaxValue;
         double MmrHeaterWarmupFlow = double.MaxValue;
@@ -543,6 +545,16 @@ namespace De1Win10
                 byte[] payload = new byte[] { 0x02, 0x80, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
                 return await writeToDE(payload, De1ChrEnum.MmrNotif);
             }
+            else if (MmrNotifStatus == De1MmrNotifEnum.GhcInfo)
+            {
+                byte[] payload = new byte[] { 0x00, 0x80, 0x38, 0x1c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+                return await writeToDE(payload, De1ChrEnum.MmrNotif);
+            }
+            else if (MmrNotifStatus == De1MmrNotifEnum.SerialNum)
+            {
+                byte[] payload = new byte[] { 0x00, 0x80, 0x38, 0x30, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+                return await writeToDE(payload, De1ChrEnum.MmrNotif);
+            }
             else if (MmrNotifStatus == De1MmrNotifEnum.FanTemp)
             {
                 byte[] payload = new byte[] { 0x00, 0x80, 0x38, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
@@ -797,7 +809,7 @@ namespace De1Win10
 
             if (MmrNotifStatus == De1MmrNotifEnum.CpuBoardMachineFw)
             {
-                MmrNotifStatus = De1MmrNotifEnum.FanTemp;
+                MmrNotifStatus = De1MmrNotifEnum.GhcInfo;
 
                 byte[] ref_header = new byte[] { 0x0C, 0x80, 0x00, 0x08 };
 
@@ -822,6 +834,58 @@ namespace De1Win10
                     return false;
                 }
             }
+            else if (MmrNotifStatus == De1MmrNotifEnum.GhcInfo)
+            {
+                // MmrNotifStatus = De1MmrNotifEnum.SerialNum; // not set on my machine, disable
+                MmrNotifStatus = De1MmrNotifEnum.FanTemp;
+
+                byte[] ref_header = new byte[] { 0x04, 0x80, 0x38, 0x1C };
+
+                if (data[0] != ref_header[0] || data[1] != ref_header[1] || data[2] != ref_header[2] || data[3] != ref_header[3])
+                {
+                    UpdateStatus("Received notif GhcInfo, but data header is not correct: " +
+                        BitConverter.ToString(data) + " vs " + BitConverter.ToString(ref_header), NotifyType.WarningMessage);
+                    return false;
+                }
+
+                try
+                {
+                    int index = 4;
+                    MmrGhcInfo = data[index];
+
+                    //UpdateStatus("Received GhcInfo", NotifyType.StatusMessage);
+                }
+                catch (Exception)
+                {
+                    return false;
+                }
+            }
+            /*
+            else if (MmrNotifStatus == De1MmrNotifEnum.SerialNum) // not set on my machine, disable
+            {
+                MmrNotifStatus = De1MmrNotifEnum.FanTemp;
+
+                byte[] ref_header = new byte[] { 0x04, 0x80, 0x38, 0x30 };
+
+                if (data[0] != ref_header[0] || data[1] != ref_header[1] || data[2] != ref_header[2] || data[3] != ref_header[3])
+                {
+                    UpdateStatus("Received notif SerialNum, but data header is not correct: " +
+                        BitConverter.ToString(data) + " vs " + BitConverter.ToString(ref_header), NotifyType.WarningMessage);
+                    return false;
+                }
+
+                try
+                {
+                    int index = 4;
+                    MmrSerialNum = data[index] + data[index + 1] * 256;
+
+                    //UpdateStatus("Received SerialNum", NotifyType.StatusMessage);
+                }
+                catch (Exception)
+                {
+                    return false;
+                }
+            }*/
             else if (MmrNotifStatus == De1MmrNotifEnum.FanTemp)
             {
                 MmrNotifStatus = De1MmrNotifEnum.IdleWaterTemp;
@@ -997,7 +1061,11 @@ namespace De1Win10
                     return false;
                 }
             }
-
+            else
+            {
+                UpdateStatus("Received not supported MMR notif " + MmrNotifStatus.ToString(), NotifyType.WarningMessage);
+                return false;
+            }
 
             return true;
         }
@@ -1105,6 +1173,8 @@ namespace De1Win10
             if (MmrCpuBoard != double.MaxValue) sb.Append(" CpuBoard=" + MmrCpuBoard.ToString());
             if (MmrMachine != int.MaxValue) sb.Append(" Machine=" + MmrMachine.ToString());
             if (MmrFw != int.MaxValue) sb.Append(" FW=" + MmrFw.ToString());
+            if (MmrGhcInfo != int.MaxValue) sb.Append(" GHC=" + MmrGhcInfo.ToString());
+            if (MmrSerialNum != int.MaxValue) sb.Append(" Serial=" + MmrSerialNum.ToString());
             if (MmrFanTemp != int.MaxValue) sb.Append(" Fan=" + MmrFanTemp.ToString() + "°C");
             if (MmrIdleWaterTemp != double.MaxValue) sb.Append(" IdleWater=" + MmrIdleWaterTemp.ToString("0") + "°C");
             if (MmrHeaterWarmupFlow != double.MaxValue) sb.Append(" HeaterWarmup=" + MmrHeaterWarmupFlow.ToString("0.0") + "ml/s");

@@ -165,7 +165,7 @@
                         </Grid>
 
                         <TextBlock Grid.Row="1"  x:Name="StatusExtraBlock" AutomationProperties.LiveSetting="Assertive" Text="Configs:"
-                                   Margin="10,50,10,20" TextWrapping="Wrap" FontSize="18" />
+                                   Margin="10,50,10,20" TextWrapping="Wrap" FontSize="18" Height="120" />
 
                     </StackPanel>
 
