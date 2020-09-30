@@ -76,6 +76,8 @@ namespace De1Win10
         double StopWeight = double.MaxValue;
         bool EspressoRunning = false;
 
+        int TargetMaxVol = 0;
+
         string ProfileName = "";
 
         List<De1ShotRecordClass> ShotRecords = new List<De1ShotRecordClass>();
@@ -1697,7 +1699,7 @@ namespace De1Win10
             frame1.SetVal = preinfusion_flow_rate;
             frame1.Temp = espresso_temperature;
             frame1.FrameLen = preinfusion_time;
-            frame1.MaxVol = 0; // MaxVol feature has been disabled 5/11/18
+            frame1.MaxVol = TargetMaxVol;
             frame1.TriggerVal = preinfusion_stop_pressure;
             shot_frames.Add(frame1);
 
@@ -1708,7 +1710,7 @@ namespace De1Win10
             frame2.SetVal = espresso_pressure;
             frame2.Temp = espresso_temperature;
             frame2.FrameLen = espresso_hold_time;
-            frame2.MaxVol = 0; // MaxVol feature has been disabled 5/11/18
+            frame2.MaxVol = TargetMaxVol;
             frame2.TriggerVal = 0;
             shot_frames.Add(frame2);
 
@@ -1719,7 +1721,7 @@ namespace De1Win10
             frame3.SetVal = pressure_end;
             frame3.Temp = espresso_temperature;
             frame3.FrameLen = espresso_decline_time;
-            frame3.MaxVol = 0; // MaxVol feature has been disabled 5/11/18
+            frame3.MaxVol = TargetMaxVol;
             frame3.TriggerVal = 0;
 
             shot_frames.Add(frame3);
@@ -1800,7 +1802,7 @@ namespace De1Win10
             frame1.SetVal = preinfusion_flow_rate;
             frame1.Temp = espresso_temperature;
             frame1.FrameLen = preinfusion_time;
-            frame1.MaxVol = 0; // MaxVol feature has been disabled 5/11/18
+            frame1.MaxVol = TargetMaxVol;
             frame1.TriggerVal = preinfusion_stop_pressure;
             shot_frames.Add(frame1);
 
@@ -1810,7 +1812,7 @@ namespace De1Win10
             frame2.Flag = DoCompare | DC_GT | IgnoreLimit;
             frame2.SetVal = preinfusion_stop_pressure;
             frame2.Temp = espresso_temperature;
-            frame2.MaxVol = 0; // MaxVol feature has been disabled 5/11/18
+            frame2.MaxVol = TargetMaxVol;
             frame2.TriggerVal = preinfusion_stop_pressure;
 
             if (preinfusion_guarantee == 1 && preinfusion_time > 0)
@@ -1828,7 +1830,7 @@ namespace De1Win10
             frame3.SetVal = flow_profile_hold;
             frame3.Temp = espresso_temperature;
             frame3.FrameLen = espresso_hold_time;
-            frame3.MaxVol = 0; // MaxVol feature has been disabled 5/11/18
+            frame3.MaxVol = TargetMaxVol;
             frame3.TriggerVal = 0;
             shot_frames.Add(frame3);
 
@@ -1840,7 +1842,7 @@ namespace De1Win10
             frame4.SetVal = flow_profile_decline;
             frame4.Temp = espresso_temperature;
             frame4.FrameLen = espresso_decline_time;
-            frame4.MaxVol = 0; // MaxVol feature has been disabled 5/11/18
+            frame4.MaxVol = TargetMaxVol;
             frame4.TriggerVal = 0;
             shot_frames.Add(frame4);
 
@@ -2005,7 +2007,7 @@ namespace De1Win10
                 frame.Flag = features;
                 frame.Temp = temperature;
                 frame.FrameLen = seconds;
-                frame.MaxVol = 0; // MaxVol feature has been disabled 5/11/18
+                frame.MaxVol = TargetMaxVol;
                 shot_frames.Add(frame);
             }
 
@@ -2018,11 +2020,29 @@ namespace De1Win10
 
             return true;
         }
+
+        private bool UpdateStopAtVolumeFromGui()
+        {
+            try
+            {
+                TargetMaxVol = Convert.ToInt32(TxtStopAtVolume.Text.Trim());
+            }
+            catch (Exception)
+            {
+                UpdateStatus("Error reading stop at volume, please supply a valid integer value", NotifyType.ErrorMessage);
+                return false;
+            }
+
+            return true;
+        }
+
         private void EncodeHeaderAndFrames(De1ShotHeaderClass shot_header, List<De1ShotFrameClass> shot_frames)
         {
+            if (!UpdateStopAtVolumeFromGui())
+                return;
+
             shot_header.bytes = EncodeDe1ShotHeader(shot_header);
             foreach (var frame in shot_frames)
-
                 frame.bytes = EncodeDe1ShotFrame(frame);
         }
 

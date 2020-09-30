@@ -19,7 +19,7 @@ namespace De1Win10
 {
     public sealed partial class MainPage : Page
     {
-        private string appVersion = "DE1 Win10     App v1.46   ";
+        private string appVersion = "DE1 Win10     App v1.47   ";
 
         private string deviceIdAcaia = String.Empty;
         private string deviceIdDe1 = String.Empty;
@@ -797,6 +797,7 @@ namespace De1Win10
                  && TxtSteamSec.FocusState == FocusState.Unfocused
                  && TxtSteamTemp.FocusState == FocusState.Unfocused
                  && TxtSteamFlow.FocusState == FocusState.Unfocused
+                 && TxtStopAtVolume.FocusState == FocusState.Unfocused
                  ))
             {
                 switch (e.Key)
@@ -1125,8 +1126,10 @@ namespace De1Win10
                     return;
                 }
 
+                string stop_at_volume = TargetMaxVol == 0 ? "" : " Vol, ml " + TargetMaxVol.ToString();
+
                 TxtDe1Profile.Text = "Profile: " + ProfileName;
-                UpdateStatus("Loaded profile " + ProfileName, NotifyType.StatusMessage);
+                UpdateStatus("Loaded profile " + ProfileName + stop_at_volume, NotifyType.StatusMessage);
 
                 SaveProfileNameHistory();
 
