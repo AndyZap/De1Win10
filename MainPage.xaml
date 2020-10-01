@@ -149,7 +149,7 @@
                             <Button    Grid.Row="0" Grid.Column="0" x:Name="BtnHotWater" Content="Hot Water" Margin="0,10,10,10" IsEnabled="False" FontSize="24" Click="BtnWater_Click" Width="200" Height="70" />
 
                             <TextBox   Grid.Row="1" Grid.Column="1" x:Name="TxtFlushSec" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="20,10,10,10" Text="" FontSize="24" Height="auto" Width ="auto" TextWrapping="Wrap"/>
-                            <TextBlock Grid.Row="1" Grid.Column="2" VerticalAlignment="Center" Text="sec"  Margin="0,10,10,10" FontSize="24"/>
+                            <TextBlock Grid.Row="1" Grid.Column="2" x:Name="TxtBlockFlushSec" VerticalAlignment="Center" Text="sec"  Margin="0,10,10,10" FontSize="24"/>
                             <Button    Grid.Row="1" Grid.Column="0" x:Name="BtnFlush" Content="Flush" Margin="0,10,10,10" IsEnabled="False" FontSize="24" Click="BtnFlush_Click" Width="200" Height="70" />
 
                             <Button    Grid.Row="2" Grid.Column="0" x:Name="BtnSteam" Content="Steam" Margin="0,10,10,10" IsEnabled="False" FontSize="24" Click="BtnSteam_Click" Width="200" Height="70" />
@@ -164,6 +164,7 @@
                             <Button    Grid.Row="3" Grid.Column="0" x:Name="BtnStopLog1" Content="Stop" Margin="0,10,10,10" IsEnabled="False" FontSize="24" Click="BtnStop_Click" Width="200" Height="70" />
                             <TextBox   Grid.Row="3" Grid.Column="5" x:Name="TxtStopAtVolume" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="20,10,10,10" Text="0" FontSize="24" Height="auto" Width ="auto" TextWrapping="Wrap" AutomationProperties.LiveSetting="Assertive"/>
                             <TextBlock Grid.Row="3" Grid.Column="6" VerticalAlignment="Center" Text="MaxVol"  Margin="0,10,10,10" FontSize="24"/>
+                            <Button    Grid.Row="3" Grid.Column="7" x:Name="BtnSetProfile1" Content="Set profile" Margin="0,10,10,10" IsEnabled="False" FontSize="24" Click="BtnSetProfile_Click" Width="200" Height="70" />
                         </Grid>
 
                         <TextBlock Grid.Row="1"  x:Name="StatusExtraBlock" AutomationProperties.LiveSetting="Assertive" Text="Configs:"

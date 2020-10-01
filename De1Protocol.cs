@@ -74,7 +74,9 @@ namespace De1Win10
         DateTime StopClickedTime = DateTime.MaxValue;
         bool StopHasBeenClicked = false;
         double StopWeight = double.MaxValue;
-        bool EspressoRunning = false;
+
+        De1StateEnum LastStateEnum = De1StateEnum.Idle;
+        De1SubStateEnum LastSubStateEnum = De1SubStateEnum.Ready;
 
         int TargetMaxVol = 0;
 
@@ -1133,7 +1135,7 @@ namespace De1Win10
                 var task = Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () => UpdateDe1StateInfoImpl(state, substate));
             }
         }
-        private void UpdateDe1StateInfoImpl(De1StateEnum state, De1SubStateEnum substate)
+        private /*async*/ void UpdateDe1StateInfoImpl(De1StateEnum state, De1SubStateEnum substate)
         {
             TxtDe1Status.Text = "DE1 status: " + state.ToString() + " (" + substate.ToString() + ")";
 
@@ -1146,10 +1148,18 @@ namespace De1Win10
 
             RaiseAutomationEvent(TxtDe1Status);
 
+            // Logic to start/stop recording of Espro and Steam --------------------
+
             if (   (state == De1StateEnum.Espresso || state == De1StateEnum.Steam)  // save the start time of the shot
                 && StartEsproTime == DateTime.MaxValue 
                 && (substate == De1SubStateEnum.Preinfusion || substate == De1SubStateEnum.Pouring))
                 StartEsproTime = DateTime.Now;
+
+
+            // ScenarioControl.SelectedIndex = 1;  // swith to Espresso page 
+
+            LastStateEnum = state;
+            LastSubStateEnum = substate;
         }
         private Task<string> WriteDe1State(De1StateEnum state)
         {

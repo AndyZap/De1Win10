@@ -19,7 +19,7 @@ namespace De1Win10
 {
     public sealed partial class MainPage : Page
     {
-        private string appVersion = "DE1 Win10     App v1.47   ";
+        private string appVersion = "DE1 Win10     App v2.1.66   ";
 
         private string deviceIdAcaia = String.Empty;
         private string deviceIdDe1 = String.Empty;
@@ -244,6 +244,23 @@ namespace De1Win10
             RaiseAutomationEvent(StatusBlock);
         }
 
+        private void UpdateGuiIfGhcPresent()
+        {
+            if (BtnEspresso.Visibility == Visibility.Collapsed) // already updated
+                return;
+
+            BtnEspresso.Visibility = Visibility.Collapsed; BtnEspresso.InvalidateArrange();
+
+            BtnQuickPurge.Visibility = Visibility.Collapsed; BtnQuickPurge.InvalidateArrange();
+            BtnStopLog1.Visibility = Visibility.Collapsed; BtnStopLog1.InvalidateArrange();
+
+            TxtFlushSec.Visibility = Visibility.Collapsed; TxtFlushSec.InvalidateArrange();
+            TxtBlockFlushSec.Visibility = Visibility.Collapsed; TxtBlockFlushSec.InvalidateArrange();
+            BtnFlush.Visibility = Visibility.Collapsed; BtnFlush.InvalidateArrange();
+
+            BtnHotWater.Content = "Set hot Water"; BtnHotWater.InvalidateArrange();
+            BtnSteam.Content = "Set steam"; BtnSteam.InvalidateArrange();
+        }
 
         private void MenuToggleButton_Click(object sender, RoutedEventArgs e)
         {
@@ -369,6 +386,7 @@ namespace De1Win10
 
                 // Buttons
                 BtnSetProfile.IsEnabled = true;
+                BtnSetProfile1.IsEnabled = true;
                 BtnEspresso.IsEnabled = true;
                 BtnStop.IsEnabled = true;
                 BtnStopLog1.IsEnabled = true;
@@ -383,6 +401,9 @@ namespace De1Win10
                 {
                     var result = await QueryMmrConfigs();
                     if (result != "") { FatalError(result); return; }
+
+                    if (MmrGhcInfo != 0)
+                        UpdateGuiIfGhcPresent();
                 }
             }
             else
@@ -521,6 +542,7 @@ namespace De1Win10
 
             BtnDisconnect.IsEnabled = false;
             BtnSetProfile.IsEnabled = false;
+            BtnSetProfile1.IsEnabled = false;
 
             BtnEspresso.IsEnabled = false;
             BtnStop.IsEnabled = false;
@@ -532,8 +554,6 @@ namespace De1Win10
 
             BtnBeansWeight.IsEnabled = false;
             BtnTare.IsEnabled = false;
-
-            EspressoRunning = false;
 
             statusDe1 = StatusEnum.Disconnected;
             statusAcaia = ChkAcaia.IsOn ? StatusEnum.Disconnected : StatusEnum.Disabled;
@@ -641,6 +661,9 @@ namespace De1Win10
 
         private async void BtnEspresso_Click(object sender, RoutedEventArgs e)
         {
+            if (MmrGhcInfo != 0)
+                return;
+
             ShotRecords.Clear();
             StopClickedTime = DateTime.MaxValue;
             StopHasBeenClicked = false;
@@ -667,12 +690,10 @@ namespace De1Win10
             if (result != "") { FatalError(result); return; }
 
             UpdateStatus("Espresso ...", NotifyType.StatusMessage);
-            EspressoRunning = true;
         }
 
         private async void BtnStop_Click(object sender, RoutedEventArgs e)
         {
-            EspressoRunning = false;
             StopFlushAndSteamTime = DateTime.MaxValue;
 
             if (StartEsproTime != DateTime.MaxValue)  // we are recording Espro shot
@@ -688,7 +709,7 @@ namespace De1Win10
         }
         private async void BtnNextFrame()
         {
-            if (!EspressoRunning)
+            if (LastStateEnum != De1StateEnum.Espresso)
                 return;
 
             var result = await WriteDe1State(De1StateEnum.SkipToNext);
@@ -709,13 +730,21 @@ namespace De1Win10
                 return;
             }
 
-            result = await WriteDe1State(De1StateEnum.HotWater);
-            if (result != "") { FatalError(result); return; }
+            if (MmrGhcInfo == 0)
+            {
+                result = await WriteDe1State(De1StateEnum.HotWater);
+                if (result != "") { FatalError(result); return; }
 
-            UpdateStatus("Hot Water ...", NotifyType.StatusMessage);
+                UpdateStatus("Hot Water ...", NotifyType.StatusMessage);
+            }
+            else
+                UpdateStatus("Hot Water set", NotifyType.StatusMessage);
         }
         private async void BtnFlush_Click(object sender, RoutedEventArgs e)
         {
+            if (MmrGhcInfo != 0)
+                return;
+
             var result = UpdateFlushSecFromGui();
             if (result != "")
             {
@@ -733,10 +762,6 @@ namespace De1Win10
         }
         private async void BtnSteam_Click(object sender, RoutedEventArgs e)
         {
-            ShotRecords.Clear();
-            StopClickedTime = DateTime.MaxValue;
-            StopHasBeenClicked = false;
-
             var result = await UpdateOtherSetnFromGui(update_steam_flow : true);
             if (result != "")
             {
@@ -747,17 +772,25 @@ namespace De1Win10
                 return;
             }
 
-            // Enable this if you want steam to stop by a timer followed by autopurge (I did not like it, back to default)
-            //TimeSpan ts = new TimeSpan(0, 0, De1OtherSetn.TargetSteamLength);
-            //StopFlushAndSteamTime = DateTime.Now + ts;
+            if (MmrGhcInfo == 0)
+            {
+                ShotRecords.Clear();
+                StopClickedTime = DateTime.MaxValue;
+                StopHasBeenClicked = false;
 
-            result = await WriteDe1State(De1StateEnum.Steam);
-            if (result != "") { FatalError(result); return; }
+                result = await WriteDe1State(De1StateEnum.Steam);
+                if (result != "") { FatalError(result); return; }
 
-            UpdateStatus("Steam ...", NotifyType.StatusMessage);
+                UpdateStatus("Steam ...", NotifyType.StatusMessage);
+            }
+            else
+                UpdateStatus("Steam set", NotifyType.StatusMessage);
         }
         private async void BtnQuickPurge_Click(object sender, RoutedEventArgs e)
         {
+            if (MmrGhcInfo != 0)
+                return;
+
             TimeSpan ts = new TimeSpan(0, 0, QuickPurgeTime);
             StopFlushAndSteamTime = DateTime.Now + ts;
 
@@ -776,10 +809,19 @@ namespace De1Win10
         private async void Grid_KeyDown(object sender, KeyRoutedEventArgs e)
         {
             string help_message = "Shortcuts\r\nCtrl-?\tHelp\r\nCtrl-C\tConnect\r\nCtrl-Z\tSleep\r\nCtrl-D\tDisconnect\r\n";
-            help_message += "Ctrl-B\tBeans weight\r\nCtrl-T\tTare\r\nCtrl-S\tStop\r\nCtrl-E\tEspresso\r\n";
-            help_message += "Ctrl-W\tHot water\r\nCtrl-F\tFlash\r\nCtrl-M\tMilk (Steam)\r\nCtrl-Q\tQuick purge (Steam)\r\n";
-            help_message += "Ctrl-Up\tGrind +\r\nCtrl-Dn\tGrind -\r\n\r\nCtrl-A\tAdd to log\r\n";
-            help_message += "Ctrl-1\tMenu item 1, etc";
+
+            if (MmrGhcInfo == 0)
+            {
+                help_message += "Ctrl-B\tBeans weight\r\nCtrl-T\tTare\r\nCtrl-S\tStop\r\nCtrl-E\tEspresso\r\n";
+                help_message += "Ctrl-W\tHot water\r\nCtrl-F\tFlash\r\nCtrl-M\tMilk (Steam)\r\nCtrl-Q\tQuick purge (Steam)\r\n";
+                help_message += "Ctrl-Up\tGrind +\r\nCtrl-Dn\tGrind -\r\n\r\nCtrl-A\tAdd to log\r\n";
+            }
+            else
+            {
+                help_message += "Ctrl-B\tBeans weight\r\nCtrl-T\tTare\r\nCtrl-S\tStop\r\n";
+                help_message += "Ctrl-W\tset hot Water\r\nCtrl-M\tset Milk (steam)\r\n";
+                help_message += "Ctrl-Up\tGrind +\r\nCtrl-Dn\tGrind -\r\n\r\nCtrl-A\tAdd to log\r\n";
+            }
 
             if (IsCtrlKeyPressed()
                 || (DetailBeansName.FocusState == FocusState.Unfocused
@@ -831,7 +873,7 @@ namespace De1Win10
                         break;
 
                     case VirtualKey.E:
-                        if (BtnEspresso.IsEnabled)
+                        if (BtnEspresso.IsEnabled && (MmrGhcInfo == 0))
                             BtnEspresso_Click(null, null);
                         break;
 
@@ -841,7 +883,7 @@ namespace De1Win10
                         break;
 
                     case VirtualKey.F:
-                        if (BtnFlush.IsEnabled)
+                        if (BtnFlush.IsEnabled && (MmrGhcInfo == 0))
                             BtnFlush_Click(null, null);
                         break;
 
@@ -851,7 +893,7 @@ namespace De1Win10
                         break;
 
                     case VirtualKey.Q:
-                        if (BtnQuickPurge.IsEnabled)
+                        if (BtnQuickPurge.IsEnabled && (MmrGhcInfo == 0))
                             BtnQuickPurge_Click(null, null);
                         break;
 
@@ -867,22 +909,8 @@ namespace De1Win10
                             BtnSaveLog_Click(null, null);
                         break;
 
-                    case VirtualKey.Number1:
-                        ScenarioControl.SelectedIndex = 0;
-                        break;
-                    case VirtualKey.Number2:
-                        ScenarioControl.SelectedIndex = 1;
-                        break;
-                    case VirtualKey.Number3:
-                        ScenarioControl.SelectedIndex = 2;
-                        break;
-                    case VirtualKey.Number4:
-                        ScenarioControl.SelectedIndex = 3;
-                        break;
-
                     case VirtualKey.N: // Next
-                        if (EspressoRunning)
-                            BtnNextFrame();
+                        BtnNextFrame();
                         break;
 
                     case (VirtualKey) 191 : // Help (?)
