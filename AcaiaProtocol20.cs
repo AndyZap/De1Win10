@@ -199,7 +199,12 @@ namespace De1Win10
 
                 return last_value;
             }
-        }
 
+            public void Reset()
+            {
+                values.Clear();
+                last_value = 0.0;
+            }
+        }
     }
 }

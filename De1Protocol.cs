@@ -70,6 +70,7 @@ namespace De1Win10
         int FlushTimeSec = 4;
 
         DateTime StopFlushAndSteamTime = DateTime.MaxValue;
+
         DateTime StartEsproTime = DateTime.MaxValue;
         DateTime StopClickedTime = DateTime.MaxValue;
         bool StopHasBeenClicked = false;
@@ -1135,7 +1136,7 @@ namespace De1Win10
                 var task = Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () => UpdateDe1StateInfoImpl(state, substate));
             }
         }
-        private /*async*/ void UpdateDe1StateInfoImpl(De1StateEnum state, De1SubStateEnum substate)
+        private void UpdateDe1StateInfoImpl(De1StateEnum state, De1SubStateEnum substate)
         {
             TxtDe1Status.Text = "DE1 status: " + state.ToString() + " (" + substate.ToString() + ")";
 
@@ -1148,15 +1149,55 @@ namespace De1Win10
 
             RaiseAutomationEvent(TxtDe1Status);
 
-            // Logic to start/stop recording of Espro and Steam --------------------
+            // Tare - if forgotten, give 2g tolerance
+            if (notifAcaia && LastStateEnum == De1StateEnum.Idle && state == De1StateEnum.Espresso)
+            {
+                try
+                {
+                    double brew_weight = Convert.ToDouble(TxtBrewWeight.Text.Trim());
 
-            if (   (state == De1StateEnum.Espresso || state == De1StateEnum.Steam)  // save the start time of the shot
-                && StartEsproTime == DateTime.MaxValue 
-                && (substate == De1SubStateEnum.Preinfusion || substate == De1SubStateEnum.Pouring))
-                StartEsproTime = DateTime.Now;
+                    if (Math.Abs(brew_weight) > 2.0)
+                        BtnTare_Click(null, null);
+                }
+                catch (Exception) { }
+            }
 
+            // 1. Logic to START recording of Espro and Steam
+            if ((state == De1StateEnum.Espresso || state == De1StateEnum.Steam)
+                && (substate == De1SubStateEnum.Preinfusion || substate == De1SubStateEnum.Pouring)
+                && LastSubStateEnum != De1SubStateEnum.Preinfusion
+                && LastSubStateEnum != De1SubStateEnum.Pouring
+                )
+            {
+                ScenarioControl.SelectedIndex = 1;  // swith to Espresso page 
+                StartEsproTime = DateTime.Now;      // save the start time of the shot
 
-            // ScenarioControl.SelectedIndex = 1;  // swith to Espresso page 
+                ShotRecords.Clear();
+                StopClickedTime = DateTime.MaxValue;
+                StopHasBeenClicked = false;
+            }
+
+            // 1. Logic to STOP recording of Espro and Steam    -  when the machine stops from the App
+            if ((state == De1StateEnum.Espresso || state == De1StateEnum.Steam)
+                && (LastSubStateEnum == De1SubStateEnum.Preinfusion || LastSubStateEnum == De1SubStateEnum.Pouring)
+                && substate != De1SubStateEnum.Preinfusion
+                && substate != De1SubStateEnum.Pouring
+                && (StopHasBeenClicked == false)
+                )
+            {
+                StopClickedTime = DateTime.Now;
+                StopHasBeenClicked = true;
+            }
+
+            // 2. Logic to STOP recording of Espro and Steam   -  when the machine stops from GHC
+            if ((LastStateEnum == De1StateEnum.Espresso || LastStateEnum == De1StateEnum.Steam)
+                && (state == De1StateEnum.Idle)
+                && (StopHasBeenClicked == false)
+                )
+            {
+                StopClickedTime = DateTime.Now;
+                StopHasBeenClicked = true;
+            }
 
             LastStateEnum = state;
             LastSubStateEnum = substate;

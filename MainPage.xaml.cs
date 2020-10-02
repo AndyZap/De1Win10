@@ -19,7 +19,7 @@ namespace De1Win10
 {
     public sealed partial class MainPage : Page
     {
-        private string appVersion = "DE1 Win10     App v2.1.66   ";
+        private string appVersion = "";
 
         private string deviceIdAcaia = String.Empty;
         private string deviceIdDe1 = String.Empty;
@@ -112,7 +112,8 @@ namespace De1Win10
             val = localSettings.Values["ProfileNameHistory4"] as string; ProfileNameHistory.Add(val == null ? "" : val);
             val = localSettings.Values["ProfileNameHistory5"] as string; ProfileNameHistory.Add(val == null ? "" : val);
 
-
+            var version = Windows.ApplicationModel.Package.Current.Id.Version;
+            appVersion = "DE1 Win10     App v" + version.Major.ToString() + "." + version.Minor.ToString() + "." + version.Build.ToString() +  "    ";
             Header.Text = appVersion;
         }
 
@@ -636,27 +637,52 @@ namespace De1Win10
             var result = await WriteTare();
             if (result != "") { FatalError(result); return; }
 
-            UpdateStatus("Tare", NotifyType.StatusMessage);
+            WeightAverager.Reset();
+            TxtBrewWeight.Text = "0.00";
+
+            if (sender != null)
+                UpdateStatus("Tare", NotifyType.StatusMessage);
         }
 
         private void BtnBeansWeight_Click(object sender, RoutedEventArgs e)
         {
-            DetailBeansWeight.Text = TxtBrewWeight.Text;
-            TxtBeanWeightMain.Text = TxtBrewWeight.Text;
-
-            ApplicationDataContainer localSettings = ApplicationData.Current.LocalSettings;
-            localSettings.Values["TxtRatio"] = TxtRatio.Text;
-
-            try
+            if (TxtBrewWeight.Text == "---" || TxtRatio.Text == "---")
             {
-                var ratio = Convert.ToDouble(TxtRatio.Text.Trim());
-                var bean = Convert.ToDouble(TxtBeanWeightMain.Text.Trim());
+                try
+                {
+                    StopWeight = Convert.ToDouble(TxtBrewWeightTarget.Text.Trim());
+                }
+                catch (Exception)
+                {
+                    StopWeight = double.MaxValue;
+                }
 
-                TxtBrewWeightTarget.Text = (bean * ratio).ToString("0.0");
+                UpdateStatus("Stop weight = " + StopWeight.ToString() + " saved", NotifyType.StatusMessage);
             }
-            catch (Exception) { }
+            else
+            {
+                DetailBeansWeight.Text = TxtBrewWeight.Text;
+                TxtBeanWeightMain.Text = TxtBrewWeight.Text;
 
-            UpdateStatus("Bean weight saved", NotifyType.StatusMessage);
+                ApplicationDataContainer localSettings = ApplicationData.Current.LocalSettings;
+                localSettings.Values["TxtRatio"] = TxtRatio.Text;
+
+                try
+                {
+                    var ratio = Convert.ToDouble(TxtRatio.Text.Trim());
+                    var bean = Convert.ToDouble(TxtBeanWeightMain.Text.Trim());
+
+                    TxtBrewWeightTarget.Text = (bean * ratio).ToString("0.0");
+
+                    StopWeight = Convert.ToDouble(TxtBrewWeightTarget.Text.Trim());
+                }
+                catch (Exception)
+                {
+                    StopWeight = double.MaxValue;
+                }
+
+                UpdateStatus("Bean weight = " + TxtBeanWeightMain.Text + " and stop weight  = " + StopWeight.ToString() + " saved", NotifyType.StatusMessage);
+            }
         }
 
         private async void BtnEspresso_Click(object sender, RoutedEventArgs e)
