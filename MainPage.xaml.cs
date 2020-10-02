@@ -638,7 +638,6 @@ namespace De1Win10
             if (result != "") { FatalError(result); return; }
 
             WeightAverager.Reset();
-            TxtBrewWeight.Text = "0.00";
 
             if (sender != null)
                 UpdateStatus("Tare", NotifyType.StatusMessage);

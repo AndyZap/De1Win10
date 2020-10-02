@@ -174,6 +174,7 @@ namespace De1Win10
             const int max_values = 10;
             List<double> values = new List<double>();
             double last_value = 0.0;
+            int slow_start_num_values = 0;
 
             public ValuesAverager()
             {
@@ -186,6 +187,12 @@ namespace De1Win10
 
             public double NewReading(double val)
             {
+                if(slow_start_num_values < max_values*3) // delay after reset
+                {
+                    slow_start_num_values++;
+                    return 0.0;
+                }
+
                 values.Add(val);
 
                 while (values.Count > max_values)
@@ -203,6 +210,7 @@ namespace De1Win10
             public void Reset()
             {
                 values.Clear();
+                slow_start_num_values = 0;
                 last_value = 0.0;
             }
         }
