@@ -561,6 +561,7 @@ namespace De1Win10
 
             TxtBrewWeight.Text = "---";
             TxtBrewTime.Text = "---";
+            TxtBrewTotalWater.Text = "---";
             TxtBrewPressure.Text = "---";
 
             PanelConnectDisconnect.Background = new SolidColorBrush(Windows.UI.Colors.Yellow);

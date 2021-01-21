@@ -1314,6 +1314,11 @@ namespace De1Win10
 
                 RaiseAutomationEvent(TxtBrewTime);
 
+
+                TxtBrewTotalWater.Text = GetTotalWater().ToString("0.0");
+                RaiseAutomationEvent(TxtBrewTotalWater);
+
+
                 if (StopClickedTime != DateTime.MaxValue)
                 {
                     TimeSpan ts_extra = DateTime.Now - StopClickedTime;
@@ -1329,6 +1334,7 @@ namespace De1Win10
                             DetailTime.Text = last.espresso_elapsed == 0.0 ? "---" : last.espresso_elapsed.ToString("0.0");
                             DetailCoffeeWeight.Text = last.espresso_weight == 0.0 ? "---" : last.espresso_weight.ToString("0.0");
                             DetailCoffeeRatio.Text = GetRatioString();
+                            DetailTotalWater.Text = TxtBrewTotalWater.Text;
 
                             ScenarioControl.SelectedIndex = 3;  // swith to Add Record page 
                         }
@@ -1337,6 +1343,7 @@ namespace De1Win10
             }
 
             RaiseAutomationEvent(TxtBrewTime);
+            RaiseAutomationEvent(TxtBrewTotalWater);
             RaiseAutomationEvent(TxtBrewWeightRate);
         }
         public void UpdateDe1Water(double level)
@@ -1431,6 +1438,21 @@ namespace De1Win10
             {
                 return false;
             }
+        }
+
+        private double GetTotalWater()
+        {
+            if(ShotRecords.Count == 0)
+                return 0.0;
+
+            double total_water = 0.0;
+            for(int i = 1; i < ShotRecords.Count; i++)
+            {
+                total_water += ShotRecords[i].espresso_flow * (ShotRecords[i].espresso_elapsed - ShotRecords[i-1].espresso_elapsed);  // method 1 (rectangular)
+                //total_water += 0.5 * (flow[i] + flow[i-1]) * (elapsed[i] - elapsed[i - 1]);  // method 2 (trapeziodal)
+            }
+
+            return total_water;
         }
 
         // ------------------ shot header/frame encoding / decoding ------------------------------
