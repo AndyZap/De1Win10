@@ -229,10 +229,12 @@ namespace De1Win10
                     sb.AppendLine("espresso_flow_goal " + espresso_flow_goal.ToString().Replace(" }", "}"));
 
                 else if (line.StartsWith("espresso_temperature_goal "))
+                {
                     sb.AppendLine("espresso_temperature_goal " + espresso_temperature_goal.ToString().Replace(" }", "}"));
 
-                else if (line.StartsWith("espresso_frame "))
+                    // file does not have espresso_frame, so append after the espresso_temperature_goal
                     sb.AppendLine("espresso_frame " + espresso_frame.ToString().Replace(" }", "}"));
+                }
 
                 // these are with tabs
                 else if (line.StartsWith("\tdrink_weight "))
