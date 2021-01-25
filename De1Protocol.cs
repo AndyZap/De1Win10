@@ -442,6 +442,7 @@ namespace De1Win10
             public double espresso_flow_goal = 0.0;
             public double espresso_temperature_goal = 0.0;
             public double espresso_temperature_steam = 0.0;
+            public int    espresso_frame = 0;
             public De1ShotRecordClass(double time_sec, De1ShotInfoClass info)
             {
                 espresso_elapsed = time_sec;
@@ -454,6 +455,7 @@ namespace De1Win10
                 espresso_flow_goal = info.SetGroupFlow == 0.0 ? -1.0 : info.SetGroupFlow;
                 espresso_temperature_goal = info.SetHeadTemp;
                 espresso_temperature_steam = info.SteamTemp;
+                espresso_frame = info.FrameNumber;
             }
 
             public void UpdateWeightFromScale(double weight)

@@ -79,7 +79,8 @@ namespace De1Win10
          StringBuilder espresso_temperature_mix,
          StringBuilder espresso_pressure_goal,
          StringBuilder espresso_flow_goal,
-         StringBuilder espresso_temperature_goal)
+         StringBuilder espresso_temperature_goal,
+         StringBuilder espresso_frame)
         {
             espresso_elapsed.Append("{");
             espresso_pressure.Append("{");
@@ -91,6 +92,7 @@ namespace De1Win10
             espresso_pressure_goal.Append("{");
             espresso_flow_goal.Append("{");
             espresso_temperature_goal.Append("{");
+            espresso_frame.Append("{");
 
             foreach (var rec in list)
             {
@@ -107,6 +109,7 @@ namespace De1Win10
                 espresso_pressure_goal.Append(rec.espresso_pressure_goal.ToString("0.0") + " ");
                 espresso_flow_goal.Append(rec.espresso_flow_goal.ToString("0.0") + " ");
                 espresso_temperature_goal.Append(rec.espresso_temperature_goal.ToString("0.0") + " ");
+                espresso_frame.Append(rec.espresso_frame.ToString("0") + " ");
             }
 
             espresso_elapsed.Append("}");
@@ -119,6 +122,7 @@ namespace De1Win10
             espresso_pressure_goal.Append("}");
             espresso_flow_goal.Append("}");
             espresso_temperature_goal.Append("}");
+            espresso_frame.Append("}");
         }
 
         private void SaveBeanNameHistory()
@@ -184,10 +188,11 @@ namespace De1Win10
             StringBuilder espresso_pressure_goal = new StringBuilder();
             StringBuilder espresso_flow_goal = new StringBuilder();
             StringBuilder espresso_temperature_goal = new StringBuilder();
+            StringBuilder espresso_frame = new StringBuilder();
 
             CreateStringsFromShotRecords(ShotRecords, DetailBeansName.Text.Trim().ToLower() == "steam",
                                     espresso_elapsed, espresso_pressure, espresso_weight, espresso_flow, espresso_flow_weight, espresso_temperature_basket,
-                                    espresso_temperature_mix, espresso_pressure_goal, espresso_flow_goal, espresso_temperature_goal);
+                                    espresso_temperature_mix, espresso_pressure_goal, espresso_flow_goal, espresso_temperature_goal, espresso_frame);
 
             StringBuilder sb = new StringBuilder();
 
@@ -226,8 +231,11 @@ namespace De1Win10
                 else if (line.StartsWith("espresso_temperature_goal "))
                     sb.AppendLine("espresso_temperature_goal " + espresso_temperature_goal.ToString().Replace(" }", "}"));
 
+                else if (line.StartsWith("espresso_frame "))
+                    sb.AppendLine("espresso_frame " + espresso_frame.ToString().Replace(" }", "}"));
+
                 // these are with tabs
-                else if(line.StartsWith("\tdrink_weight "))
+                else if (line.StartsWith("\tdrink_weight "))
                     sb.AppendLine("\tdrink_weight " + (DetailCoffeeWeight.Text == "---" ? "0" : DetailCoffeeWeight.Text));
 
                 else if (line.StartsWith("\tdsv2_bean_weight "))
