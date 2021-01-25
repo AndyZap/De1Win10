@@ -243,6 +243,9 @@ namespace De1Win10
                 else if (line.StartsWith("\tdsv2_bean_weight "))
                     sb.AppendLine("\tdsv2_bean_weight " + (DetailBeansWeight.Text == "---" ? "0" : DetailBeansWeight.Text));
 
+                else if (line.StartsWith("\tgrinder_dose_weight "))  // new string to save bean weight
+                    sb.AppendLine("\tgrinder_dose_weight " + (DetailBeansWeight.Text == "---" ? "0" : DetailBeansWeight.Text));
+
                 else if (line.StartsWith("\tgrinder_setting "))
                     sb.AppendLine("\tgrinder_setting {" + DetailGrind.Text + "}");
 
