@@ -1219,6 +1219,15 @@ namespace De1Win10
                     return "Error writing shot frame " + res_frames;
             }
 
+            if(TargetMaxVol > 0.0)
+            {
+                var tail_bytes = EncodeDe1ShotTail(TargetMaxVol);
+
+                var res_tail = await writeToDE(tail_bytes, De1ChrEnum.ShotFrame);
+                if (res_tail != "")
+                    return "Error writing profile tail " + res_tail;
+            }
+
             // check if we need to send the new water temp
             if (De1OtherSetn.TargetGroupTemp != frames[0].Temp)
             {

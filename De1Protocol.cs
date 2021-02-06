@@ -1493,7 +1493,6 @@ namespace De1Win10
             }
         }
         public class De1ShotFrameClass  // proc spec_shotframe
-
         {
             public byte FrameToWrite = 0;
             public byte Flag = 0;
@@ -1653,6 +1652,15 @@ namespace De1Win10
             data[index] = (byte)(b1 | 0x4); // this is "| 1024" in DE code, need to flip this bit
             data[index + 1] = (byte)(ival - b1 * 256);
         }
+        void convert_float_to_U10P0_for_tail(double x, byte[] data, int index)
+        {
+            int ival = (int)x;
+            var b1 = (byte)(ival / 256);
+
+            data[index]     = b1;
+            data[index + 1] = (byte)(ival - b1 * 256);
+        }
+
         private byte[] EncodeDe1ShotHeader(De1ShotHeaderClass shot_header)
         {
             byte[] data = new byte[5];
@@ -1679,6 +1687,16 @@ namespace De1Win10
             data[index] = convert_float_to_F8_1_7(shot_frame.FrameLen); index++;
             data[index] = (byte)(0.5 + shot_frame.TriggerVal * 16.0); index++;
             convert_float_to_U10P0(shot_frame.MaxVol, data, index);
+
+            return data;
+        }
+        private byte[] EncodeDe1ShotTail(double maxTotalVolume)
+        {
+            byte[] data = new byte[7];
+
+            convert_float_to_U10P0_for_tail(maxTotalVolume, data, 0);
+
+            data[2] = 0; data[3] = 0; data[4] = 0; data[5] = 0; data[6] = 0;
 
             return data;
         }
@@ -1777,7 +1795,7 @@ namespace De1Win10
             frame1.SetVal = preinfusion_flow_rate;
             frame1.Temp = espresso_temperature;
             frame1.FrameLen = preinfusion_time;
-            frame1.MaxVol = TargetMaxVol;
+            frame1.MaxVol = 0.0;
             frame1.TriggerVal = preinfusion_stop_pressure;
             shot_frames.Add(frame1);
 
@@ -1788,7 +1806,7 @@ namespace De1Win10
             frame2.SetVal = espresso_pressure;
             frame2.Temp = espresso_temperature;
             frame2.FrameLen = espresso_hold_time;
-            frame2.MaxVol = TargetMaxVol;
+            frame2.MaxVol = 0.0;
             frame2.TriggerVal = 0;
             shot_frames.Add(frame2);
 
@@ -1799,7 +1817,7 @@ namespace De1Win10
             frame3.SetVal = pressure_end;
             frame3.Temp = espresso_temperature;
             frame3.FrameLen = espresso_decline_time;
-            frame3.MaxVol = TargetMaxVol;
+            frame3.MaxVol = 0.0;
             frame3.TriggerVal = 0;
 
             shot_frames.Add(frame3);
@@ -1880,7 +1898,7 @@ namespace De1Win10
             frame1.SetVal = preinfusion_flow_rate;
             frame1.Temp = espresso_temperature;
             frame1.FrameLen = preinfusion_time;
-            frame1.MaxVol = TargetMaxVol;
+            frame1.MaxVol = 0.0;
             frame1.TriggerVal = preinfusion_stop_pressure;
             shot_frames.Add(frame1);
 
@@ -1890,7 +1908,7 @@ namespace De1Win10
             frame2.Flag = DoCompare | DC_GT | IgnoreLimit;
             frame2.SetVal = preinfusion_stop_pressure;
             frame2.Temp = espresso_temperature;
-            frame2.MaxVol = TargetMaxVol;
+            frame2.MaxVol = 0.0;
             frame2.TriggerVal = preinfusion_stop_pressure;
 
             if (preinfusion_guarantee == 1 && preinfusion_time > 0)
@@ -1908,7 +1926,7 @@ namespace De1Win10
             frame3.SetVal = flow_profile_hold;
             frame3.Temp = espresso_temperature;
             frame3.FrameLen = espresso_hold_time;
-            frame3.MaxVol = TargetMaxVol;
+            frame3.MaxVol = 0.0;
             frame3.TriggerVal = 0;
             shot_frames.Add(frame3);
 
@@ -1920,7 +1938,7 @@ namespace De1Win10
             frame4.SetVal = flow_profile_decline;
             frame4.Temp = espresso_temperature;
             frame4.FrameLen = espresso_decline_time;
-            frame4.MaxVol = TargetMaxVol;
+            frame4.MaxVol = 0.0;
             frame4.TriggerVal = 0;
             shot_frames.Add(frame4);
 
@@ -2085,7 +2103,7 @@ namespace De1Win10
                 frame.Flag = features;
                 frame.Temp = temperature;
                 frame.FrameLen = seconds;
-                frame.MaxVol = TargetMaxVol;
+                frame.MaxVol = 0.0;
                 shot_frames.Add(frame);
             }
 
