@@ -1291,6 +1291,9 @@ namespace De1Win10
 
                 De1ShotRecordClass rec = new De1ShotRecordClass(ts.TotalSeconds, shot_info);
 
+                if (StopClickedTime != DateTime.MaxValue) // to indicate in the espresso_frame that the stop has been pressed
+                    rec.espresso_frame = -1;
+
                 if (notifAcaia)
                     rec.UpdateWeightFromScale(WeightAverager.GetValue());
 
