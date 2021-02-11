@@ -1221,7 +1221,7 @@ namespace De1Win10
 
             if(TargetMaxVol > 0.0)
             {
-                var tail_bytes = EncodeDe1ShotTail(TargetMaxVol);
+                var tail_bytes = EncodeDe1ShotTail(frames.Count, TargetMaxVol);
 
                 var res_tail = await writeToDE(tail_bytes, De1ChrEnum.ShotFrame);
                 if (res_tail != "")

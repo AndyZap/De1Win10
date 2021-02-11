@@ -1319,10 +1319,11 @@ namespace De1Win10
 
                 RaiseAutomationEvent(TxtBrewTime);
 
-
-                TxtBrewTotalWater.Text = GetTotalWater().ToString("0.0");
-                RaiseAutomationEvent(TxtBrewTotalWater);
-
+                if (StopClickedTime == DateTime.MaxValue) // update the total water only if the stop has been clicked
+                {
+                    TxtBrewTotalWater.Text = GetTotalWater().ToString("0.0");
+                    RaiseAutomationEvent(TxtBrewTotalWater);
+                }
 
                 if (StopClickedTime != DateTime.MaxValue)
                 {
@@ -1654,11 +1655,13 @@ namespace De1Win10
         }
         void convert_float_to_U10P0_for_tail(double x, byte[] data, int index)
         {
-            int ival = (int)x;
-            var b1 = (byte)(ival / 256);
+            int ix = (int)x;
 
-            data[index]     = b1;
-            data[index + 1] = (byte)(ival - b1 * 256);
+            if (ix > 255) // lets make life esier and limit x to 255
+                ix = 255;
+
+            data[index]     = 0x4; // take PI into account
+            data[index + 1] = (byte)ix;
         }
 
         private byte[] EncodeDe1ShotHeader(De1ShotHeaderClass shot_header)
@@ -1690,13 +1693,15 @@ namespace De1Win10
 
             return data;
         }
-        private byte[] EncodeDe1ShotTail(double maxTotalVolume)
+        private byte[] EncodeDe1ShotTail(int frameToWrite, double maxTotalVolume)
         {
-            byte[] data = new byte[7];
+            byte[] data = new byte[8];
 
-            convert_float_to_U10P0_for_tail(maxTotalVolume, data, 0);
+            data[0] = (byte) frameToWrite;
 
-            data[2] = 0; data[3] = 0; data[4] = 0; data[5] = 0; data[6] = 0;
+            convert_float_to_U10P0_for_tail(maxTotalVolume, data, 1);
+
+            data[3] = 0; data[4] = 0; data[5] = 0; data[6] = 0; data[7] = 0;
 
             return data;
         }
