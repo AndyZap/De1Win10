@@ -209,6 +209,52 @@ namespace De1Win10
             Disconnect();
         }
 
+        public void FatalErrorAcaia(string message)
+        {
+            notifAcaia = false;
+
+            try
+            {
+                bleDeviceAcaia?.Dispose();
+                bleDeviceAcaia = null;
+            }
+            catch (Exception ex)
+            {
+                UpdateStatus("Error 2: " + ex.Message, NotifyType.WarningMessage);
+                bleDeviceAcaia = null;
+                return;
+            }
+
+            try
+            {
+                chrAcaia = null;
+                statusAcaia = StatusEnum.Disabled;
+            }
+            catch (Exception ex)
+            {
+                UpdateStatus("Error 3: " + ex.Message, NotifyType.WarningMessage);
+                chrAcaia = null;
+                statusAcaia = StatusEnum.Disabled;
+                return;
+            }
+
+            BtnBeansWeight.IsEnabled = false;
+            BtnTare.IsEnabled = false;
+
+            try
+            {
+                ChkAcaia.IsEnabled = false;
+                ChkAcaia.IsOn = false;
+            }
+            catch (Exception ex)
+            {
+                UpdateStatus("Error 4: " + ex.Message, NotifyType.WarningMessage);
+                return;
+            }
+
+            UpdateStatus("Disconnected Acaia because: " + message, NotifyType.StatusMessage);
+        }
+
         public void UpdateStatus(string strMessage, NotifyType type)
         {
             // If called from the UI thread, then update immediately.
@@ -457,9 +503,7 @@ namespace De1Win10
             {
                 var result = await WriteHeartBeat();
 
-                // try warning instead of FatalError
-                if (result != "") 
-                    UpdateStatus(DateTime.Now.ToLongTimeString() + " " + result, NotifyType.WarningMessage);
+                if (result != "") { FatalErrorAcaia(result); return; }
             }
             else
             {
@@ -972,6 +1016,9 @@ namespace De1Win10
         }
         private async void ChkAcaia_Toggled(object sender, RoutedEventArgs e)
         {
+            if (ChkAcaia.IsEnabled == false)
+                return;
+
             ApplicationDataContainer localSettings = ApplicationData.Current.LocalSettings;
             localSettings.Values["ChkAcaia"] = ChkAcaia.IsOn ? "true" : "false";
 
