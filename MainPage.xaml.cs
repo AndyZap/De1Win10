@@ -252,7 +252,10 @@ namespace De1Win10
                 return;
             }
 
-            UpdateStatus("Disconnected Acaia because: " + message, NotifyType.StatusMessage);
+            if(message.StartsWith("Failed to write to scale characteristic"))
+                UpdateStatus("Disconnected Acaia because a write has failed", NotifyType.StatusMessage);
+            else
+                UpdateStatus("Disconnected Acaia because: " + message, NotifyType.StatusMessage);
         }
 
         public void UpdateStatus(string strMessage, NotifyType type)
