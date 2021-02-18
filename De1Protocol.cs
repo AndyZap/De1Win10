@@ -1706,6 +1706,20 @@ namespace De1Win10
             return data;
         }
 
+        private byte[] EncodeDe1ExtentionFrame(int frameToWrite, double limit_value, double limit_range)
+        {
+            byte[] data = new byte[8];
+
+            data[0] = (byte)frameToWrite;
+
+            data[1] = (byte)(0.5 + limit_value * 16.0);
+            data[2] = (byte)(0.5 + limit_range * 16.0);
+
+            data[3] = 0; data[4] = 0; data[5] = 0; data[6] = 0; data[7] = 0;
+
+            return data;
+        }
+
         private bool ShotTclParser(IList<string> lines, De1ShotHeaderClass shot_header, List<De1ShotFrameClass> shot_frames)
         {
             foreach (var line in lines)

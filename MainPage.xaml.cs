@@ -1269,6 +1269,39 @@ namespace De1Win10
                     return "Error writing shot frame " + res_frames;
             }
 
+            // extension frames
+            foreach(var line in tcl_lines)
+            {
+                if (!line.StartsWith("frame_limits_"))
+                    continue;
+
+                var words = line.Trim().Replace("frame_limits_", "").Split(' ');
+                if(words.Length != 3)
+                    return "Error reading profile file, line " + line;
+
+                int frame_to_extend = 0;
+                double limit_value = 0.0;
+                double limit_range = 0.0;
+
+                try
+                {
+                    frame_to_extend = Convert.ToInt32(words[0]);
+                    limit_value = Convert.ToDouble(words[1]);
+                    limit_range = Convert.ToDouble(words[2]);
+                }
+                catch (Exception)
+                {
+                    return "Error parsing profile file, line " + line;
+                }
+
+                var extended_frame_bytes = EncodeDe1ExtentionFrame(frame_to_extend + 32, limit_value, limit_range);
+
+                var res_ext = await writeToDE(extended_frame_bytes, De1ChrEnum.ShotFrame);
+                if (res_ext != "")
+                    return "Error writing profile extension frame " + res_ext;
+            }
+
+            // stop at volume
             if(TargetMaxVol > 0.0)
             {
                 var tail_bytes = EncodeDe1ShotTail(frames.Count, TargetMaxVol);
