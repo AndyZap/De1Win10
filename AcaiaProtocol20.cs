@@ -24,8 +24,14 @@ namespace De1Win10
 
         ValuesAverager WeightAverager = new ValuesAverager();
 
+        private byte[] weight_data_buffer;
+        private int weight_data_buffer_size = 0;
+
         private async Task<string> CreateAcaiaCharacteristics()
         {
+            weight_data_buffer = new byte[13];
+            weight_data_buffer_size = 0;
+
             try
             {
                 if (bleDeviceAcaia == null)
@@ -65,6 +71,10 @@ namespace De1Win10
                 // in order to start receiving weights
                 var result = await WriteAppIdentity();
                 if (result != "") { return result; }
+
+                // weights config
+                var result_cfg = await WriteConfig();
+                if (result_cfg != "") { return result_cfg; }
             }
             catch (Exception ex)
             {
@@ -85,6 +95,14 @@ namespace De1Win10
         {
             // send app ID to start getting weight notifications
             byte[] payload = new byte[] { 0xef, 0xdd, 0x0b, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x9a, 0x6d };
+            return writeToAcaia(payload);
+        }
+
+        private Task<string> WriteConfig()
+        {
+            // send weight config
+            byte[] payload = new byte[] { 0xef, 0xdd, 0x0c, 0x09, 0x00, 0x01, 0x01, 0x02, 0x02, 0x05, 0x03, 0x04, 0x15, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+
             return writeToAcaia(payload);
         }
 
@@ -130,15 +148,25 @@ namespace De1Win10
                 return false;
 
             byte unit = data[9];
-            if (unit != 0x01) // Wight unit (byte #10) is not 1, not sure how to decode,  TODO
-                FatalError("Unsupported weight format, TODO");
+
+            double divisor;
+            if (unit == 4)
+                divisor = 10000.0;
+            else if (unit == 3)
+                divisor = 1000.0;
+            else if (unit == 2)
+                divisor = 100.0;
+            else if (unit == 1)
+                divisor = 10.0;
+            else
+                divisor = 1.0;
 
             try
             {
                 bool negative = (data[10] & 0x02) != 0;
                 is_stable = (data[10] & 0x01) == 0;
 
-                weight_gramm = (negative ? -1.0 : 1.0) * BitConverter.ToInt32(data, 5) / 10.0;
+                weight_gramm = (negative ? -1.0 : 1.0) * BitConverter.ToInt32(data, 5) / divisor;
 
                 return true;
             }

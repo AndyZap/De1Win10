@@ -625,10 +625,38 @@ namespace De1Win10
             //var message = "Acaia at " + DateTime.Now.ToString("hh:mm:ss.FFF ") + BitConverter.ToString(data);
             //NotifyUser(message, NotifyType.StatusMessage);
 
-            double weight_gramm = 0.0;
-            bool is_stable = true;
-            if (DecodeWeight(data, ref weight_gramm, ref is_stable))
-                UpdateWeight(weight_gramm);
+            if (data.Length >= 3 && data.Length <= 13)
+            {
+                if (data[0] == 0xef && data[1] == 0xdd && data[2] == 0x0c)
+                {
+                    Array.Copy(data, 0, weight_data_buffer, 0, data.Length);
+                    weight_data_buffer_size = data.Length;
+                }
+                else if(weight_data_buffer_size + data.Length == 13)
+                {
+                    Array.Copy(data, 0, weight_data_buffer, weight_data_buffer_size, data.Length);
+                    weight_data_buffer_size += data.Length;
+                }
+                else
+                {
+                    // for debug
+                    //var mes = "Other mess " + DateTime.Now.ToString("ss.FFF   ") + BitConverter.ToString(data);
+                    //UpdateStatus(mes, NotifyType.StatusMessage);
+                }
+
+                if (weight_data_buffer_size == 13)
+                {
+                    double weight_gramm = 0.0;
+                    bool is_stable = true;
+                    if (DecodeWeight(weight_data_buffer, ref weight_gramm, ref is_stable))
+                        UpdateWeight(weight_gramm);
+                    else
+                    {
+                        var mes = "Failed decode Acaia weight " + DateTime.Now.ToString("hh:mm:ss.FFF  ") + BitConverter.ToString(weight_data_buffer);
+                        UpdateStatus(mes, NotifyType.StatusMessage);
+                    }
+                }
+            }
         }
         private void CharacteristicDe1StateInfo_ValueChanged(GattCharacteristic sender, GattValueChangedEventArgs args)
         {
