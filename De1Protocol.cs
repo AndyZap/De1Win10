@@ -80,6 +80,7 @@ namespace De1Win10
         De1SubStateEnum LastSubStateEnum = De1SubStateEnum.Ready;
 
         int TargetMaxVol = 0;
+        bool ProfileHasLimits = false;
 
         string ProfileName = "";
 

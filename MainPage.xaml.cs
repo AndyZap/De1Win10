@@ -1259,9 +1259,10 @@ namespace De1Win10
                 }
 
                 string stop_at_volume = TargetMaxVol == 0 ? "" : " Vol, ml " + TargetMaxVol.ToString();
+                string has_limits = ProfileHasLimits ? "" : " >Has limits<";
 
                 TxtDe1Profile.Text = "Profile: " + ProfileName;
-                UpdateStatus("Loaded profile " + ProfileName + stop_at_volume, NotifyType.StatusMessage);
+                UpdateStatus("Loaded profile " + ProfileName + stop_at_volume + has_limits, NotifyType.StatusMessage);
 
                 SaveProfileNameHistory();
 
@@ -1273,6 +1274,8 @@ namespace De1Win10
         }
         private async Task<string> LoadProfile(string profile_name)
         {
+            ProfileHasLimits = false;
+
             if (await ProfilesFolder.TryGetItemAsync(profile_name + ".tcl") == null)
             {
                 return "Error: cannot find file " + profile_name + ".tcl in \"profiles\" folder, please select another profile file";
@@ -1327,6 +1330,8 @@ namespace De1Win10
                 var res_ext = await writeToDE(extended_frame_bytes, De1ChrEnum.ShotFrame);
                 if (res_ext != "")
                     return "Error writing profile extension frame " + res_ext;
+
+                ProfileHasLimits = true;
             }
 
             // stop at volume
