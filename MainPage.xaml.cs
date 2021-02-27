@@ -1259,7 +1259,7 @@ namespace De1Win10
                 }
 
                 string stop_at_volume = TargetMaxVol == 0 ? "" : " Vol, ml " + TargetMaxVol.ToString();
-                string has_limits = ProfileHasLimits ? "" : " >Has limits<";
+                string has_limits = ProfileHasLimits ? " >Has limits<" : "";
 
                 TxtDe1Profile.Text = "Profile: " + ProfileName;
                 UpdateStatus("Loaded profile " + ProfileName + stop_at_volume + has_limits, NotifyType.StatusMessage);
