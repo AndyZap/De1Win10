@@ -87,6 +87,17 @@ namespace De1Win10
             val = localSettings.Values["ProfileName"] as string;
             ProfileName = val == null ? "" : val;
 
+            val = localSettings.Values["ProfileDeltaT"] as string;
+            ProfileDeltaT.Text = val == null ? "0" : val;
+
+            try
+            {
+                ProfileDeltaTValue = Convert.ToDouble(ProfileDeltaT.Text.Trim());
+            }
+            catch (Exception)
+            {
+                ProfileDeltaTValue = 0.0;
+            }
 
             BeanNameHistory.Clear();
             val = localSettings.Values["BeanNameHistory0"] as string; BeanNameHistory.Add(val == null ? "" : val);
@@ -941,6 +952,7 @@ namespace De1Win10
                  && TxtSteamTemp.FocusState == FocusState.Unfocused
                  && TxtSteamFlow.FocusState == FocusState.Unfocused
                  && TxtStopAtVolume.FocusState == FocusState.Unfocused
+                 && ProfileDeltaT.FocusState == FocusState.Unfocused
                  ))
             {
                 switch (e.Key)
@@ -1258,16 +1270,33 @@ namespace De1Win10
                     return;
                 }
 
+                try
+                {
+                    ProfileDeltaTValue = Convert.ToDouble(ProfileDeltaT.Text.Trim());
+                }
+                catch(Exception)
+                {
+                    UpdateStatus("Cannot parse the profile temperature adjustment, please provide a valid floating point number", NotifyType.ErrorMessage);
+                    ProfileName = "";
+                    TxtDe1Profile.Text = "Profile: n/a";
+                    return;
+                }
+
                 string stop_at_volume = TargetMaxVol == 0 ? "" : " Vol, ml " + TargetMaxVol.ToString();
                 string has_limits = ProfileHasLimits ? " >Has limits<" : "";
 
-                TxtDe1Profile.Text = "Profile: " + ProfileName;
-                UpdateStatus("Loaded profile " + ProfileName + stop_at_volume + has_limits, NotifyType.StatusMessage);
+                string profile_ajustment = "";
+                if (ProfileDeltaTValue != 0.0)
+                    profile_ajustment = (ProfileDeltaTValue > 0 ? "+" : "") + ProfileDeltaTValue.ToString();
+
+                TxtDe1Profile.Text = "Profile: " + ProfileName + profile_ajustment;
+                UpdateStatus("Loaded profile " + ProfileName + profile_ajustment + stop_at_volume + has_limits, NotifyType.StatusMessage);
 
                 SaveProfileNameHistory();
 
                 ApplicationDataContainer localSettings = ApplicationData.Current.LocalSettings;
                 localSettings.Values["ProfileName"] = ProfileName;
+                localSettings.Values["ProfileDeltaT"] = ProfileDeltaT.Text.Trim();
             }
             else
                 UpdateStatus("Please select profile to use", NotifyType.WarningMessage);

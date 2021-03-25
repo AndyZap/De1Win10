@@ -41,7 +41,7 @@
                     <!-- 
                     StackPanel PanelEspresso
                     -->
-                    <StackPanel  x:Name="PanelEspresso" Grid.Row="0" Margin="0,0,0,10" Visibility="Visible">
+                    <StackPanel  x:Name="PanelEspresso" Grid.Row="0" Margin="0,0,0,10" Visibility="Collapsed">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="auto"/>
@@ -236,26 +236,33 @@
                     Grid GridProfiles and ScrollViewerProfiles
                     -->
 
-                    <Grid x:Name="GridProfiles" Grid.Row="0" Margin="0,0,0,10" Visibility="Collapsed">
+                    <Grid x:Name="GridProfiles" Grid.Row="0" Margin="0,0,0,10" Visibility="Visible">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="auto"/>
                             <ColumnDefinition Width="auto"/>
                             <ColumnDefinition Width="auto"/>
                             <ColumnDefinition Width="auto"/>
                             <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="auto"/>                            
+                            <ColumnDefinition Width="auto"/>
+                            <ColumnDefinition Width="auto"/>
+                            <ColumnDefinition Width="auto"/>
+                            <ColumnDefinition Width="auto"/>
                         </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
                         <StackPanel Grid.Row="0" Grid.Column="0" x:Name="PanelConnectDisconnect" HorizontalAlignment="Stretch" Height="60" Margin="0,0,0,0" VerticalAlignment="Stretch" Width="10"/>
-                        <Button  Grid.Row="0" Grid.Column="1" x:Name="BtnConnect" Content="Connect" Margin="10,10,10,10" FontSize="24" Click="BtnConnect_Click" Width="150"/>
-                        <Button  Grid.Row="0" Grid.Column="2" x:Name="BtnSleep" Content="Sleep" Margin="10,10,10,10" IsEnabled="True" FontSize="24" Click="BtnSleep_Click" Width="150"/>
-                        <Button  Grid.Row="0" Grid.Column="3" x:Name="BtnDisconnect" Content="Disconnect" Margin="10,10,10,10" IsEnabled="False" FontSize="24" Click="BtnDisconnect_Click" Width="150"/>
+                        <Button  Grid.Row="0" Grid.Column="1" x:Name="BtnConnect" Content="Connect" Margin="10,10,10,10" FontSize="20" Click="BtnConnect_Click" Width="150"/>
+                        <Button  Grid.Row="0" Grid.Column="2" x:Name="BtnSleep" Content="Sleep" Margin="10,10,10,10" IsEnabled="True" FontSize="20" Click="BtnSleep_Click" Width="150"/>
+                        <Button  Grid.Row="0" Grid.Column="3" x:Name="BtnDisconnect" Content="Disconnect" Margin="10,10,10,10" IsEnabled="False" FontSize="20" Click="BtnDisconnect_Click" Width="150"/>
                         <ToggleSwitch  Grid.Row="0" Grid.Column="4" x:Name="ChkAcaia" Header="Acaia" Margin="30,10,10,10" VerticalAlignment="Stretch" FontSize="18" Toggled="ChkAcaia_Toggled" Width="120"/>
 
-                        <Button  Grid.Row="0" Grid.Column="5" x:Name="BtnSetProfile" Content="Set profile" Margin="10,10,10,10" IsEnabled="False" FontSize="24" Click="BtnSetProfile_Click" />
+                        <TextBlock Grid.Row="0" Grid.Column="5" Text="T+"  Margin="10,10,0,10" FontSize="20" VerticalAlignment="Center"/>
+                        <TextBox   Grid.Row="0" Grid.Column="6" x:Name="ProfileDeltaT" VerticalAlignment="Center" Margin="0,10,0,10" Text="0" FontSize="20" TextAlignment="Center"/>
+                        <TextBlock Grid.Row="0" Grid.Column="7" Text="°C"  Margin="10,10,10,10" FontSize="20" VerticalAlignment="Center"/>
+
+                        <Button  Grid.Row="0" Grid.Column="8" x:Name="BtnSetProfile" Content="Set profile" Margin="10,10,10,10" IsEnabled="False" FontSize="20" Click="BtnSetProfile_Click" />
                     </Grid>
 
                     <ScrollViewer x:Name="ScrollViewerProfiles" VerticalScrollMode="Auto" VerticalScrollBarVisibility="Auto" Margin="0,10,0,0"

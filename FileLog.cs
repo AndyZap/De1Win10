@@ -256,7 +256,12 @@ namespace De1Win10
                     sb.AppendLine("\tespresso_notes {" + DetailNotes.Text + "}");
 
                 else if (line.StartsWith("\tprofile_title "))
-                    sb.AppendLine("\tprofile_title {" + ProfileName + "}");
+                {
+                    string profile_ajustment = "";
+                    if (ProfileDeltaTValue != 0.0)
+                        profile_ajustment = (ProfileDeltaTValue > 0 ? "+" : "") + ProfileDeltaTValue.ToString();
+                    sb.AppendLine("\tprofile_title {" + ProfileName + profile_ajustment + "}");
+                }
 
                 else
                     sb.AppendLine(line);
