@@ -294,13 +294,13 @@ namespace De1Win10
                 // finally: load the last profile
                 if (ProfilesFolder != null && ProfileName != "")
                 {
-                    var result_profile = await LoadProfile(ProfileName);
-                    if (result_profile != "")
-                        return result_profile;
-
                     string profile_ajustment = "";
                     if (ProfileDeltaTValue != 0.0)
                         profile_ajustment = (ProfileDeltaTValue > 0 ? "+" : "") + ProfileDeltaTValue.ToString();
+
+                    var result_profile = await LoadProfile(ProfileName);
+                    if (result_profile != "")
+                        return result_profile;
 
                     TxtDe1Profile.Text = "Profile: " + ProfileName + profile_ajustment;
                 }

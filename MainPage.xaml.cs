@@ -1042,7 +1042,7 @@ namespace De1Win10
             try
             {
                 var grind = Convert.ToDouble(DetailGrind.Text);
-                grind -= 0.25;
+                grind -= 0.1;
                 DetailGrind.Text = grind.ToString("0.00");
             }
             catch (Exception) { }
@@ -1052,7 +1052,7 @@ namespace De1Win10
             try
             {
                 var grind = Convert.ToDouble(DetailGrind.Text);
-                grind += 0.25;
+                grind += 0.1;
                 DetailGrind.Text = grind.ToString("0.00");
             }
             catch (Exception) { }
@@ -1259,24 +1259,24 @@ namespace De1Win10
             // set profile
             if (ListBoxProfiles.SelectedIndex != -1)
             {
+                try
+                {
+                    ProfileDeltaTValue = Convert.ToDouble(ProfileDeltaT.Text.Trim());
+                }
+                catch (Exception)
+                {
+                    UpdateStatus("Cannot parse the profile temperature adjustment, please provide a valid floating point number", NotifyType.ErrorMessage);
+                    ProfileName = "";
+                    TxtDe1Profile.Text = "Profile: n/a";
+                    return;
+                }
+
                 ProfileName = Profiles[ListBoxProfiles.SelectedIndex].profileName;
 
                 var result_profile = await LoadProfile(ProfileName);
                 if (result_profile != "")
                 {
                     UpdateStatus(result_profile, NotifyType.ErrorMessage);
-                    ProfileName = "";
-                    TxtDe1Profile.Text = "Profile: n/a";
-                    return;
-                }
-
-                try
-                {
-                    ProfileDeltaTValue = Convert.ToDouble(ProfileDeltaT.Text.Trim());
-                }
-                catch(Exception)
-                {
-                    UpdateStatus("Cannot parse the profile temperature adjustment, please provide a valid floating point number", NotifyType.ErrorMessage);
                     ProfileName = "";
                     TxtDe1Profile.Text = "Profile: n/a";
                     return;
