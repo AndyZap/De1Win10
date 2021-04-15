@@ -24,13 +24,16 @@ namespace De1Win10
 
         ValuesAverager WeightAverager = new ValuesAverager();
 
-        private byte[] weight_data_buffer;
-        private int weight_data_buffer_size = 0;
+        private List<byte> acaia_data_buffer = new List<byte>();
+        private AcaiaBufferStateEnum acaia_buffer_state = AcaiaBufferStateEnum.None;
+        private enum AcaiaBufferStateEnum { None, Weight, Battery }
+
+        private int AcaiaBatteryLevel = int.MaxValue;
 
         private async Task<string> CreateAcaiaCharacteristics()
         {
-            weight_data_buffer = new byte[13];
-            weight_data_buffer_size = 0;
+            acaia_data_buffer.Clear();
+            acaia_buffer_state = AcaiaBufferStateEnum.None;
 
             try
             {
@@ -174,6 +177,27 @@ namespace De1Win10
             {
                 return false;
             }
+        }
+
+        private bool DecodeBattery(byte[] data, ref int battery)
+        {
+            if (data == null)
+                return false;
+
+            // try to decode data as weight, example: ef dd 08 09 64 02 02 01 00 00 01 01 0d 67, 64=100%
+
+            if (data.Length < 14)
+                return false;
+
+            byte[] weight_pattern = new byte[] { 0xef, 0xdd, 0x08, 0x09};
+
+            byte[] candidate = new byte[4];
+            Array.Copy(data, 0, candidate, 0, 4);
+            if (!candidate.SequenceEqual<byte>(weight_pattern))
+                return false;
+
+            battery = data[4];
+            return true;
         }
 
         public void UpdateWeight(double weight_gramm)

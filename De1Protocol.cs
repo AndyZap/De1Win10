@@ -1231,6 +1231,7 @@ namespace De1Win10
             StringBuilder sb = new StringBuilder();
 
             sb.Append("Configs:");
+            if (AcaiaBatteryLevel != int.MaxValue) sb.Append(" AcaiaBatt=" + AcaiaBatteryLevel.ToString() + "%");
             if (MmrCpuBoard != double.MaxValue) sb.Append(" CpuBoard=" + MmrCpuBoard.ToString());
             if (MmrMachine != int.MaxValue) sb.Append(" Machine=" + MmrMachine.ToString());
             if (MmrFw != int.MaxValue) sb.Append(" FW=" + MmrFw.ToString());

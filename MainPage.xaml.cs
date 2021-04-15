@@ -636,37 +636,64 @@ namespace De1Win10
             //var message = "Acaia at " + DateTime.Now.ToString("hh:mm:ss.FFF ") + BitConverter.ToString(data);
             //NotifyUser(message, NotifyType.StatusMessage);
 
-            if (data.Length >= 3 && data.Length <= 13)
+            if (data.Length < 3 || data.Length > 14)
+                return;
+
+            AcaiaBufferStateEnum current_data_type = AcaiaBufferStateEnum.None;
+            if (data[0] == 0xef && data[1] == 0xdd && data[2] == 0x0c)
+                current_data_type = AcaiaBufferStateEnum.Weight;
+            else if (data[0] == 0xef && data[1] == 0xdd && data[2] == 0x08)
+                current_data_type = AcaiaBufferStateEnum.Battery;
+
+            if(current_data_type != AcaiaBufferStateEnum.None)  // new data with correct headers, copy into buffer
             {
-                if (data[0] == 0xef && data[1] == 0xdd && data[2] == 0x0c)
+                acaia_data_buffer.Clear();
+                acaia_data_buffer.AddRange(data);
+                acaia_buffer_state = current_data_type;
+            }
+            else if (acaia_buffer_state != AcaiaBufferStateEnum.None) // buffer already has headers, append
+            {
+                acaia_data_buffer.AddRange(data);
+            }
+
+
+            // now decode the buffer, if complete
+            if (acaia_buffer_state == AcaiaBufferStateEnum.Weight && acaia_data_buffer.Count == 13)
+            {
+                double weight_gramm = 0.0;
+                bool is_stable = true;
+                if (DecodeWeight(acaia_data_buffer.ToArray(), ref weight_gramm, ref is_stable))
                 {
-                    Array.Copy(data, 0, weight_data_buffer, 0, data.Length);
-                    weight_data_buffer_size = data.Length;
-                }
-                else if(weight_data_buffer_size + data.Length == 13)
-                {
-                    Array.Copy(data, 0, weight_data_buffer, weight_data_buffer_size, data.Length);
-                    weight_data_buffer_size += data.Length;
+                    UpdateWeight(weight_gramm);
                 }
                 else
                 {
-                    // for debug
-                    //var mes = "Other mess " + DateTime.Now.ToString("ss.FFF   ") + BitConverter.ToString(data);
-                    //UpdateStatus(mes, NotifyType.StatusMessage);
+                    var mes = "Failed decode Acaia weight " + DateTime.Now.ToString("hh:mm:ss.FFF  ") + BitConverter.ToString(acaia_data_buffer.ToArray());
+                    UpdateStatus(mes, NotifyType.StatusMessage);
                 }
 
-                if (weight_data_buffer_size == 13)
+                acaia_buffer_state = AcaiaBufferStateEnum.None;
+            }
+            else if (acaia_buffer_state == AcaiaBufferStateEnum.Battery && acaia_data_buffer.Count >= 14)
+            {
+                int battery = 0;
+                if (DecodeBattery(acaia_data_buffer.ToArray(), ref battery))
+                    AcaiaBatteryLevel = battery;
+                else
                 {
-                    double weight_gramm = 0.0;
-                    bool is_stable = true;
-                    if (DecodeWeight(weight_data_buffer, ref weight_gramm, ref is_stable))
-                        UpdateWeight(weight_gramm);
-                    else
-                    {
-                        var mes = "Failed decode Acaia weight " + DateTime.Now.ToString("hh:mm:ss.FFF  ") + BitConverter.ToString(weight_data_buffer);
-                        UpdateStatus(mes, NotifyType.StatusMessage);
-                    }
+                    var mes = "Failed decode Acaia battery " + DateTime.Now.ToString("hh:mm:ss.FFF  ") + BitConverter.ToString(acaia_data_buffer.ToArray());
+                    UpdateStatus(mes, NotifyType.StatusMessage);
                 }
+
+                acaia_buffer_state = AcaiaBufferStateEnum.None;
+            }
+            else if (acaia_data_buffer.Count > 14) // reset, the data does not make sense and too long
+            {
+                acaia_buffer_state = AcaiaBufferStateEnum.None;
+
+                // for debug
+                //var mes = "Other mess " + DateTime.Now.ToString("ss.FFF   ") + BitConverter.ToString(data);
+                //UpdateStatus(mes, NotifyType.StatusMessage);
             }
         }
         private void CharacteristicDe1StateInfo_ValueChanged(GattCharacteristic sender, GattValueChangedEventArgs args)
