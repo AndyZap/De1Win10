@@ -1741,6 +1741,15 @@ namespace De1Win10
 
             return false;
         }
+        
+        private bool ShotJsonParser(string json_string, De1ShotHeaderClass shot_header, List<De1ShotFrameClass> shot_frames)
+        {
+            dynamic json_obj = Newtonsoft.Json.JsonConvert.DeserializeObject(json_string);
+
+            return ShotJsonParserAdvanced(json_obj, shot_header, shot_frames);
+        }
+
+
         private static void TryToGetDoubleFromTclLine(string line, string key, ref double var)
         {
 
@@ -1762,10 +1771,6 @@ namespace De1Win10
 
         private bool ShotTclParserPressure(IList<string> lines, De1ShotHeaderClass shot_header, List<De1ShotFrameClass> shot_frames)
         {
-            // header
-            shot_header.NumberOfFrames = 3;
-            shot_header.NumberOfPreinfuseFrames = 1;
-
             // preinfusion vars
             double preinfusion_flow_rate = double.MinValue;
             double espresso_temperature = double.MinValue;
@@ -1810,24 +1815,25 @@ namespace De1Win10
             )
                 return false;
 
-
-
             // build the shot frames
 
             // preinfusion
-            De1ShotFrameClass frame1 = new De1ShotFrameClass();
-            frame1.FrameToWrite = 0;
-            frame1.Flag = CtrlF | DoCompare | DC_GT | IgnoreLimit;
-            frame1.SetVal = preinfusion_flow_rate;
-            frame1.Temp = espresso_temperature + ProfileDeltaTValue;
-            frame1.FrameLen = preinfusion_time;
-            frame1.MaxVol = 0.0;
-            frame1.TriggerVal = preinfusion_stop_pressure;
-            shot_frames.Add(frame1);
+            if (preinfusion_time != 0.0)
+            {
+                De1ShotFrameClass frame1 = new De1ShotFrameClass();
+                frame1.FrameToWrite = (byte)shot_frames.Count;
+                frame1.Flag = CtrlF | DoCompare | DC_GT | IgnoreLimit;
+                frame1.SetVal = preinfusion_flow_rate;
+                frame1.Temp = espresso_temperature + ProfileDeltaTValue;
+                frame1.FrameLen = preinfusion_time;
+                frame1.MaxVol = 0.0;
+                frame1.TriggerVal = preinfusion_stop_pressure;
+                shot_frames.Add(frame1);
+            }
 
             // hold
             De1ShotFrameClass frame2 = new De1ShotFrameClass();
-            frame2.FrameToWrite = 1;
+            frame2.FrameToWrite = (byte)shot_frames.Count;
             frame2.Flag = IgnoreLimit;
             frame2.SetVal = espresso_pressure;
             frame2.Temp = espresso_temperature + ProfileDeltaTValue;
@@ -1837,16 +1843,23 @@ namespace De1Win10
             shot_frames.Add(frame2);
 
             // decline
-            De1ShotFrameClass frame3 = new De1ShotFrameClass();
-            frame3.FrameToWrite = 2;
-            frame3.Flag = IgnoreLimit | Interpolate;
-            frame3.SetVal = pressure_end;
-            frame3.Temp = espresso_temperature + ProfileDeltaTValue;
-            frame3.FrameLen = espresso_decline_time;
-            frame3.MaxVol = 0.0;
-            frame3.TriggerVal = 0;
+            if (espresso_decline_time != 0.0)
+            {
+                De1ShotFrameClass frame3 = new De1ShotFrameClass();
+                frame3.FrameToWrite = (byte)shot_frames.Count;
+                frame3.Flag = IgnoreLimit | Interpolate;
+                frame3.SetVal = pressure_end;
+                frame3.Temp = espresso_temperature + ProfileDeltaTValue;
+                frame3.FrameLen = espresso_decline_time;
+                frame3.MaxVol = 0.0;
+                frame3.TriggerVal = 0;
 
-            shot_frames.Add(frame3);
+                shot_frames.Add(frame3);
+            }
+
+            // header
+            shot_header.NumberOfFrames = (byte)shot_frames.Count;
+            shot_header.NumberOfPreinfuseFrames = 1;
 
             // update the byte array inside shot header and frame, so we are ready to write it to DE
             EncodeHeaderAndFrames(shot_header, shot_frames);
@@ -1855,19 +1868,11 @@ namespace De1Win10
         }
         private bool ShotTclParserFlow(IList<string> lines, De1ShotHeaderClass shot_header, List<De1ShotFrameClass> shot_frames)
         {
-            // header
-            shot_header.NumberOfFrames = 4;
-            shot_header.NumberOfPreinfuseFrames = 1;
-
             // preinfusion vars
             double preinfusion_flow_rate = double.MinValue;
             double espresso_temperature = double.MinValue;
             double preinfusion_time = double.MinValue;
             double preinfusion_stop_pressure = double.MinValue;
-
-            // pressure rise vars
-            double preinfusion_guarantee = double.MinValue;
-            double flow_rise_timeout = double.MinValue;
 
             // hold vars
             double flow_profile_hold = double.MinValue;
@@ -1887,9 +1892,6 @@ namespace De1Win10
                     TryToGetDoubleFromTclLine(line, "preinfusion_time", ref preinfusion_time);
                     TryToGetDoubleFromTclLine(line, "preinfusion_stop_pressure", ref preinfusion_stop_pressure);
 
-                    TryToGetDoubleFromTclLine(line, "preinfusion_guarantee", ref preinfusion_guarantee);
-                    TryToGetDoubleFromTclLine(line, "flow_rise_timeout", ref flow_rise_timeout);
-
                     TryToGetDoubleFromTclLine(line, "flow_profile_hold", ref flow_profile_hold);
                     TryToGetDoubleFromTclLine(line, "espresso_hold_time", ref espresso_hold_time);
 
@@ -1905,49 +1907,33 @@ namespace De1Win10
             // make sure all is loaded
             if (preinfusion_flow_rate == double.MinValue || espresso_temperature == double.MinValue ||
             preinfusion_time == double.MinValue || preinfusion_stop_pressure == double.MinValue ||
-            preinfusion_guarantee == double.MinValue ||
             flow_profile_hold == double.MinValue || espresso_hold_time == double.MinValue ||
             flow_profile_decline == double.MinValue || espresso_decline_time == double.MinValue
             )
                 return false;
 
-            // flow_rise_timeout is only set with preinfusion_guarantee
-            if (preinfusion_guarantee == 1 && flow_rise_timeout == double.MinValue)
-                flow_rise_timeout = 10.0;  // AAZ TODO hard-coded - read from 0.shot instead
-
             // build the shot frames
 
             // preinfusion
-            De1ShotFrameClass frame1 = new De1ShotFrameClass();
-            frame1.FrameToWrite = 0;
-            frame1.Flag = CtrlF | DoCompare | DC_GT | IgnoreLimit;
-            frame1.SetVal = preinfusion_flow_rate;
-            frame1.Temp = espresso_temperature + ProfileDeltaTValue;
-            frame1.FrameLen = preinfusion_time;
-            frame1.MaxVol = 0.0;
-            frame1.TriggerVal = preinfusion_stop_pressure;
-            shot_frames.Add(frame1);
+            if (preinfusion_time != 0.0)
+            {
+                De1ShotFrameClass frame1 = new De1ShotFrameClass();
+                frame1.FrameToWrite = (byte)shot_frames.Count;
+                frame1.Flag = CtrlF | DoCompare | DC_GT | IgnoreLimit;
+                frame1.SetVal = preinfusion_flow_rate;
+                frame1.Temp = espresso_temperature + ProfileDeltaTValue;
+                frame1.FrameLen = preinfusion_time;
+                frame1.MaxVol = 0.0;
+                frame1.TriggerVal = preinfusion_stop_pressure;
+                shot_frames.Add(frame1);
+            }
 
-            // pressure rise
-            De1ShotFrameClass frame2 = new De1ShotFrameClass();
-            frame2.FrameToWrite = 1;
-            frame2.Flag = DoCompare | DC_GT | IgnoreLimit;
-            frame2.SetVal = preinfusion_stop_pressure;
-            frame2.Temp = espresso_temperature + ProfileDeltaTValue;
-            frame2.MaxVol = 0.0;
-            frame2.TriggerVal = preinfusion_stop_pressure;
-
-            if (preinfusion_guarantee == 1 && preinfusion_time > 0)
-                frame2.FrameLen = flow_rise_timeout;
-            else
-                frame2.FrameLen = 0; // a length of zero means the DE1+ will skip this frame
-
-            shot_frames.Add(frame2);
+            // pressure rise - skip as there is no preinfusion_guarantee, which has been retired
 
             // hold
             De1ShotFrameClass frame3 = new De1ShotFrameClass();
 
-            frame3.FrameToWrite = 2;
+            frame3.FrameToWrite = (byte)shot_frames.Count;
             frame3.Flag = CtrlF | IgnoreLimit;
             frame3.SetVal = flow_profile_hold;
             frame3.Temp = espresso_temperature + ProfileDeltaTValue;
@@ -1959,7 +1945,7 @@ namespace De1Win10
 
             // decline
             De1ShotFrameClass frame4 = new De1ShotFrameClass();
-            frame4.FrameToWrite = 3;
+            frame4.FrameToWrite = (byte)shot_frames.Count;
             frame4.Flag = CtrlF | IgnoreLimit | Interpolate;
             frame4.SetVal = flow_profile_decline;
             frame4.Temp = espresso_temperature + ProfileDeltaTValue;
@@ -1967,6 +1953,10 @@ namespace De1Win10
             frame4.MaxVol = 0.0;
             frame4.TriggerVal = 0;
             shot_frames.Add(frame4);
+
+            // header
+            shot_header.NumberOfFrames = (byte)shot_frames.Count;
+            shot_header.NumberOfPreinfuseFrames = 1;
 
             // update the byte array inside shot header and frame, so we are ready to write it to DE
             EncodeHeaderAndFrames(shot_header, shot_frames);
@@ -2143,6 +2133,136 @@ namespace De1Win10
             return true;
         }
 
+        public static double Dynamic2Double(dynamic d_obj)
+        {
+            dynamic d = d_obj.Value;
+
+            var type_string = d.GetType().ToString();
+            if (type_string == "System.Double"
+               || type_string == "System.Int64"
+               )
+                return (double)d;
+            else if (type_string == "System.String")
+                return Convert.ToDouble(d);
+            else
+                return double.MinValue;
+        }
+        public static string Dynamic2String(dynamic d_obj)
+        {
+            dynamic d = d_obj.Value;
+
+            var type_string = d.GetType().ToString();
+            if (type_string == "System.String")
+                return d;
+            else
+                return "";
+        }
+
+        private bool ShotJsonParserAdvanced(dynamic json_obj, De1ShotHeaderClass shot_header, List<De1ShotFrameClass> shot_frames)
+        {
+            if(!json_obj.ContainsKey("version")) return false;
+            if (Dynamic2Double(json_obj.version) != 2.0) return false;
+
+            if (!json_obj.ContainsKey("steps")) return false;
+            foreach (var frame_obj in json_obj.steps)
+            {
+                if (!frame_obj.ContainsKey("name")) return false;
+
+                De1ShotFrameClass frame = new De1ShotFrameClass();
+                var features = IgnoreLimit;
+
+                // flow control
+                if (!frame_obj.ContainsKey("pump")) return false;
+                var pump = Dynamic2String(frame_obj.pump); if (pump == "") return false;
+                if (pump == "flow")
+                {
+                    features |= CtrlF;
+                    if (!frame_obj.ContainsKey("flow")) return false;
+                    var flow = Dynamic2Double(frame_obj.flow); if (flow == double.MinValue) return false;
+                    frame.SetVal = flow;
+                }
+                else
+                {
+                    if(!frame_obj.ContainsKey("pressure")) return false;
+                    var pressure = Dynamic2Double(frame_obj.pressure); if (pressure == double.MinValue) return false;
+                    frame.SetVal = pressure;
+                }
+
+                // use boiler water temperature as the goal
+                if (!frame_obj.ContainsKey("sensor")) return false;
+                var sensor = Dynamic2String(frame_obj.sensor); if (sensor == "") return false;
+                if (sensor == "water")
+                    features |= TMixTemp;
+
+                if (!frame_obj.ContainsKey("transition")) return false;
+                var transition = Dynamic2String(frame_obj.transition); if (transition == "") return false;
+
+                if (transition == "smooth")
+                    features |= Interpolate;
+
+                // "move on if...."
+                if (frame_obj.ContainsKey("exit"))
+                {
+                    var exit_obj = frame_obj.exit;
+
+                    if (!exit_obj.ContainsKey("type")) return false;
+                    if (!exit_obj.ContainsKey("condition")) return false;
+                    if (!exit_obj.ContainsKey("value")) return false;
+
+                    var exit_type = Dynamic2String(exit_obj.type);
+                    var exit_condition = Dynamic2String(exit_obj.condition);
+                    var exit_value = Dynamic2Double(exit_obj.value);
+
+                    if (exit_type == "pressure" && exit_condition == "under")
+                    {
+                        features |= DoCompare;
+                        frame.TriggerVal = exit_value;
+                    }
+                    else if (exit_type == "pressure" && exit_condition == "over")
+                    {
+                        features |= DoCompare | DC_GT;
+                        frame.TriggerVal = exit_value;
+                    }
+                    else if (exit_type == "flow" && exit_condition == "under")
+                    {
+                        features |= DoCompare | DC_CompF;
+                        frame.TriggerVal = exit_value;
+                    }
+                    else if (exit_type == "flow" && exit_condition == "over")
+                    {
+                        features |= DoCompare | DC_GT | DC_CompF;
+                        frame.TriggerVal = exit_value;
+                    }
+                    else
+                        return false;
+                }
+                else
+                    frame.TriggerVal = 0; // no exit condition was checked
+
+                if (!frame_obj.ContainsKey("temperature")) return false;
+                if (!frame_obj.ContainsKey("seconds")) return false;
+
+                var temperature = Dynamic2Double(frame_obj.temperature); if (temperature == double.MinValue) return false;
+                var seconds = Dynamic2Double(frame_obj.seconds); if (seconds == double.MinValue) return false;
+
+                frame.FrameToWrite = (byte)shot_frames.Count;
+                frame.Flag = features;
+                frame.Temp = temperature + ProfileDeltaTValue;
+                frame.FrameLen = seconds;
+                frame.MaxVol = 0.0;
+                shot_frames.Add(frame);
+            }
+
+            // header
+            shot_header.NumberOfFrames = (byte)shot_frames.Count;
+            shot_header.NumberOfPreinfuseFrames = 1;
+
+            // update the byte array inside shot header and frame, so we are ready to write it to DE
+            EncodeHeaderAndFrames(shot_header, shot_frames);
+
+            return true;
+        }
+
         private bool UpdateStopAtVolumeFromGui()
         {
             try
@@ -2227,6 +2347,61 @@ namespace De1Win10
             if (!ShotBinReader(bin_lines, header_ref, frames_ref))
             {
                 UpdateStatus(name + " ShotBinReader failed", NotifyType.ErrorMessage);
+                return false;
+            }
+
+            De1ShotHeaderClass header_my = new De1ShotHeaderClass();
+            List<De1ShotFrameClass> frames_my = new List<De1ShotFrameClass>();
+            if (!ShotTclParser(tcl_lines, header_my, frames_my))
+            {
+                UpdateStatus(name + " ShotTclParser failed", NotifyType.ErrorMessage);
+                return false;
+            }
+
+
+            if (header_ref.CompareBytes(header_my) == false)
+            {
+                UpdateStatus(name + " Headers do not match ", NotifyType.ErrorMessage);
+                return false;
+            }
+
+            if (frames_ref.Count != frames_my.Count)
+            {
+                UpdateStatus(name + " Different num frames", NotifyType.ErrorMessage);
+                return false;
+            }
+
+            for (int i = 0; i < frames_ref.Count; i++)
+            {
+                if (frames_ref[i].CompareBytes(frames_my[i]) == false)
+                {
+                    UpdateStatus(name + " Frame do not match #" + i.ToString(), NotifyType.ErrorMessage);
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private async Task<bool> TestProfileEncodingV2(string name)
+        {
+            var json_file = await ProfilesFolderV2.TryGetItemAsync(name + ".json");
+            if (json_file == null)
+            {
+                UpdateStatus(name + " json does not exist", NotifyType.ErrorMessage);
+                return false;
+            }
+            var json_string = await FileIO.ReadTextAsync((IStorageFile)json_file);
+
+
+            var tcl_file = await ProfilesFolder.GetFileAsync(name + ".tcl");
+            var tcl_lines = await FileIO.ReadLinesAsync(tcl_file);
+
+            De1ShotHeaderClass header_ref = new De1ShotHeaderClass();
+            List<De1ShotFrameClass> frames_ref = new List<De1ShotFrameClass>();
+            if (!ShotJsonParser(json_string, header_ref, frames_ref))
+            {
+                UpdateStatus(name + " ShotJsonParser failed", NotifyType.ErrorMessage);
                 return false;
             }
 

@@ -155,8 +155,8 @@ namespace De1Win10
                 return;
             }
 
-
-            /*// AAZ test all profiles
+            // AAZ test all profiles
+            /*
             var files = await ProfilesFolder.GetFilesAsync();
             List<string> to_test = new List<string>();
             foreach(var f in files)
@@ -165,8 +165,10 @@ namespace De1Win10
                     to_test.Add(f.Name.Replace(".tcl", ""));
             }
 
+            // if (!(await TestProfileEncodingV2("_Flow1.5 T90"))) return;
+
             foreach (var test in to_test)
-                if (!(await TestProfileEncoding(test))) return;
+                if (!(await TestProfileEncodingV2(test))) return;                
 
             UpdateStatus("All good", NotifyType.StatusMessage); */
         }
@@ -1154,7 +1156,7 @@ namespace De1Win10
         }
         private async Task<string> LoadFolders()
         {
-            if (ProfilesFolder == null)
+            if (ProfilesFolder == null || ProfilesFolderV2 == null)
             {
                 var access_list = Windows.Storage.AccessCache.StorageApplicationPermissions.FutureAccessList;
 
@@ -1195,6 +1197,11 @@ namespace De1Win10
                     Windows.Storage.AccessCache.StorageApplicationPermissions.FutureAccessList.Remove(De1FolderToken);
                     return "Error: seems the selected folder is not correct, DE1 source folder should have \"profiles\" subfolder";
                 }
+                if (await de1_folder.TryGetItemAsync("profiles_v2") == null)
+                {
+                    Windows.Storage.AccessCache.StorageApplicationPermissions.FutureAccessList.Remove(De1FolderToken);
+                    return "Error: seems the selected folder is not correct or you have an old version of DE1 app, DE1 source folder should have \"profiles_v2\" subfolder";
+                }
                 if (await de1_folder.TryGetItemAsync("history") == null)
                 {
                     Windows.Storage.AccessCache.StorageApplicationPermissions.FutureAccessList.Remove(De1FolderToken);
@@ -1208,7 +1215,7 @@ namespace De1Win10
                 }
 
                 ProfilesFolder = await de1_folder.GetFolderAsync("profiles");
-
+                ProfilesFolderV2 = await de1_folder.GetFolderAsync("profiles_v2");
 
                 var ref_file = await HistoryFolder.GetFileAsync("0.shot");
                 ReferenceShotFile = await FileIO.ReadLinesAsync(ref_file);
