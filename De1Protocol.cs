@@ -1541,6 +1541,39 @@ namespace De1Win10
             }
         }
 
+        public class De1ShotExtFrameClass  // extended frames
+        {
+            public byte   FrameToWrite = 0;
+            public double LimiterValue = 0.0;     
+            public double LimiterRange = 0.0;
+            public byte[] bytes;  // to compare bytes
+
+            public De1ShotExtFrameClass() { }
+
+            public bool CompareBytes(De1ShotExtFrameClass sh)
+            {
+                if (sh.bytes.Length != bytes.Length)
+                    return false;
+                for (int i = 0; i < sh.bytes.Length; i++)
+                {
+                    if (sh.bytes[i] != bytes[i])
+                        return false;
+                }
+
+                return true;
+            }
+
+            public override string ToString()
+            {
+                StringBuilder sb = new StringBuilder();
+                foreach (var b in bytes)
+                    sb.Append(b.ToString("X") + "-");
+
+                return FrameToWrite.ToString() + "    " + LimiterValue.ToString() + "    " +
+                LimiterRange.ToString() + "   " + sb.ToString();
+            }
+        }
+
         private bool DecodeDe1ShotHeader(byte[] data, De1ShotHeaderClass shot_header, bool check_encoding = false)
         {
             if (data == null)
@@ -1726,29 +1759,34 @@ namespace De1Win10
 
             return data;
         }
+        private byte[] EncodeDe1ExtentionFrame(De1ShotExtFrameClass exshot)
+        {
+            return EncodeDe1ExtentionFrame(exshot.FrameToWrite, exshot.LimiterValue, exshot.LimiterRange);
+        }
 
-        private bool ShotTclParser(IList<string> lines, De1ShotHeaderClass shot_header, List<De1ShotFrameClass> shot_frames)
+        private bool ShotTclParser(IList<string> lines, De1ShotHeaderClass shot_header, List<De1ShotFrameClass> shot_frames,
+                                   List<De1ShotExtFrameClass> shot_exframes)
         {
             foreach (var line in lines)
             {
                 if (line == ("settings_profile_type settings_2a"))
-                    return ShotTclParserPressure(lines, shot_header, shot_frames);
+                    return ShotTclParserPressure(lines, shot_header, shot_frames, shot_exframes);
                 else if (line == ("settings_profile_type settings_2b"))
-                    return ShotTclParserFlow(lines, shot_header, shot_frames);
+                    return ShotTclParserFlow(lines, shot_header, shot_frames, shot_exframes);
                 else if (line == ("settings_profile_type settings_2c") || line == ("settings_profile_type settings_2c2"))
-                    return ShotTclParserAdvanced(lines, shot_header, shot_frames);
+                    return ShotTclParserAdvanced(lines, shot_header, shot_frames, shot_exframes);
             }
 
             return false;
         }
         
-        private bool ShotJsonParser(string json_string, De1ShotHeaderClass shot_header, List<De1ShotFrameClass> shot_frames)
+        private bool ShotJsonParser(string json_string, De1ShotHeaderClass shot_header, List<De1ShotFrameClass> shot_frames,
+                                   List<De1ShotExtFrameClass> shot_exframes)
         {
             dynamic json_obj = Newtonsoft.Json.JsonConvert.DeserializeObject(json_string);
 
-            return ShotJsonParserAdvanced(json_obj, shot_header, shot_frames);
+            return ShotJsonParserAdvanced(json_obj, shot_header, shot_frames, shot_exframes);
         }
-
 
         private static void TryToGetDoubleFromTclLine(string line, string key, ref double var)
         {
@@ -1769,7 +1807,8 @@ namespace De1Win10
         const byte Interpolate = 0x20; // Hard jump to target value, or ramp?
         const byte IgnoreLimit = 0x40; // Ignore minimum pressure and max flow settings
 
-        private bool ShotTclParserPressure(IList<string> lines, De1ShotHeaderClass shot_header, List<De1ShotFrameClass> shot_frames)
+        private bool ShotTclParserPressure(IList<string> lines, De1ShotHeaderClass shot_header, List<De1ShotFrameClass> shot_frames,
+                                           List<De1ShotExtFrameClass> shot_exframes)
         {
             // preinfusion vars
             double preinfusion_flow_rate = double.MinValue;
@@ -1782,9 +1821,12 @@ namespace De1Win10
             double espresso_hold_time = double.MinValue;
 
             // decline vars
-
             double pressure_end = double.MinValue;
             double espresso_decline_time = double.MinValue;
+
+            // ext frame limiter vars
+            double maximum_flow = double.MinValue;
+            double maximum_flow_range_default = double.MinValue;
 
             try
             {
@@ -1800,6 +1842,9 @@ namespace De1Win10
 
                     TryToGetDoubleFromTclLine(line, "pressure_end", ref pressure_end);
                     TryToGetDoubleFromTclLine(line, "espresso_decline_time", ref espresso_decline_time);
+
+                    TryToGetDoubleFromTclLine(line, "maximum_flow", ref maximum_flow);
+                    TryToGetDoubleFromTclLine(line, "maximum_flow_range_default", ref maximum_flow_range_default);
                 }
             }
             catch (Exception)
@@ -1817,11 +1862,12 @@ namespace De1Win10
 
             // build the shot frames
 
-            // preinfusion
+            // preinfusion -----------------------------
+            byte frame_counter = (byte)shot_frames.Count;
             if (preinfusion_time != 0.0)
             {
                 De1ShotFrameClass frame1 = new De1ShotFrameClass();
-                frame1.FrameToWrite = (byte)shot_frames.Count;
+                frame1.FrameToWrite = frame_counter;
                 frame1.Flag = CtrlF | DoCompare | DC_GT | IgnoreLimit;
                 frame1.SetVal = preinfusion_flow_rate;
                 frame1.Temp = espresso_temperature + ProfileDeltaTValue;
@@ -1831,9 +1877,10 @@ namespace De1Win10
                 shot_frames.Add(frame1);
             }
 
-            // hold
+            // hold -----------------------------------
+            frame_counter = (byte)shot_frames.Count;
             De1ShotFrameClass frame2 = new De1ShotFrameClass();
-            frame2.FrameToWrite = (byte)shot_frames.Count;
+            frame2.FrameToWrite = frame_counter;
             frame2.Flag = IgnoreLimit;
             frame2.SetVal = espresso_pressure;
             frame2.Temp = espresso_temperature + ProfileDeltaTValue;
@@ -1842,19 +1889,37 @@ namespace De1Win10
             frame2.TriggerVal = 0;
             shot_frames.Add(frame2);
 
-            // decline
+            if (maximum_flow != double.MinValue && maximum_flow != 0.0 && maximum_flow_range_default != double.MinValue)
+            {
+                De1ShotExtFrameClass ex_frame = new De1ShotExtFrameClass();
+                ex_frame.FrameToWrite = (byte)(frame_counter + 32);
+                ex_frame.LimiterValue = maximum_flow;
+                ex_frame.LimiterRange = maximum_flow_range_default;
+                shot_exframes.Add(ex_frame);
+            }
+
+            // decline ------------------------------------
+            frame_counter = (byte)shot_frames.Count;
             if (espresso_decline_time != 0.0)
             {
                 De1ShotFrameClass frame3 = new De1ShotFrameClass();
-                frame3.FrameToWrite = (byte)shot_frames.Count;
+                frame3.FrameToWrite = frame_counter;
                 frame3.Flag = IgnoreLimit | Interpolate;
                 frame3.SetVal = pressure_end;
                 frame3.Temp = espresso_temperature + ProfileDeltaTValue;
                 frame3.FrameLen = espresso_decline_time;
                 frame3.MaxVol = 0.0;
                 frame3.TriggerVal = 0;
-
                 shot_frames.Add(frame3);
+
+                if (maximum_flow != double.MinValue && maximum_flow != 0.0 && maximum_flow_range_default != double.MinValue)
+                {
+                    De1ShotExtFrameClass ex_frame = new De1ShotExtFrameClass();
+                    ex_frame.FrameToWrite = (byte)(frame_counter + 32);
+                    ex_frame.LimiterValue = maximum_flow;
+                    ex_frame.LimiterRange = maximum_flow_range_default;
+                    shot_exframes.Add(ex_frame);
+                }
             }
 
             // header
@@ -1862,11 +1927,12 @@ namespace De1Win10
             shot_header.NumberOfPreinfuseFrames = 1;
 
             // update the byte array inside shot header and frame, so we are ready to write it to DE
-            EncodeHeaderAndFrames(shot_header, shot_frames);
+            EncodeHeaderAndFrames(shot_header, shot_frames, shot_exframes);
 
             return true;
         }
-        private bool ShotTclParserFlow(IList<string> lines, De1ShotHeaderClass shot_header, List<De1ShotFrameClass> shot_frames)
+        private bool ShotTclParserFlow(IList<string> lines, De1ShotHeaderClass shot_header, List<De1ShotFrameClass> shot_frames,
+                                       List<De1ShotExtFrameClass> shot_exframes)
         {
             // preinfusion vars
             double preinfusion_flow_rate = double.MinValue;
@@ -1881,6 +1947,10 @@ namespace De1Win10
             // decline vars
             double flow_profile_decline = double.MinValue;
             double espresso_decline_time = double.MinValue;
+
+            // ext frame limiter vars
+            double maximum_pressure = double.MinValue;
+            double maximum_pressure_range_default = double.MinValue;
 
             try
             {
@@ -1897,6 +1967,9 @@ namespace De1Win10
 
                     TryToGetDoubleFromTclLine(line, "flow_profile_decline", ref flow_profile_decline);
                     TryToGetDoubleFromTclLine(line, "espresso_decline_time", ref espresso_decline_time);
+
+                    TryToGetDoubleFromTclLine(line, "maximum_pressure", ref maximum_pressure);
+                    TryToGetDoubleFromTclLine(line, "maximum_pressure_range_default", ref maximum_pressure_range_default);
                 }
             }
             catch (Exception)
@@ -1914,11 +1987,12 @@ namespace De1Win10
 
             // build the shot frames
 
-            // preinfusion
+            // preinfusion  ------------------------------------
+            byte frame_counter = (byte)shot_frames.Count;
             if (preinfusion_time != 0.0)
             {
                 De1ShotFrameClass frame1 = new De1ShotFrameClass();
-                frame1.FrameToWrite = (byte)shot_frames.Count;
+                frame1.FrameToWrite = frame_counter;
                 frame1.Flag = CtrlF | DoCompare | DC_GT | IgnoreLimit;
                 frame1.SetVal = preinfusion_flow_rate;
                 frame1.Temp = espresso_temperature + ProfileDeltaTValue;
@@ -1930,10 +2004,10 @@ namespace De1Win10
 
             // pressure rise - skip as there is no preinfusion_guarantee, which has been retired
 
-            // hold
+            // hold  ------------------------------------
+            frame_counter = (byte)shot_frames.Count;
             De1ShotFrameClass frame3 = new De1ShotFrameClass();
-
-            frame3.FrameToWrite = (byte)shot_frames.Count;
+            frame3.FrameToWrite = frame_counter;
             frame3.Flag = CtrlF | IgnoreLimit;
             frame3.SetVal = flow_profile_hold;
             frame3.Temp = espresso_temperature + ProfileDeltaTValue;
@@ -1942,10 +2016,19 @@ namespace De1Win10
             frame3.TriggerVal = 0;
             shot_frames.Add(frame3);
 
+            if (maximum_pressure != double.MinValue && maximum_pressure != 0.0 && maximum_pressure_range_default != double.MinValue)
+            {
+                De1ShotExtFrameClass ex_frame = new De1ShotExtFrameClass();
+                ex_frame.FrameToWrite = (byte)(frame_counter + 32);
+                ex_frame.LimiterValue = maximum_pressure;
+                ex_frame.LimiterRange = maximum_pressure_range_default;
+                shot_exframes.Add(ex_frame);
+            }
 
-            // decline
+            // decline  ------------------------------------
+            frame_counter = (byte)shot_frames.Count;
             De1ShotFrameClass frame4 = new De1ShotFrameClass();
-            frame4.FrameToWrite = (byte)shot_frames.Count;
+            frame4.FrameToWrite = frame_counter;
             frame4.Flag = CtrlF | IgnoreLimit | Interpolate;
             frame4.SetVal = flow_profile_decline;
             frame4.Temp = espresso_temperature + ProfileDeltaTValue;
@@ -1954,12 +2037,21 @@ namespace De1Win10
             frame4.TriggerVal = 0;
             shot_frames.Add(frame4);
 
+            if (maximum_pressure != double.MinValue && maximum_pressure != 0.0 && maximum_pressure_range_default != double.MinValue)
+            {
+                De1ShotExtFrameClass ex_frame = new De1ShotExtFrameClass();
+                ex_frame.FrameToWrite = (byte)(frame_counter + 32);
+                ex_frame.LimiterValue = maximum_pressure;
+                ex_frame.LimiterRange = maximum_pressure_range_default;
+                shot_exframes.Add(ex_frame);
+            }
+
             // header
             shot_header.NumberOfFrames = (byte)shot_frames.Count;
             shot_header.NumberOfPreinfuseFrames = 1;
 
             // update the byte array inside shot header and frame, so we are ready to write it to DE
-            EncodeHeaderAndFrames(shot_header, shot_frames);
+            EncodeHeaderAndFrames(shot_header, shot_frames, shot_exframes);
 
             return true;
         }
@@ -2010,7 +2102,8 @@ namespace De1Win10
             return sb.ToString();
         }
 
-        private bool ShotTclParserAdvanced(IList<string> lines, De1ShotHeaderClass shot_header, List<De1ShotFrameClass> shot_frames)
+        private bool ShotTclParserAdvanced(IList<string> lines, De1ShotHeaderClass shot_header, List<De1ShotFrameClass> shot_frames,
+                                           List<De1ShotExtFrameClass> shot_exframes)
         {
             string adv_shot_line_orig = "";
             foreach (var line in lines)
@@ -2115,12 +2208,26 @@ namespace De1Win10
                 var temperature = TryGetDoubleFromDict("temperature", dict); if (temperature == double.MinValue) return false;
                 var seconds = TryGetDoubleFromDict("seconds", dict); if (seconds == double.MinValue) return false;
 
-                frame.FrameToWrite = (byte)shot_frames.Count;
+                byte frame_counter = (byte)shot_frames.Count;
+
+                frame.FrameToWrite = frame_counter;
                 frame.Flag = features;
                 frame.Temp = temperature + ProfileDeltaTValue;
                 frame.FrameLen = seconds;
                 frame.MaxVol = 0.0;
                 shot_frames.Add(frame);
+
+                // ext frames
+                var max_flow_or_pressure = TryGetDoubleFromDict("max_flow_or_pressure", dict);
+                var max_flow_or_pressure_range = TryGetDoubleFromDict("max_flow_or_pressure_range", dict);
+                if (max_flow_or_pressure != double.MinValue && max_flow_or_pressure_range != double.MinValue)
+                {
+                    De1ShotExtFrameClass ex_frame = new De1ShotExtFrameClass();
+                    ex_frame.FrameToWrite = (byte)(frame_counter + 32);
+                    ex_frame.LimiterValue = max_flow_or_pressure;
+                    ex_frame.LimiterRange = max_flow_or_pressure_range;
+                    shot_exframes.Add(ex_frame);
+                }
             }
 
             // header
@@ -2128,7 +2235,7 @@ namespace De1Win10
             shot_header.NumberOfPreinfuseFrames = 1;
 
             // update the byte array inside shot header and frame, so we are ready to write it to DE
-            EncodeHeaderAndFrames(shot_header, shot_frames);
+            EncodeHeaderAndFrames(shot_header, shot_frames, shot_exframes);
 
             return true;
         }
@@ -2158,7 +2265,8 @@ namespace De1Win10
                 return "";
         }
 
-        private bool ShotJsonParserAdvanced(dynamic json_obj, De1ShotHeaderClass shot_header, List<De1ShotFrameClass> shot_frames)
+        private bool ShotJsonParserAdvanced(dynamic json_obj, De1ShotHeaderClass shot_header, List<De1ShotFrameClass> shot_frames,
+                                            List<De1ShotExtFrameClass> shot_exframes)
         {
             if(!json_obj.ContainsKey("version")) return false;
             if (Dynamic2Double(json_obj.version) != 2.0) return false;
@@ -2239,18 +2347,44 @@ namespace De1Win10
                 else
                     frame.TriggerVal = 0; // no exit condition was checked
 
+                // "limiter...."
+                var limiter_value = double.MinValue;
+                var limiter_range = double.MinValue;
+
+                if (frame_obj.ContainsKey("limiter"))
+                {
+                    var limiter_obj = frame_obj.limiter;
+
+                    if (!limiter_obj.ContainsKey("value")) return false;
+                    if (!limiter_obj.ContainsKey("range")) return false;
+
+                    limiter_value = Dynamic2Double(limiter_obj.value);
+                    limiter_range = Dynamic2Double(limiter_obj.range);
+                }
+
                 if (!frame_obj.ContainsKey("temperature")) return false;
                 if (!frame_obj.ContainsKey("seconds")) return false;
 
                 var temperature = Dynamic2Double(frame_obj.temperature); if (temperature == double.MinValue) return false;
                 var seconds = Dynamic2Double(frame_obj.seconds); if (seconds == double.MinValue) return false;
 
-                frame.FrameToWrite = (byte)shot_frames.Count;
+                byte frame_counter = (byte)shot_frames.Count;
+
+                frame.FrameToWrite = frame_counter;
                 frame.Flag = features;
                 frame.Temp = temperature + ProfileDeltaTValue;
                 frame.FrameLen = seconds;
                 frame.MaxVol = 0.0;
                 shot_frames.Add(frame);
+
+                if (limiter_value != double.MinValue && limiter_range != double.MinValue)
+                {
+                    De1ShotExtFrameClass ex_frame = new De1ShotExtFrameClass();
+                    ex_frame.FrameToWrite = (byte)(frame_counter + 32);
+                    ex_frame.LimiterValue = limiter_value;
+                    ex_frame.LimiterRange = limiter_range;
+                    shot_exframes.Add(ex_frame);
+                }
             }
 
             // header
@@ -2258,7 +2392,7 @@ namespace De1Win10
             shot_header.NumberOfPreinfuseFrames = 1;
 
             // update the byte array inside shot header and frame, so we are ready to write it to DE
-            EncodeHeaderAndFrames(shot_header, shot_frames);
+            EncodeHeaderAndFrames(shot_header, shot_frames, shot_exframes);
 
             return true;
         }
@@ -2278,7 +2412,8 @@ namespace De1Win10
             return true;
         }
 
-        private void EncodeHeaderAndFrames(De1ShotHeaderClass shot_header, List<De1ShotFrameClass> shot_frames)
+        private void EncodeHeaderAndFrames(De1ShotHeaderClass shot_header, List<De1ShotFrameClass> shot_frames,
+                                            List<De1ShotExtFrameClass> shot_exframes)
         {
             if (!UpdateStopAtVolumeFromGui())
                 return;
@@ -2286,6 +2421,8 @@ namespace De1Win10
             shot_header.bytes = EncodeDe1ShotHeader(shot_header);
             foreach (var frame in shot_frames)
                 frame.bytes = EncodeDe1ShotFrame(frame);
+            foreach (var exframe in shot_exframes)
+                exframe.bytes = EncodeDe1ExtentionFrame(exframe);
         }
 
         public static byte[] StringToByteArray(string hex)
@@ -2352,7 +2489,8 @@ namespace De1Win10
 
             De1ShotHeaderClass header_my = new De1ShotHeaderClass();
             List<De1ShotFrameClass> frames_my = new List<De1ShotFrameClass>();
-            if (!ShotTclParser(tcl_lines, header_my, frames_my))
+            List<De1ShotExtFrameClass> ex_frames_my = new List<De1ShotExtFrameClass>();
+            if (!ShotTclParser(tcl_lines, header_my, frames_my, ex_frames_my))
             {
                 UpdateStatus(name + " ShotTclParser failed", NotifyType.ErrorMessage);
                 return false;
@@ -2399,7 +2537,8 @@ namespace De1Win10
 
             De1ShotHeaderClass header_ref = new De1ShotHeaderClass();
             List<De1ShotFrameClass> frames_ref = new List<De1ShotFrameClass>();
-            if (!ShotJsonParser(json_string, header_ref, frames_ref))
+            List<De1ShotExtFrameClass> ex_frames_ref = new List<De1ShotExtFrameClass>();
+            if (!ShotJsonParser(json_string, header_ref, frames_ref, ex_frames_ref))
             {
                 UpdateStatus(name + " ShotJsonParser failed", NotifyType.ErrorMessage);
                 return false;
@@ -2407,7 +2546,8 @@ namespace De1Win10
 
             De1ShotHeaderClass header_my = new De1ShotHeaderClass();
             List<De1ShotFrameClass> frames_my = new List<De1ShotFrameClass>();
-            if (!ShotTclParser(tcl_lines, header_my, frames_my))
+            List<De1ShotExtFrameClass> ex_frames_my = new List<De1ShotExtFrameClass>();
+            if (!ShotTclParser(tcl_lines, header_my, frames_my, ex_frames_my))
             {
                 UpdateStatus(name + " ShotTclParser failed", NotifyType.ErrorMessage);
                 return false;
@@ -2431,6 +2571,21 @@ namespace De1Win10
                 if (frames_ref[i].CompareBytes(frames_my[i]) == false)
                 {
                     UpdateStatus(name + " Frame do not match #" + i.ToString(), NotifyType.ErrorMessage);
+                    return false;
+                }
+            }
+
+            if (ex_frames_ref.Count != ex_frames_my.Count)
+            {
+                UpdateStatus(name + " Different num ex_frames", NotifyType.ErrorMessage);
+                return false;
+            }
+
+            for (int i = 0; i < ex_frames_ref.Count; i++)
+            {
+                if (ex_frames_ref[i].CompareBytes(ex_frames_my[i]) == false)
+                {
+                    UpdateStatus(name + " ExFrame do not match #" + i.ToString(), NotifyType.ErrorMessage);
                     return false;
                 }
             }

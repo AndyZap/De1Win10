@@ -165,12 +165,15 @@ namespace De1Win10
                     to_test.Add(f.Name.Replace(".tcl", ""));
             }
 
-            // if (!(await TestProfileEncodingV2("_Flow1.5 T90"))) return;
+            //if (!(await TestProfileEncodingV2("rao_allonge"))) return;
 
             foreach (var test in to_test)
                 if (!(await TestProfileEncodingV2(test))) return;                
 
-            UpdateStatus("All good", NotifyType.StatusMessage); */
+            UpdateStatus("All good", NotifyType.StatusMessage);
+
+            //if (!(await TestProfileEncodingV2("rao_allonge"))) return;
+            //UpdateStatus("All good", NotifyType.StatusMessage); */
         }
 
         private void ScenarioControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -1349,7 +1352,8 @@ namespace De1Win10
 
             De1ShotHeaderClass header = new De1ShotHeaderClass();
             List<De1ShotFrameClass> frames = new List<De1ShotFrameClass>();
-            if (!ShotTclParser(tcl_lines, header, frames))
+            List <De1ShotExtFrameClass> ex_frames = new List<De1ShotExtFrameClass>();
+            if (!ShotTclParser(tcl_lines, header, frames, ex_frames))
                 return "Failed to encode profile " + profile_name + ", try to load another profile";
 
             var res_header = await writeToDE(header.bytes, De1ChrEnum.ShotHeader);
