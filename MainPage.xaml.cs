@@ -165,15 +165,18 @@ namespace De1Win10
                     to_test.Add(f.Name.Replace(".tcl", ""));
             }
 
-            //if (!(await TestProfileEncodingV2("rao_allonge"))) return;
+            if (!(await TestProfileEncodingV2("_EB_FFR_T90_P6"))) return;
 
             foreach (var test in to_test)
                 if (!(await TestProfileEncodingV2(test))) return;                
 
-            UpdateStatus("All good", NotifyType.StatusMessage);
+            UpdateStatus("All good", NotifyType.StatusMessage); */
 
-            //if (!(await TestProfileEncodingV2("rao_allonge"))) return;
-            //UpdateStatus("All good", NotifyType.StatusMessage); */
+             // only these profiles are tested with my format:
+             // _EB_FFR_T90_P6
+             // _EB_P7_F3_T90
+             // _EB_P7_F4_T90
+             // _Strega_94_P3F3
         }
 
         private void ScenarioControl_SelectionChanged(object sender, SelectionChangedEventArgs e)

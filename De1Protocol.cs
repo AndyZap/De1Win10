@@ -2220,7 +2220,7 @@ namespace De1Win10
                 // ext frames
                 var max_flow_or_pressure = TryGetDoubleFromDict("max_flow_or_pressure", dict);
                 var max_flow_or_pressure_range = TryGetDoubleFromDict("max_flow_or_pressure_range", dict);
-                if (max_flow_or_pressure != double.MinValue && max_flow_or_pressure_range != double.MinValue)
+                if (max_flow_or_pressure != 0.0 && max_flow_or_pressure != double.MinValue && max_flow_or_pressure_range != double.MinValue)
                 {
                     De1ShotExtFrameClass ex_frame = new De1ShotExtFrameClass();
                     ex_frame.FrameToWrite = (byte)(frame_counter + 32);
@@ -2377,7 +2377,7 @@ namespace De1Win10
                 frame.MaxVol = 0.0;
                 shot_frames.Add(frame);
 
-                if (limiter_value != double.MinValue && limiter_range != double.MinValue)
+                if (limiter_value != 0.0 && limiter_value != double.MinValue && limiter_range != double.MinValue)
                 {
                     De1ShotExtFrameClass ex_frame = new De1ShotExtFrameClass();
                     ex_frame.FrameToWrite = (byte)(frame_counter + 32);
@@ -2535,58 +2535,115 @@ namespace De1Win10
             var tcl_file = await ProfilesFolder.GetFileAsync(name + ".tcl");
             var tcl_lines = await FileIO.ReadLinesAsync(tcl_file);
 
-            De1ShotHeaderClass header_ref = new De1ShotHeaderClass();
-            List<De1ShotFrameClass> frames_ref = new List<De1ShotFrameClass>();
-            List<De1ShotExtFrameClass> ex_frames_ref = new List<De1ShotExtFrameClass>();
-            if (!ShotJsonParser(json_string, header_ref, frames_ref, ex_frames_ref))
+            De1ShotHeaderClass header_json = new De1ShotHeaderClass();
+            List<De1ShotFrameClass> frames_json = new List<De1ShotFrameClass>();
+            List<De1ShotExtFrameClass> ex_frames_json = new List<De1ShotExtFrameClass>();
+            if (!ShotJsonParser(json_string, header_json, frames_json, ex_frames_json))
             {
                 UpdateStatus(name + " ShotJsonParser failed", NotifyType.ErrorMessage);
                 return false;
             }
 
-            De1ShotHeaderClass header_my = new De1ShotHeaderClass();
-            List<De1ShotFrameClass> frames_my = new List<De1ShotFrameClass>();
-            List<De1ShotExtFrameClass> ex_frames_my = new List<De1ShotExtFrameClass>();
-            if (!ShotTclParser(tcl_lines, header_my, frames_my, ex_frames_my))
+            De1ShotHeaderClass header_tcl = new De1ShotHeaderClass();
+            List<De1ShotFrameClass> frames_tcl = new List<De1ShotFrameClass>();
+            List<De1ShotExtFrameClass> ex_frames_tcl = new List<De1ShotExtFrameClass>();
+            if (!ShotTclParser(tcl_lines, header_tcl, frames_tcl, ex_frames_tcl))
             {
                 UpdateStatus(name + " ShotTclParser failed", NotifyType.ErrorMessage);
                 return false;
             }
 
 
-            if (header_ref.CompareBytes(header_my) == false)
+            if (header_json.CompareBytes(header_tcl) == false)
             {
                 UpdateStatus(name + " Headers do not match ", NotifyType.ErrorMessage);
                 return false;
             }
 
-            if (frames_ref.Count != frames_my.Count)
+            if (frames_json.Count != frames_tcl.Count)
             {
                 UpdateStatus(name + " Different num frames", NotifyType.ErrorMessage);
                 return false;
             }
 
-            for (int i = 0; i < frames_ref.Count; i++)
+            for (int i = 0; i < frames_json.Count; i++)
             {
-                if (frames_ref[i].CompareBytes(frames_my[i]) == false)
+                if (frames_json[i].CompareBytes(frames_tcl[i]) == false)
                 {
                     UpdateStatus(name + " Frame do not match #" + i.ToString(), NotifyType.ErrorMessage);
                     return false;
                 }
             }
 
-            if (ex_frames_ref.Count != ex_frames_my.Count)
+            if (ex_frames_json.Count != ex_frames_tcl.Count)
             {
                 UpdateStatus(name + " Different num ex_frames", NotifyType.ErrorMessage);
                 return false;
             }
 
-            for (int i = 0; i < ex_frames_ref.Count; i++)
+            for (int i = 0; i < ex_frames_json.Count; i++)
             {
-                if (ex_frames_ref[i].CompareBytes(ex_frames_my[i]) == false)
+                if (ex_frames_json[i].CompareBytes(ex_frames_tcl[i]) == false)
                 {
                     UpdateStatus(name + " ExFrame do not match #" + i.ToString(), NotifyType.ErrorMessage);
                     return false;
+                }
+            }
+
+            // extension frames in my format, for my files only
+            if (name == "_EB_FFR_T90_P6" || name == "_EB_P7_F3_T90" || name == "_EB_P7_F4_T90" || name == "_Strega_94_P3F3")
+            {
+                List<De1ShotExtFrameClass> ex_frames_my = new List<De1ShotExtFrameClass>();
+                foreach (var line in tcl_lines)
+                {
+                    if (!line.StartsWith("frame_limits_"))
+                        continue;
+
+                    var words = line.Trim().Replace("frame_limits_", "").Split(' ');
+                    if (words.Length != 3)
+                    {
+                        UpdateStatus(name + "Error reading profile file with my format, line " + line, NotifyType.ErrorMessage);
+                        return false;
+                    }
+
+                    int frame_to_extend = 0;
+                    double limit_value = 0.0;
+                    double limit_range = 0.0;
+
+                    try
+                    {
+                        frame_to_extend = Convert.ToInt32(words[0]);
+                        limit_value = Convert.ToDouble(words[1]);
+                        limit_range = Convert.ToDouble(words[2]);
+                    }
+                    catch (Exception)
+                    {
+                        UpdateStatus(name + "Error reading profile file with my format, line " + line, NotifyType.ErrorMessage);
+                        return false;
+                    }
+
+                    De1ShotExtFrameClass ex_frame = new De1ShotExtFrameClass();
+                    ex_frame.FrameToWrite = (byte)(frame_to_extend + 32);
+                    ex_frame.LimiterValue = limit_value;
+                    ex_frame.LimiterRange = limit_range;
+                    ex_frame.bytes = EncodeDe1ExtentionFrame(frame_to_extend + 32, limit_value, limit_range);
+
+                    ex_frames_my.Add(ex_frame);
+                }
+
+                if (ex_frames_json.Count != ex_frames_my.Count)
+                {
+                    UpdateStatus(name + " Different num ex_frames (my)", NotifyType.ErrorMessage);
+                    return false;
+                }
+
+                for (int i = 0; i < ex_frames_json.Count; i++)
+                {
+                    if (ex_frames_json[i].CompareBytes(ex_frames_my[i]) == false)
+                    {
+                        UpdateStatus(name + " ExFrame my do not match #" + i.ToString(), NotifyType.ErrorMessage);
+                        return false;
+                    }
                 }
             }
 
