@@ -165,18 +165,13 @@ namespace De1Win10
                     to_test.Add(f.Name.Replace(".tcl", ""));
             }
 
-            if (!(await TestProfileEncodingV2("_EB_FFR_T90_P6"))) return;
+            if (!(await TestProfileEncodingV2("_Backflush_T90"))) return;
 
+            // NOTE: only a few profiles are tested with my own format, refer to TestProfileEncodingV2
             foreach (var test in to_test)
                 if (!(await TestProfileEncodingV2(test))) return;                
 
             UpdateStatus("All good", NotifyType.StatusMessage); */
-
-             // only these profiles are tested with my format:
-             // _EB_FFR_T90_P6
-             // _EB_P7_F3_T90
-             // _EB_P7_F4_T90
-             // _Strega_94_P3F3
         }
 
         private void ScenarioControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -1226,13 +1221,16 @@ namespace De1Win10
                 var ref_file = await HistoryFolder.GetFileAsync("0.shot");
                 ReferenceShotFile = await FileIO.ReadLinesAsync(ref_file);
 
-                var files = await ProfilesFolder.GetFilesAsync();
+                var files = await ProfilesFolderV2.GetFilesAsync();
 
                 Profiles.Clear();
                 bool found = false;
                 foreach (var f in files)
                 {
-                    var name = f.Name.Replace(".tcl", "");
+                    if (f.FileType.ToLower() != ".json")
+                        continue;
+
+                    var name = f.Name.Replace(".json", "");
 
                     Profiles.Add(new ProfileClass(name));
 
@@ -1345,18 +1343,17 @@ namespace De1Win10
         {
             ProfileHasLimits = false;
 
-            if (await ProfilesFolder.TryGetItemAsync(profile_name + ".tcl") == null)
+            var json_file = await ProfilesFolderV2.TryGetItemAsync(profile_name + ".json");
+            if (json_file == null)
             {
                 return "Error: cannot find file " + profile_name + ".tcl in \"profiles\" folder, please select another profile file";
             }
-
-            var tcl_file = await ProfilesFolder.GetFileAsync(profile_name + ".tcl");
-            var tcl_lines = await FileIO.ReadLinesAsync(tcl_file);
+            var json_string = await FileIO.ReadTextAsync((IStorageFile)json_file);
 
             De1ShotHeaderClass header = new De1ShotHeaderClass();
             List<De1ShotFrameClass> frames = new List<De1ShotFrameClass>();
             List <De1ShotExtFrameClass> ex_frames = new List<De1ShotExtFrameClass>();
-            if (!ShotTclParser(tcl_lines, header, frames, ex_frames))
+            if (!ShotJsonParser(json_string, header, frames, ex_frames))
                 return "Failed to encode profile " + profile_name + ", try to load another profile";
 
             var res_header = await writeToDE(header.bytes, De1ChrEnum.ShotHeader);
@@ -1370,41 +1367,15 @@ namespace De1Win10
                     return "Error writing shot frame " + res_frames;
             }
 
-            // extension frames
-            foreach(var line in tcl_lines)
+            ProfileHasLimits = ex_frames.Count != 0;
+            foreach (var ex_fr in ex_frames)
             {
-                if (!line.StartsWith("frame_limits_"))
-                    continue;
-
-                var words = line.Trim().Replace("frame_limits_", "").Split(' ');
-                if(words.Length != 3)
-                    return "Error reading profile file, line " + line;
-
-                int frame_to_extend = 0;
-                double limit_value = 0.0;
-                double limit_range = 0.0;
-
-                try
-                {
-                    frame_to_extend = Convert.ToInt32(words[0]);
-                    limit_value = Convert.ToDouble(words[1]);
-                    limit_range = Convert.ToDouble(words[2]);
-                }
-                catch (Exception)
-                {
-                    return "Error parsing profile file, line " + line;
-                }
-
-                var extended_frame_bytes = EncodeDe1ExtentionFrame(frame_to_extend + 32, limit_value, limit_range);
-
-                var res_ext = await writeToDE(extended_frame_bytes, De1ChrEnum.ShotFrame);
-                if (res_ext != "")
-                    return "Error writing profile extension frame " + res_ext;
-
-                ProfileHasLimits = true;
+                var res_frames = await writeToDE(ex_fr.bytes, De1ChrEnum.ShotFrame);
+                if (res_frames != "")
+                    return "Error writing ext shot frame " + res_frames;
             }
 
-            // stop at volume
+            // stop at volume in the profile tail
             if(TargetMaxVol > 0.0)
             {
                 var tail_bytes = EncodeDe1ShotTail(frames.Count, TargetMaxVol);

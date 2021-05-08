@@ -14,7 +14,7 @@ namespace De1Win10
         StorageFolder HistoryFolder = null;
         StorageFolder ProfilesFolder = null;
         StorageFolder ProfilesFolderV2 = null;
-        const string De1FolderToken = "De1FolderToken";
+        const string  De1FolderToken = "De1FolderToken";
         IList<string> ReferenceShotFile = null;
 
         List<string> BeanNameHistory = new List<string>();

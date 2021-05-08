@@ -292,7 +292,7 @@ namespace De1Win10
 
 
                 // finally: load the last profile
-                if (ProfilesFolder != null && ProfileName != "")
+                if (ProfilesFolderV2 != null && ProfileName != "")
                 {
                     string profile_ajustment = "";
                     if (ProfileDeltaTValue != 0.0)
@@ -2531,7 +2531,6 @@ namespace De1Win10
             }
             var json_string = await FileIO.ReadTextAsync((IStorageFile)json_file);
 
-
             var tcl_file = await ProfilesFolder.GetFileAsync(name + ".tcl");
             var tcl_lines = await FileIO.ReadLinesAsync(tcl_file);
 
@@ -2591,7 +2590,8 @@ namespace De1Win10
             }
 
             // extension frames in my format, for my files only
-            if (name == "_EB_FFR_T90_P6" || name == "_EB_P7_F3_T90" || name == "_EB_P7_F4_T90" || name == "_Strega_94_P3F3")
+            if (   name == "_EB_FFR_T90_P6" || name == "_EB_P7_F3_T90" || name == "_EB_P7_F4_T90" || name == "_Strega_94_P3F3" // old names
+                || name == "_EB_Ex15_F22_P6_T90" || name == "_EB_Ex15_P7_F3_T90" || name == "_EB_Ex15_P7_F4_T90" || name == "_Strega_T90")  // new names
             {
                 List<De1ShotExtFrameClass> ex_frames_my = new List<De1ShotExtFrameClass>();
                 foreach (var line in tcl_lines)
