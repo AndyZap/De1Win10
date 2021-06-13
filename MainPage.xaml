@@ -165,9 +165,6 @@
                             <Button    Grid.Row="2" Grid.Column="7" x:Name="BtnQuickPurge" Content="Quick Purge" Margin="0,10,10,10" IsEnabled="False" FontSize="24" Click="BtnQuickPurge_Click" Width="200" Height="70" />
 
                             <Button    Grid.Row="3" Grid.Column="0" x:Name="BtnStopLog1" Content="Stop" Margin="0,10,10,10" IsEnabled="False" FontSize="24" Click="BtnStop_Click" Width="200" Height="70" />
-                            <TextBox   Grid.Row="3" Grid.Column="5" x:Name="TxtStopAtVolume" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="20,10,10,10" Text="0" FontSize="24" Height="auto" Width ="auto" TextWrapping="Wrap" AutomationProperties.LiveSetting="Assertive"/>
-                            <TextBlock Grid.Row="3" Grid.Column="6" VerticalAlignment="Center" Text="MaxVol"  Margin="0,10,10,10" FontSize="24"/>
-                            <Button    Grid.Row="3" Grid.Column="7" x:Name="BtnSetProfile1" Content="Set profile" Margin="0,10,10,10" IsEnabled="False" FontSize="24" Click="BtnSetProfile_Click" Width="200" Height="70" />
                         </Grid>
 
                         <TextBlock Grid.Row="1"  x:Name="StatusExtraBlock" AutomationProperties.LiveSetting="Assertive" Text="Configs:"
@@ -247,22 +244,25 @@
                             <ColumnDefinition Width="auto"/>
                             <ColumnDefinition Width="auto"/>
                             <ColumnDefinition Width="auto"/>
+                            <ColumnDefinition Width="auto"/>
+                            <ColumnDefinition Width="auto"/>
                         </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
                         <StackPanel Grid.Row="0" Grid.Column="0" x:Name="PanelConnectDisconnect" HorizontalAlignment="Stretch" Height="60" Margin="0,0,0,0" VerticalAlignment="Stretch" Width="10"/>
-                        <Button  Grid.Row="0" Grid.Column="1" x:Name="BtnConnect" Content="Connect" Margin="10,10,10,10" FontSize="20" Click="BtnConnect_Click" Width="150"/>
-                        <Button  Grid.Row="0" Grid.Column="2" x:Name="BtnSleep" Content="Sleep" Margin="10,10,10,10" IsEnabled="True" FontSize="20" Click="BtnSleep_Click" Width="150"/>
-                        <Button  Grid.Row="0" Grid.Column="3" x:Name="BtnDisconnect" Content="Disconnect" Margin="10,10,10,10" IsEnabled="False" FontSize="20" Click="BtnDisconnect_Click" Width="150"/>
-                        <ToggleSwitch  Grid.Row="0" Grid.Column="4" x:Name="ChkAcaia" Header="Acaia" Margin="30,10,10,10" VerticalAlignment="Stretch" FontSize="18" Toggled="ChkAcaia_Toggled" Width="120"/>
-
+                        <ToggleSwitch  Grid.Row="0" Grid.Column="1" x:Name="ChkConnect" Header="Connect" Margin="30,10,10,10" VerticalAlignment="Stretch" FontSize="18" Toggled="ChkConnect_Toggled" Width="120"/>
+                        <ToggleSwitch  Grid.Row="0" Grid.Column="2" x:Name="ChkAcaia" Header="Acaia" Margin="30,10,10,10" VerticalAlignment="Stretch" FontSize="18" Toggled="ChkAcaia_Toggled" Width="120"/>
+                        <Button  Grid.Row="0" Grid.Column="3" x:Name="BtnSleep" Content="Sleep" Margin="10,10,10,10" IsEnabled="True" FontSize="20" Click="BtnSleep_Click" Width="100"/>
+                        
                         <TextBlock Grid.Row="0" Grid.Column="5" Text="T+"  Margin="10,10,0,10" FontSize="20" VerticalAlignment="Center"/>
                         <TextBox   Grid.Row="0" Grid.Column="6" x:Name="ProfileDeltaT" VerticalAlignment="Center" Margin="0,10,0,10" Text="0" FontSize="20" TextAlignment="Center"/>
-                        <TextBlock Grid.Row="0" Grid.Column="7" Text="°C"  Margin="10,10,10,10" FontSize="20" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Row="0" Grid.Column="7" Text="°C, SAV"  Margin="10,10,10,10" FontSize="20" VerticalAlignment="Center"/>
+                        <TextBox   Grid.Row="0" Grid.Column="8" x:Name="TxtStopAtVolume" VerticalAlignment="Center" Margin="0,10,0,10" Text="0" FontSize="20" TextAlignment="Center"/>
+                        <TextBlock Grid.Row="0" Grid.Column="9" Text="mL"  Margin="10,10,10,10" FontSize="20" VerticalAlignment="Center"/>
 
-                        <Button  Grid.Row="0" Grid.Column="8" x:Name="BtnSetProfile" Content="Set profile" Margin="10,10,10,10" IsEnabled="False" FontSize="20" Click="BtnSetProfile_Click" />
+                        <Button  Grid.Row="0" Grid.Column="10" x:Name="BtnSetProfile" Content="Set profile" Margin="10,10,10,10" IsEnabled="False" FontSize="20" Click="BtnSetProfile_Click" />
                     </Grid>
 
                     <ScrollViewer x:Name="ScrollViewerProfiles" VerticalScrollMode="Auto" VerticalScrollBarVisibility="Auto" Margin="0,10,0,0"

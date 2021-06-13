@@ -79,11 +79,9 @@ namespace De1Win10
         De1StateEnum LastStateEnum = De1StateEnum.Idle;
         De1SubStateEnum LastSubStateEnum = De1SubStateEnum.Ready;
 
-        int TargetMaxVol = 0;
-        bool ProfileHasLimits = false;
-
         string ProfileName = "";
         double ProfileDeltaTValue = 0.0;
+        int ProfileMaxVol = 0;
 
         List<De1ShotRecordClass> ShotRecords = new List<De1ShotRecordClass>();
 
@@ -290,7 +288,6 @@ namespace De1Win10
                 await chrDe1Water.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.Notify);
                 notifDe1Water = true;
 
-
                 // finally: load the last profile
                 if (ProfilesFolderV2 != null && ProfileName != "")
                 {
@@ -302,7 +299,8 @@ namespace De1Win10
                     if (result_profile != "")
                         return result_profile;
 
-                    TxtDe1Profile.Text = "Profile: " + ProfileName + profile_ajustment;
+                    string stop_at_volume = ProfileMaxVol == 0 ? "" : ", SAV=" + ProfileMaxVol.ToString() + "mL";
+                    TxtDe1Profile.Text = "Profile: " + ProfileName + profile_ajustment + stop_at_volume;
                 }
             }
             catch (Exception ex)
@@ -2397,27 +2395,9 @@ namespace De1Win10
             return true;
         }
 
-        private bool UpdateStopAtVolumeFromGui()
-        {
-            try
-            {
-                TargetMaxVol = Convert.ToInt32(TxtStopAtVolume.Text.Trim());
-            }
-            catch (Exception)
-            {
-                UpdateStatus("Error reading stop at volume, please supply a valid integer value", NotifyType.ErrorMessage);
-                return false;
-            }
-
-            return true;
-        }
-
         private void EncodeHeaderAndFrames(De1ShotHeaderClass shot_header, List<De1ShotFrameClass> shot_frames,
                                             List<De1ShotExtFrameClass> shot_exframes)
         {
-            if (!UpdateStopAtVolumeFromGui())
-                return;
-
             shot_header.bytes = EncodeDe1ShotHeader(shot_header);
             foreach (var frame in shot_frames)
                 frame.bytes = EncodeDe1ShotFrame(frame);

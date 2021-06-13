@@ -90,6 +90,9 @@ namespace De1Win10
             val = localSettings.Values["ProfileDeltaT"] as string;
             ProfileDeltaT.Text = val == null ? "0" : val;
 
+            val = localSettings.Values["StopAtVolume"] as string;
+            TxtStopAtVolume.Text = val == null ? "0" : val;
+
             try
             {
                 ProfileDeltaTValue = Convert.ToDouble(ProfileDeltaT.Text.Trim());
@@ -97,6 +100,15 @@ namespace De1Win10
             catch (Exception)
             {
                 ProfileDeltaTValue = 0.0;
+            }
+
+            try
+            {
+                ProfileMaxVol = Convert.ToInt32(TxtStopAtVolume.Text.Trim());
+            }
+            catch (Exception)
+            {
+                ProfileMaxVol = 0;
             }
 
             BeanNameHistory.Clear();
@@ -219,8 +231,9 @@ namespace De1Win10
 
         public void FatalError(string message)
         {
+            ChkConnect.IsEnabled = false;
+            ChkConnect.IsOn = false;
             UpdateStatus(message, NotifyType.ErrorMessage);
-            Disconnect();
         }
 
         public void FatalErrorAcaia(string message)
@@ -331,14 +344,9 @@ namespace De1Win10
             Splitter.IsPaneOpen = !Splitter.IsPaneOpen;
         }
 
-        private async void BtnConnect_Click(object sender, RoutedEventArgs e)
+        private async void Connect()
         {
             ScenarioControl.SelectedIndex = 0;
-
-            UpdateStatus("Connecting ... ", NotifyType.StatusMessage);
-
-            BtnConnect.IsEnabled = false;
-            BtnDisconnect.IsEnabled = true;
 
             bool need_device_watcher = false;
 
@@ -450,7 +458,6 @@ namespace De1Win10
 
                 // Buttons
                 BtnSetProfile.IsEnabled = true;
-                BtnSetProfile1.IsEnabled = true;
                 BtnEspresso.IsEnabled = true;
                 BtnStop.IsEnabled = true;
                 BtnStopLog1.IsEnabled = true;
@@ -600,12 +607,7 @@ namespace De1Win10
             chrAcaia = null;
 
             // Buttons
-            BtnConnect.IsEnabled = true;
-
-            BtnDisconnect.IsEnabled = false;
             BtnSetProfile.IsEnabled = false;
-            BtnSetProfile1.IsEnabled = false;
-
             BtnEspresso.IsEnabled = false;
             BtnStop.IsEnabled = false;
             BtnStopLog1.IsEnabled = false;
@@ -738,11 +740,23 @@ namespace De1Win10
                 UpdateDe1Water(level);
         }
 
-        private void BtnDisconnect_Click(object sender, RoutedEventArgs e)
+        private void ChkConnect_Toggled(object sender, RoutedEventArgs e)
         {
-            UpdateStatus("Disconnected", NotifyType.StatusMessage);
-            Disconnect();
+            if (ChkConnect.IsEnabled == false)
+                return;
+
+            if (ChkConnect.IsOn == true)  // connect
+            {
+                UpdateStatus("Connecting ... ", NotifyType.StatusMessage);
+                Connect();
+            }
+            else // disconnect
+            {
+                UpdateStatus("Disconnected", NotifyType.StatusMessage);
+                Disconnect();
+            }
         }
+
         private async void BtnSleep_Click(object sender, RoutedEventArgs e)
         {
             UpdateStatus("Sleep", NotifyType.StatusMessage);
@@ -988,8 +1002,8 @@ namespace De1Win10
                 switch (e.Key)
                 {
                     case VirtualKey.C:
-                        if (BtnConnect.IsEnabled)
-                            BtnConnect_Click(null, null);
+                        if (ChkConnect.IsEnabled && ChkConnect.IsOn == false)
+                            ChkConnect.IsOn = true;
                         break;
 
                     case VirtualKey.Z:
@@ -997,8 +1011,8 @@ namespace De1Win10
                         break;
 
                     case VirtualKey.D:
-                        if (BtnDisconnect.IsEnabled)
-                            BtnDisconnect_Click(null, null);
+                        if (ChkConnect.IsEnabled && ChkConnect.IsOn == true)
+                            ChkConnect.IsOn = false;
                         break;
 
                     case VirtualKey.B:
@@ -1097,7 +1111,7 @@ namespace De1Win10
 
             // connect/disconnect Acaia without disconnecting DE1
 
-            if (BtnDisconnect.IsEnabled && (ChkAcaia.IsOn == true))  // connect
+            if (ChkConnect.IsOn == true && ChkAcaia.IsOn == true)  // connect
             {
                 UpdateStatus("Connecting Acaia ... ", NotifyType.StatusMessage);
 
@@ -1134,7 +1148,7 @@ namespace De1Win10
                 }
             }
 
-            if (BtnDisconnect.IsEnabled && (ChkAcaia.IsOn == false)) // disconnect
+            if (ChkConnect.IsOn == true && (ChkAcaia.IsOn == false)) // disconnect
             {
                 if (notifAcaia)
                 {
@@ -1247,6 +1261,15 @@ namespace De1Win10
                     if(ProfileNameHistory[i] != "")
                         Profiles.Insert(0, new ProfileClass(ProfileNameHistory[i]));
                 }
+
+                for (int i = 0; i < Profiles.Count; i++)
+                {
+                    if (Profiles[i].profileName == ProfileName)
+                    {
+                        ListBoxProfiles.SelectedIndex = i;
+                        break;
+                    }
+                }
             }
 
             return "";
@@ -1309,6 +1332,19 @@ namespace De1Win10
                     return;
                 }
 
+                try
+                {
+                    ProfileMaxVol = Convert.ToInt32(TxtStopAtVolume.Text.Trim());
+                }
+                catch (Exception)
+                {
+                    UpdateStatus("Error reading stop at volume, please supply a valid integer value", NotifyType.ErrorMessage);
+                    ProfileName = "";
+                    TxtDe1Profile.Text = "Profile: n/a";
+                    return;
+                }
+
+
                 ProfileName = Profiles[ListBoxProfiles.SelectedIndex].profileName;
 
                 var result_profile = await LoadProfile(ProfileName);
@@ -1320,29 +1356,27 @@ namespace De1Win10
                     return;
                 }
 
-                string stop_at_volume = TargetMaxVol == 0 ? "" : " Vol, ml " + TargetMaxVol.ToString();
-                string has_limits = ProfileHasLimits ? " >Has limits<" : "";
-
                 string profile_ajustment = "";
                 if (ProfileDeltaTValue != 0.0)
                     profile_ajustment = (ProfileDeltaTValue > 0 ? "+" : "") + ProfileDeltaTValue.ToString();
 
-                TxtDe1Profile.Text = "Profile: " + ProfileName + profile_ajustment;
-                UpdateStatus("Loaded profile " + ProfileName + profile_ajustment + stop_at_volume + has_limits, NotifyType.StatusMessage);
+                string stop_at_volume = ProfileMaxVol == 0 ? "" : ", SAV=" + ProfileMaxVol.ToString() + "mL";
+
+                TxtDe1Profile.Text = "Profile: " + ProfileName + profile_ajustment + stop_at_volume;
+                UpdateStatus("Loaded profile " + ProfileName + profile_ajustment + stop_at_volume, NotifyType.StatusMessage);
 
                 SaveProfileNameHistory();
 
                 ApplicationDataContainer localSettings = ApplicationData.Current.LocalSettings;
                 localSettings.Values["ProfileName"] = ProfileName;
                 localSettings.Values["ProfileDeltaT"] = ProfileDeltaT.Text.Trim();
+                localSettings.Values["StopAtVolume"] = TxtStopAtVolume.Text.Trim();
             }
             else
                 UpdateStatus("Please select profile to use", NotifyType.WarningMessage);
         }
         private async Task<string> LoadProfile(string profile_name)
         {
-            ProfileHasLimits = false;
-
             var json_file = await ProfilesFolderV2.TryGetItemAsync(profile_name + ".json");
             if (json_file == null)
             {
@@ -1367,7 +1401,6 @@ namespace De1Win10
                     return "Error writing shot frame " + res_frames;
             }
 
-            ProfileHasLimits = ex_frames.Count != 0;
             foreach (var ex_fr in ex_frames)
             {
                 var res_frames = await writeToDE(ex_fr.bytes, De1ChrEnum.ShotFrame);
@@ -1376,9 +1409,9 @@ namespace De1Win10
             }
 
             // stop at volume in the profile tail
-            if(TargetMaxVol > 0.0)
+            if(ProfileMaxVol > 0.0)
             {
-                var tail_bytes = EncodeDe1ShotTail(frames.Count, TargetMaxVol);
+                var tail_bytes = EncodeDe1ShotTail(frames.Count, ProfileMaxVol);
 
                 var res_tail = await writeToDE(tail_bytes, De1ChrEnum.ShotFrame);
                 if (res_tail != "")
