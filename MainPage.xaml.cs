@@ -24,7 +24,7 @@ namespace De1Win10
         private string deviceIdAcaia = String.Empty;
         private string deviceIdDe1 = String.Empty;
 
-        private BluetoothCacheMode bleCacheMode = BluetoothCacheMode.Cached;
+        private BluetoothCacheMode bleCacheMode = BluetoothCacheMode.Uncached;
 
         private BluetoothLEDevice bleDeviceAcaia = null;
         private BluetoothLEDevice bleDeviceDe1 = null;

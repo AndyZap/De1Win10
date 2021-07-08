@@ -1346,7 +1346,7 @@ namespace De1Win10
                             DetailCoffeeWeight.Text = last.espresso_weight == 0.0 ? "---" : last.espresso_weight.ToString("0.0");
                             DetailCoffeeRatio.Text = GetRatioString();
                             DetailTotalWater.Text = TxtBrewTotalWater.Text;
-                            DetailNotes.Text = ProfileMaxVol == 0 ? "" : "SAV=" + ProfileMaxVol.ToString() + "mL";
+                            DetailNotes.Text = DetailTotalWater.Text + "mL" + (ProfileMaxVol == 0 ? "" : ", SAV=" + ProfileMaxVol.ToString() + "mL");
 
                             ScenarioControl.SelectedIndex = 3;  // swith to Add Record page 
                         }
