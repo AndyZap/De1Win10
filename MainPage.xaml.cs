@@ -233,6 +233,14 @@ namespace De1Win10
         {
             ChkConnect.IsEnabled = false;
             ChkConnect.IsOn = false;
+
+            // reset device IDs to force the device watcher to be used
+            deviceIdAcaia = String.Empty;
+            deviceIdDe1 = String.Empty;
+            ApplicationDataContainer localSettings = ApplicationData.Current.LocalSettings;
+            localSettings.Values["DeviceIdAcaia"] = deviceIdAcaia;
+            localSettings.Values["DeviceIdDe1"] = deviceIdDe1;
+
             UpdateStatus(message, NotifyType.ErrorMessage);
         }
 
