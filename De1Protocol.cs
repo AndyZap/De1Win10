@@ -438,6 +438,7 @@ namespace De1Win10
             public double espresso_elapsed = 0.0;
             public double espresso_pressure = 0.0;
             public double espresso_weight = 0.0;
+            public double espresso_weight_raw = 0.0;
             public double espresso_flow = 0.0;
             public double espresso_flow_weight = 0.0;
             public double espresso_temperature_basket = 0.0;
@@ -462,9 +463,10 @@ namespace De1Win10
                 espresso_frame = info.FrameNumber;
             }
 
-            public void UpdateWeightFromScale(double weight)
+            public void UpdateWeightFromScale(double weight, double weight_raw)
             {
                 espresso_weight = weight;
+                espresso_weight_raw = weight_raw;
             }
         }
         private bool DecodeDe1ShotInfo(byte[] data, De1ShotInfoClass shot_info) // update_de1_shotvalue
@@ -1300,7 +1302,7 @@ namespace De1Win10
                     rec.espresso_frame = -1;
 
                 if (notifAcaia)
-                    rec.UpdateWeightFromScale(WeightAverager.GetValue());
+                    rec.UpdateWeightFromScale(WeightAverager.GetValue(), WeightAverager.GetRawValue());
 
                 ShotRecords.Add(rec);
 

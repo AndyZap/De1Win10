@@ -74,6 +74,7 @@ namespace De1Win10
          StringBuilder espresso_elapsed,
          StringBuilder espresso_pressure,
          StringBuilder espresso_weight,
+         StringBuilder espresso_weight_raw,
          StringBuilder espresso_flow,
          StringBuilder espresso_flow_weight,
          StringBuilder espresso_temperature_basket,
@@ -86,6 +87,7 @@ namespace De1Win10
             espresso_elapsed.Append("{");
             espresso_pressure.Append("{");
             espresso_weight.Append("{");
+            espresso_weight_raw.Append("{");
             espresso_flow.Append("{");
             espresso_flow_weight.Append("{");
             espresso_temperature_basket.Append("{");
@@ -99,7 +101,8 @@ namespace De1Win10
             {
                 espresso_elapsed.Append(rec.espresso_elapsed.ToString("0.0##") + " ");
                 espresso_pressure.Append(rec.espresso_pressure.ToString("0.0#") + " ");
-                espresso_weight.Append(rec.espresso_weight.ToString("0.0") + " ");
+                espresso_weight.Append(rec.espresso_weight.ToString("0.00") + " ");
+                espresso_weight_raw.Append(rec.espresso_weight_raw.ToString("0.00") + " ");
                 espresso_flow.Append(rec.espresso_flow.ToString("0.0#") + " ");
                 espresso_flow_weight.Append(rec.espresso_flow_weight.ToString("0.0#") + " ");
                 if(is_steam_record)
@@ -116,6 +119,7 @@ namespace De1Win10
             espresso_elapsed.Append("}");
             espresso_pressure.Append("}");
             espresso_weight.Append("}");
+            espresso_weight_raw.Append("}");
             espresso_flow.Append("}");
             espresso_flow_weight.Append("}");
             espresso_temperature_basket.Append("}");
@@ -182,6 +186,7 @@ namespace De1Win10
             StringBuilder espresso_elapsed = new StringBuilder();
             StringBuilder espresso_pressure = new StringBuilder();
             StringBuilder espresso_weight = new StringBuilder();
+            StringBuilder espresso_weight_raw = new StringBuilder();
             StringBuilder espresso_flow = new StringBuilder();
             StringBuilder espresso_flow_weight = new StringBuilder();
             StringBuilder espresso_temperature_basket = new StringBuilder();
@@ -192,7 +197,7 @@ namespace De1Win10
             StringBuilder espresso_frame = new StringBuilder();
 
             CreateStringsFromShotRecords(ShotRecords, DetailBeansName.Text.Trim().ToLower() == "steam",
-                                    espresso_elapsed, espresso_pressure, espresso_weight, espresso_flow, espresso_flow_weight, espresso_temperature_basket,
+                                    espresso_elapsed, espresso_pressure, espresso_weight, espresso_weight_raw, espresso_flow, espresso_flow_weight, espresso_temperature_basket,
                                     espresso_temperature_mix, espresso_pressure_goal, espresso_flow_goal, espresso_temperature_goal, espresso_frame);
 
             StringBuilder sb = new StringBuilder();
@@ -209,7 +214,12 @@ namespace De1Win10
                     sb.AppendLine("espresso_pressure " + espresso_pressure.ToString().Replace(" }", "}"));
 
                 else if (line.StartsWith("espresso_weight "))
+                {
                     sb.AppendLine("espresso_weight " + espresso_weight.ToString().Replace(" }", "}"));
+
+                    // raw (less averaged) weigh
+                    sb.AppendLine("espresso_weight_raw " + espresso_weight_raw.ToString().Replace(" }", "}"));
+                }
 
                 else if (line.StartsWith("espresso_flow "))
                     sb.AppendLine("espresso_flow " + espresso_flow.ToString().Replace(" }", "}"));

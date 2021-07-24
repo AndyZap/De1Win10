@@ -226,6 +226,7 @@ namespace De1Win10
             const int max_values = 10;
             List<double> values = new List<double>();
             double last_value = 0.0;
+            double last_raw_value = 0.0;
             int slow_start_num_values = 0;
 
             public ValuesAverager()
@@ -235,6 +236,10 @@ namespace De1Win10
             public double GetValue()
             {
                 return last_value;
+            }
+            public double GetRawValue()
+            {
+                return last_raw_value;
             }
 
             public double NewReading(double val)
@@ -250,11 +255,24 @@ namespace De1Win10
                 while (values.Count > max_values)
                     values.RemoveAt(0);
 
+                // this is the "long" average value
                 double sum = 0.0;
                 foreach (var x in values)
                     sum += x;
 
-                last_value = sum / values.Count;
+                last_value = sum / (double) values.Count;
+
+                // this is "quick = 3" average value
+                sum = 0.0;
+                int num_in_sum = 0;
+                for (int i = values.Count-1; i >=0; i--)
+                {
+                    sum += values[i];
+                    num_in_sum++;
+                    if (num_in_sum >= 3)
+                        break;
+                }
+                last_raw_value = sum / (double) num_in_sum;
 
                 return last_value;
             }
@@ -264,6 +282,7 @@ namespace De1Win10
                 values.Clear();
                 slow_start_num_values = 0;
                 last_value = 0.0;
+                last_raw_value = 0.0;
             }
         }
     }
