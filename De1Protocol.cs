@@ -438,7 +438,6 @@ namespace De1Win10
             public double espresso_elapsed = 0.0;
             public double espresso_pressure = 0.0;
             public double espresso_weight = 0.0;
-            public double espresso_weight_raw = 0.0;
             public double espresso_flow = 0.0;
             public double espresso_flow_weight = 0.0;
             public double espresso_temperature_basket = 0.0;
@@ -463,10 +462,9 @@ namespace De1Win10
                 espresso_frame = info.FrameNumber;
             }
 
-            public void UpdateWeightFromScale(double weight, double weight_raw)
+            public void UpdateWeightFromScale(double weight)
             {
                 espresso_weight = weight;
-                espresso_weight_raw = weight_raw;
             }
         }
         private bool DecodeDe1ShotInfo(byte[] data, De1ShotInfoClass shot_info) // update_de1_shotvalue
@@ -1302,27 +1300,26 @@ namespace De1Win10
                     rec.espresso_frame = -1;
 
                 if (notifAcaia)
-                    rec.UpdateWeightFromScale(WeightAverager.GetValue(), WeightAverager.GetRawValue());
+                    rec.UpdateWeightFromScale(WeightAverager.GetFastValue());
 
                 ShotRecords.Add(rec);
 
                 if (notifAcaia)
                 {
-                    var last_flow = CalculateLastEntryWeightFlow(ShotRecords, SmoothWeightFlowSec);
-                    TxtBrewWeightRate.Text = last_flow.ToString("0.0");
+                    double last_flow_weight = CalculateLastEntryFlowWeight(ShotRecords, SmoothFlowWeightRecords);
+
+                    ShotRecords[ShotRecords.Count - 1].espresso_flow_weight = last_flow_weight;
+                    TxtBrewWeightRate.Text = last_flow_weight.ToString("0.0");
 
                     if (StopWeight != double.MaxValue && StopHasBeenClicked == false)
                     {
-                        var current_weight = WeightAverager.GetValue();
-                        if (current_weight + StopTimeFlowCoeff * last_flow + StopTimeFlowAddOn >= StopWeight)
+                        var current_weight = WeightAverager.GetSlowValue();
+                        if (current_weight + StopTimeFlowCoeff * last_flow_weight + StopTimeFlowAddOn >= StopWeight)
                             BtnStop_Click(null, null);
                     }
                 }
 
-                if (ts.TotalSeconds >= 60)
-                    TxtBrewTime.Text = ts.Minutes.ToString("0") + ":" + ts.Seconds.ToString("00");
-                else
-                    TxtBrewTime.Text = ts.Seconds.ToString("0");
+                TxtBrewTime.Text = ts.TotalSeconds >= 60 ? ts.Minutes.ToString("0") + ":" + ts.Seconds.ToString("00") : ts.Seconds.ToString("0");
 
                 RaiseAutomationEvent(TxtBrewTime);
 

@@ -20,7 +20,7 @@ namespace De1Win10
         private GattCharacteristic chrAcaia = null;
         private bool notifAcaia = false;
 
-        private double SmoothWeightFlowSec = 3.0; // smooth the weight flow over 3 sec
+        private int SmoothFlowWeightRecords = 8; // smooth the weight flow settings 
 
         ValuesAverager WeightAverager = new ValuesAverager();
 
@@ -216,73 +216,73 @@ namespace De1Win10
 
         private void UpdateWeightImpl(double weight_gramm)
         {
-            TxtBrewWeight.Text = WeightAverager.NewReading(weight_gramm).ToString("0.00");
+            WeightAverager.NewReading(weight_gramm);
+            TxtBrewWeight.Text = WeightAverager.GetSlowValue().ToString("0.00");
 
             RaiseAutomationEvent(TxtBrewWeight);
         }
 
         public class ValuesAverager
         {
-            const int max_values = 10;
-            List<double> values = new List<double>();
-            double last_value = 0.0;
-            double last_raw_value = 0.0;
-            int slow_start_num_values = 0;
+            private const int max_slow_values = 10;
+            private const int max_fast_values = 3;
+            private double last_slow_value = 0.0;
+            private double last_fast_value = 0.0;
+            private int slow_start_num_values = 0;
+            private List<double> values = new List<double>();
 
             public ValuesAverager()
             {
             }
 
-            public double GetValue()
+            public double GetSlowValue()
             {
-                return last_value;
+                return last_slow_value;
             }
-            public double GetRawValue()
+            public double GetFastValue()
             {
-                return last_raw_value;
+                return last_fast_value;
             }
 
-            public double NewReading(double val)
+            public void NewReading(double val)
             {
-                if(slow_start_num_values < max_values*3) // delay after reset
+                if(slow_start_num_values < max_slow_values * 3) // delay after reset
                 {
                     slow_start_num_values++;
-                    return 0.0;
+                    return;
                 }
 
                 values.Add(val);
 
-                while (values.Count > max_values)
+                while (values.Count > max_slow_values)
                     values.RemoveAt(0);
 
-                // this is the "long" average value
+                // this is the slow average value
                 double sum = 0.0;
-                foreach (var x in values)
+                foreach (double x in values)
                     sum += x;
 
-                last_value = sum / (double) values.Count;
+                last_slow_value = sum / values.Count;
 
-                // this is "quick = 3" average value
+                // this is fast average value
                 sum = 0.0;
                 int num_in_sum = 0;
-                for (int i = values.Count-1; i >=0; i--)
+                for (int i = values.Count - 1; i >= 0; i--)
                 {
                     sum += values[i];
                     num_in_sum++;
-                    if (num_in_sum >= 3)
+                    if (num_in_sum >= max_fast_values)
                         break;
                 }
-                last_raw_value = sum / (double) num_in_sum;
-
-                return last_value;
+                last_fast_value = sum / num_in_sum;
             }
 
             public void Reset()
             {
                 values.Clear();
                 slow_start_num_values = 0;
-                last_value = 0.0;
-                last_raw_value = 0.0;
+                last_slow_value = 0.0;
+                last_fast_value = 0.0;
             }
         }
     }

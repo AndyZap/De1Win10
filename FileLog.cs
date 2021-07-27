@@ -39,42 +39,57 @@ namespace De1Win10
             }
         }
 
-        private double CalculateLastEntryWeightFlow(List<De1ShotRecordClass> data, double flow_smoothing_sec)
+        private double FirstDerivativeEstimator(List<double> x, List<double> y) // least squares first derivative estimator
+        {
+            int num_counts = x.Count;
+
+            double x_bar = 0.0;
+            double y_bar = 0.0;
+            for (int k = 0; k < num_counts; k++)
+            {
+                x_bar += x[k];
+                y_bar += y[k];
+            }
+            x_bar /= num_counts;
+            y_bar /= num_counts;
+
+            double Sxx = 0.0;
+            double Sxy = 0.0;
+            for (int k = 0; k < num_counts; k++)
+            {
+                Sxx += (x[k] - x_bar) * (x[k] - x_bar);
+                Sxy += (y[k] - y_bar) * (x[k] - x_bar);
+            }
+
+            return Sxx == 0.0 ? 0.0 : Sxy / Sxx;
+        }
+
+        private double CalculateLastEntryFlowWeight(List<De1ShotRecordClass> data, double num_flow_smoothing_records)
         {
             if (data.Count <= 2)
-                return 0;
+                return 0.0;
 
-            int last_index = data.Count - 1;
-            De1ShotRecordClass last_rec = data[last_index];
+            List<double> x = new List<double>();
+            List<double> y = new List<double>();
 
-            last_rec.espresso_flow_weight = 0.0;
-
-            int to_compare_index = last_index - 1;
-            for (int i = last_index - 1; i >= 0; i--)
+            for (int i = data.Count - 1; i >= 0; i--)
             {
-                to_compare_index = i;
-                if ((last_rec.espresso_elapsed - data[i].espresso_elapsed) >= flow_smoothing_sec)
+                x.Add(data[i].espresso_elapsed);
+                y.Add(data[i].espresso_weight);
+                if (x.Count >= num_flow_smoothing_records)
                     break;
             }
 
-            var time = last_rec.espresso_elapsed - data[to_compare_index].espresso_elapsed;
-            if (time < 1E-6)
-                return 0;
+            x.Reverse();
+            y.Reverse();
 
-            var diff = last_rec.espresso_weight - data[to_compare_index].espresso_weight;
-            if (diff < 1E-6)
-                return 0;
-
-            last_rec.espresso_flow_weight = diff / time;
-
-            return last_rec.espresso_flow_weight;
+            return FirstDerivativeEstimator(x, y);
         }
 
         private void CreateStringsFromShotRecords(List<De1ShotRecordClass> list, bool is_steam_record,
          StringBuilder espresso_elapsed,
          StringBuilder espresso_pressure,
          StringBuilder espresso_weight,
-         StringBuilder espresso_weight_raw,
          StringBuilder espresso_flow,
          StringBuilder espresso_flow_weight,
          StringBuilder espresso_temperature_basket,
@@ -87,7 +102,6 @@ namespace De1Win10
             espresso_elapsed.Append("{");
             espresso_pressure.Append("{");
             espresso_weight.Append("{");
-            espresso_weight_raw.Append("{");
             espresso_flow.Append("{");
             espresso_flow_weight.Append("{");
             espresso_temperature_basket.Append("{");
@@ -102,7 +116,6 @@ namespace De1Win10
                 espresso_elapsed.Append(rec.espresso_elapsed.ToString("0.0##") + " ");
                 espresso_pressure.Append(rec.espresso_pressure.ToString("0.0#") + " ");
                 espresso_weight.Append(rec.espresso_weight.ToString("0.00") + " ");
-                espresso_weight_raw.Append(rec.espresso_weight_raw.ToString("0.00") + " ");
                 espresso_flow.Append(rec.espresso_flow.ToString("0.0#") + " ");
                 espresso_flow_weight.Append(rec.espresso_flow_weight.ToString("0.0#") + " ");
                 if(is_steam_record)
@@ -119,7 +132,6 @@ namespace De1Win10
             espresso_elapsed.Append("}");
             espresso_pressure.Append("}");
             espresso_weight.Append("}");
-            espresso_weight_raw.Append("}");
             espresso_flow.Append("}");
             espresso_flow_weight.Append("}");
             espresso_temperature_basket.Append("}");
@@ -186,7 +198,6 @@ namespace De1Win10
             StringBuilder espresso_elapsed = new StringBuilder();
             StringBuilder espresso_pressure = new StringBuilder();
             StringBuilder espresso_weight = new StringBuilder();
-            StringBuilder espresso_weight_raw = new StringBuilder();
             StringBuilder espresso_flow = new StringBuilder();
             StringBuilder espresso_flow_weight = new StringBuilder();
             StringBuilder espresso_temperature_basket = new StringBuilder();
@@ -197,7 +208,7 @@ namespace De1Win10
             StringBuilder espresso_frame = new StringBuilder();
 
             CreateStringsFromShotRecords(ShotRecords, DetailBeansName.Text.Trim().ToLower() == "steam",
-                                    espresso_elapsed, espresso_pressure, espresso_weight, espresso_weight_raw, espresso_flow, espresso_flow_weight, espresso_temperature_basket,
+                                    espresso_elapsed, espresso_pressure, espresso_weight, espresso_flow, espresso_flow_weight, espresso_temperature_basket,
                                     espresso_temperature_mix, espresso_pressure_goal, espresso_flow_goal, espresso_temperature_goal, espresso_frame);
 
             StringBuilder sb = new StringBuilder();
@@ -214,12 +225,7 @@ namespace De1Win10
                     sb.AppendLine("espresso_pressure " + espresso_pressure.ToString().Replace(" }", "}"));
 
                 else if (line.StartsWith("espresso_weight "))
-                {
                     sb.AppendLine("espresso_weight " + espresso_weight.ToString().Replace(" }", "}"));
-
-                    // raw (less averaged) weigh
-                    sb.AppendLine("espresso_weight_raw " + espresso_weight_raw.ToString().Replace(" }", "}"));
-                }
 
                 else if (line.StartsWith("espresso_flow "))
                     sb.AppendLine("espresso_flow " + espresso_flow.ToString().Replace(" }", "}"));
@@ -227,11 +233,17 @@ namespace De1Win10
                 else if (line.StartsWith("espresso_flow_weight "))
                     sb.AppendLine("espresso_flow_weight " + espresso_flow_weight.ToString().Replace(" }", "}"));
 
+                else if (line.StartsWith("espresso_flow_weight_raw "))
+                    sb.AppendLine("espresso_flow_weight_raw {0.0}"); // dummy
+
                 else if (line.StartsWith("espresso_temperature_basket "))
                     sb.AppendLine("espresso_temperature_basket " + espresso_temperature_basket.ToString().Replace(" }", "}"));
 
                 else if (line.StartsWith("espresso_temperature_mix "))
                     sb.AppendLine("espresso_temperature_mix " + espresso_temperature_mix.ToString().Replace(" }", "}"));
+
+                else if (line.StartsWith("espresso_water_dispensed "))
+                    sb.AppendLine("espresso_water_dispensed {0.0}"); // dummy
 
                 else if (line.StartsWith("espresso_pressure_goal "))
                     sb.AppendLine("espresso_pressure_goal " + espresso_pressure_goal.ToString().Replace(" }", "}"));
