@@ -26,8 +26,8 @@ namespace De1Win10
         }
         public enum De1SubStateEnum { Ready, Heating, FinalHeating, Stabilising, Preinfusion, Pouring, Ending, Refill }
 
-        enum De1MmrNotifEnum { CpuBoardMachineFw, GhcInfo, SerialNum, FanTemp, IdleWaterTemp, HeaterWarmupFlow, HeaterTestFlow, HeaterTestTime, 
-                               SteamHiStartSec, SteamFlow, None }
+        enum De1MmrNotifEnum { CpuBoardMachineFw, GhcInfo, SerialNum, FanTemp, IdleWaterTemp, HeaterWarmupFlow, HeaterTestFlow, HeaterTestTime,
+            SteamHiStartSec, SteamFlow, None }
 
         string SrvDe1String = "0000A000-0000-1000-8000-00805F9B34FB";
         string ChrDe1VersionString = "0000A001-0000-1000-8000-00805F9B34FB";    // A001 Versions                   R/-/-
@@ -74,6 +74,7 @@ namespace De1Win10
         DateTime StartEsproTime = DateTime.MaxValue;
         DateTime StopClickedTime = DateTime.MaxValue;
         bool StopHasBeenClicked = false;
+        bool SteamHasLowered = false;
         double StopWeight = double.MaxValue;
 
         De1StateEnum LastStateEnum = De1StateEnum.Idle;
@@ -174,7 +175,7 @@ namespace De1Win10
                 if (result_charact.Characteristics.Count != 1) { return "Error, expected to find one DE1 characteristics"; }
 
                 chrDe1MmrWrite = result_charact.Characteristics[0];
-                
+
                 // write 50 deg fan temp
                 var result_fan_temp = await WriteMmrFanTemp();
                 if (result_fan_temp != "")
@@ -446,7 +447,7 @@ namespace De1Win10
             public double espresso_flow_goal = 0.0;
             public double espresso_temperature_goal = 0.0;
             public double espresso_temperature_steam = 0.0;
-            public int    espresso_frame = 0;
+            public int espresso_frame = 0;
             public De1ShotRecordClass(double time_sec, De1ShotInfoClass info)
             {
                 espresso_elapsed = time_sec;
@@ -611,7 +612,7 @@ namespace De1Win10
         {
             // set to 50 deg (0x32) as default
 
-            byte[] payload = new byte[] { 0x04, 0x80, 0x38, 0x08, 0x32, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+            byte[] payload = new byte[] { 0x04, 0x80, 0x38, 0x08, 0x32, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
             return writeToDE(payload, De1ChrEnum.MmrWrite);
         }
@@ -834,7 +835,7 @@ namespace De1Win10
                 try
                 {
                     int index = 4;
-                    MmrCpuBoard = (data[index] + data[index+1] * 256.0 + data[index+2] * 256.0 * 256.0) / 1000.0; index += 4;
+                    MmrCpuBoard = (data[index] + data[index + 1] * 256.0 + data[index + 2] * 256.0 * 256.0) / 1000.0; index += 4;
                     MmrMachine = data[index]; index += 4;
                     MmrFw = data[index] + data[index + 1] * 256; index += 4;
 
@@ -1063,7 +1064,7 @@ namespace De1Win10
                 try
                 {
                     int index = 4;
-                    MmrSteamFlow = data[index]/100.0;
+                    MmrSteamFlow = data[index] / 100.0;
 
                     //UpdateStatus("Received SteamFlow", NotifyType.StatusMessage);
                 }
@@ -1181,6 +1182,7 @@ namespace De1Win10
                 ShotRecords.Clear();
                 StopClickedTime = DateTime.MaxValue;
                 StopHasBeenClicked = false;
+                SteamHasLowered = false;
             }
 
             // 1. Logic to STOP recording of Espro and Steam    -  when the machine stops from the App
@@ -1262,6 +1264,49 @@ namespace De1Win10
             {
                 var task = Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () => UpdateDe1ShotInfoImpl(shot_info));
             }
+
+            // lower the steam flow
+            if (LastStateEnum == De1StateEnum.Steam && StartEsproTime != DateTime.MaxValue) // we are recording the shot and in steam
+            {
+                TimeSpan ts = DateTime.Now - StartEsproTime;
+
+                if (SteamHasLowered == false && ts.TotalSeconds > 7.0)
+                {
+                    SteamHasLowered = true;
+                    var task_steam = Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () => UpdateSteamToMin());
+                }
+            }
+
+            // restore the steam flow
+            if (StartEsproTime == DateTime.MaxValue
+                && StopClickedTime == DateTime.MaxValue
+                && SteamHasLowered) // we have finished and not at target flow
+            {
+                SteamHasLowered = false;
+                var task_restore_steam = Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () => UpdateSteamToTarget());
+            }
+        }
+        private async void UpdateSteamToMin()
+        {
+            SteamHasLowered = true;
+            MmrSteamFlow = 0.4;
+            await WriteMmrSteamFlow(MmrSteamFlow);
+            UpdateStatus("Steam reduced to " + MmrSteamFlow.ToString(), NotifyType.StatusMessage);
+        }
+        private async void UpdateSteamToTarget()
+        {
+            SteamHasLowered = false;
+
+            double targetSteamFlow = 1.0;
+            try
+            {
+                targetSteamFlow = Convert.ToDouble(TxtSteamFlow.Text.Trim());
+            }
+            catch (Exception) { }
+
+            MmrSteamFlow = targetSteamFlow;
+            await WriteMmrSteamFlow(MmrSteamFlow);
+            UpdateStatus("Steam restored to " + MmrSteamFlow.ToString(), NotifyType.StatusMessage);
         }
         private void UpdateDe1ShotInfoImpl(De1ShotInfoClass shot_info)
         {
