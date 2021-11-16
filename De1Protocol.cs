@@ -1730,11 +1730,13 @@ namespace De1Win10
 
         void convert_float_to_U10P0(double x, byte[] data, int index)
         {
-            int ival = (int)x;
-            var b1 = (byte)(ival / 256);
+            int ix = (int)x;
 
-            data[index] = (byte)(b1 | 0x4); // this is "| 1024" in DE code, need to flip this bit
-            data[index + 1] = (byte)(ival - b1 * 256);
+            if (ix > 255) // lets make life esier and limit x to 255
+                ix = 255;
+
+            data[index] = 0;
+            data[index + 1] = (byte)ix;
         }
         void convert_float_to_U10P0_for_tail(double x, byte[] data, int index)
         {
@@ -2253,11 +2255,19 @@ namespace De1Win10
 
                 byte frame_counter = (byte)shot_frames.Count;
 
+                // MaxVol for the first frame only
+                double input_max_vol = 0.0;
+                if (frame_counter == 0)
+                {
+                    input_max_vol = TryGetDoubleFromDict("volume", dict);
+                    if (input_max_vol == double.MinValue) input_max_vol = 0.0;
+                }
+
                 frame.FrameToWrite = frame_counter;
                 frame.Flag = features;
                 frame.Temp = temperature + ProfileDeltaTValue;
                 frame.FrameLen = seconds;
-                frame.MaxVol = 0.0;
+                frame.MaxVol = input_max_vol;
                 shot_frames.Add(frame);
 
                 // ext frames
@@ -2413,11 +2423,19 @@ namespace De1Win10
 
                 byte frame_counter = (byte)shot_frames.Count;
 
+                // MaxVol for the first frame only
+                double input_max_vol = 0.0;
+                if (frame_counter == 0 && frame_obj.ContainsKey("volume"))
+                {
+                    input_max_vol = Dynamic2Double(frame_obj.volume);
+                    if (input_max_vol == double.MinValue) input_max_vol = 0.0;
+                }
+
                 frame.FrameToWrite = frame_counter;
                 frame.Flag = features;
                 frame.Temp = temperature + ProfileDeltaTValue;
                 frame.FrameLen = seconds;
-                frame.MaxVol = 0.0;
+                frame.MaxVol = input_max_vol;
                 shot_frames.Add(frame);
 
                 if (limiter_value != 0.0 && limiter_value != double.MinValue && limiter_range != double.MinValue)

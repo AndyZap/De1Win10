@@ -1388,7 +1388,7 @@ namespace De1Win10
             var json_file = await ProfilesFolderV2.TryGetItemAsync(profile_name + ".json");
             if (json_file == null)
             {
-                return "Error: cannot find file " + profile_name + ".tcl in \"profiles\" folder, please select another profile file";
+                return "Error: cannot find file " + profile_name + ".json in \"profiles\" folder, please select another profile file";
             }
             var json_string = await FileIO.ReadTextAsync((IStorageFile)json_file);
 
