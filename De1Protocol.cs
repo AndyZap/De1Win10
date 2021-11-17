@@ -58,7 +58,7 @@ namespace De1Win10
         private bool notifDe1Water = false;
 
         // global values
-        const int RefillWaterLevel = 5; // AAZ TODO hard-coded - read from 0.shot instead
+        const int RefillWaterLevel = 1; // AAZ TODO hard-coded - read from 0.shot instead
         const int ExtraWaterDepth = 5;  // distance between the water inlet and the bottom of the water tank, AAZ TODO hard-coded - read from 0.shot instead
 
         const int ExtraStopTime = 4; // time to record data after stop
