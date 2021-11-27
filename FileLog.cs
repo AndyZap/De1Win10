@@ -296,6 +296,7 @@ namespace De1Win10
             ApplicationDataContainer localSettings = ApplicationData.Current.LocalSettings;
             localSettings.Values["DetailBeansName"] = DetailBeansName.Text;
             localSettings.Values["DetailGrind"] = DetailGrind.Text;
+            localSettings.Values["DetailSwapGrind"] = BtnSwapGrind.Content.ToString();
 
             UpdateStatus("Saved to log " + file_name, NotifyType.StatusMessage);
         }

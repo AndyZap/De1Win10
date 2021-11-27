@@ -177,7 +177,7 @@
                     <!-- 
                     StackPanel PanelSaveRecord
                     -->
-                    <StackPanel  x:Name="PanelSaveRecord" Grid.Row="0" Margin="0,0,0,10" Visibility="Collapsed">
+                    <StackPanel  x:Name="PanelSaveRecord" Grid.Row="0" Margin="0,0,0,10" Visibility="Visible">
 
                         <Button x:Name="BtnSaveLog" Content="Add record" Margin="0,10,30,10" IsEnabled="True" FontSize="24" Click="BtnSaveLog_Click" Width="200" Height="70"/>
                         
@@ -215,6 +215,7 @@
                                 <TextBox  x:Name="DetailGrind" HorizontalAlignment="Left" Margin="20,10,10,10" Text="4" FontSize="24" Height="auto" Width ="auto"/>
                                 <Button x:Name="BtnGrindMinus" Content="-" Margin="0,10,10,10" FontSize="24" Click="BtnGrindMinus_Click" />
                                 <Button x:Name="BtnGrindPlus" Content="+" Margin="0,10,0,10"  FontSize="24" Click="BtnGrindPlus_Click" />
+                                <Button x:Name="BtnSwapGrind" Content="5" Margin="30,10,0,10"  FontSize="24" Width ="120" Click="BtnSwapGrind_Click" />
                             </StackPanel>
                             <TextBox Grid.Row="5" Grid.Column="1" x:Name="DetailNotes" HorizontalAlignment="Left" Margin="20,10,10,10" Text="" FontSize="24" Height="auto" Width ="auto" TextWrapping="Wrap"/>
 
@@ -233,7 +234,7 @@
                     Grid GridProfiles and ScrollViewerProfiles
                     -->
 
-                    <Grid x:Name="GridProfiles" Grid.Row="0" Margin="0,0,0,10" Visibility="Visible">
+                    <Grid x:Name="GridProfiles" Grid.Row="0" Margin="0,0,0,10" Visibility="Collapsed">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="auto"/>
                             <ColumnDefinition Width="auto"/>

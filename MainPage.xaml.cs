@@ -63,6 +63,9 @@ namespace De1Win10
             val = localSettings.Values["DetailGrind"] as string;
             DetailGrind.Text = val == null ? "" : val;
 
+            val = localSettings.Values["DetailSwapGrind"] as string;
+            BtnSwapGrind.Content = val == null ? "5.00" : val;
+
             val = localSettings.Values["ChkAcaia"] as string;
             ChkAcaia.IsOn = val == null ? false : val == "true";
 
@@ -1108,6 +1111,12 @@ namespace De1Win10
                 DetailGrind.Text = grind.ToString("0.00");
             }
             catch (Exception) { }
+        }
+        private void BtnSwapGrind_Click(object sender, RoutedEventArgs e)
+        {
+            var save_txt = DetailGrind.Text;
+            DetailGrind.Text = BtnSwapGrind.Content.ToString();
+            BtnSwapGrind.Content = save_txt;
         }
         private async void ChkAcaia_Toggled(object sender, RoutedEventArgs e)
         {
