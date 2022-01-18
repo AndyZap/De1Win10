@@ -96,6 +96,9 @@ namespace De1Win10
             val = localSettings.Values["StopAtVolume"] as string;
             TxtStopAtVolume.Text = val == null ? "0" : val;
 
+            val = localSettings.Values["ChkSteamLog"] as string;
+            ChkSteamLog.IsOn = val == null ? false : val == "true";
+
             try
             {
                 ProfileDeltaTValue = Convert.ToDouble(ProfileDeltaT.Text.Trim());
@@ -766,6 +769,11 @@ namespace De1Win10
                 UpdateStatus("Disconnected", NotifyType.StatusMessage);
                 Disconnect();
             }
+        }
+        private void ChkSteamLog_Toggled(object sender, RoutedEventArgs e)
+        {
+            ApplicationDataContainer localSettings = ApplicationData.Current.LocalSettings;
+            localSettings.Values["ChkSteamLog"] = ChkSteamLog.IsOn ? "true" : "false";
         }
 
         private async void BtnSleep_Click(object sender, RoutedEventArgs e)
