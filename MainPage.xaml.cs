@@ -137,9 +137,6 @@ namespace De1Win10
             val = localSettings.Values["ProfileNameHistory0"] as string; ProfileNameHistory.Add(val == null ? "" : val);
             val = localSettings.Values["ProfileNameHistory1"] as string; ProfileNameHistory.Add(val == null ? "" : val);
             val = localSettings.Values["ProfileNameHistory2"] as string; ProfileNameHistory.Add(val == null ? "" : val);
-            val = localSettings.Values["ProfileNameHistory3"] as string; ProfileNameHistory.Add(val == null ? "" : val);
-            val = localSettings.Values["ProfileNameHistory4"] as string; ProfileNameHistory.Add(val == null ? "" : val);
-            val = localSettings.Values["ProfileNameHistory5"] as string; ProfileNameHistory.Add(val == null ? "" : val);
 
             var version = Windows.ApplicationModel.Package.Current.Id.Version;
             appVersion = "DE1 Win10     App v" + version.Major.ToString() + "." + version.Minor.ToString() + "." + version.Build.ToString() +  "    ";
@@ -1321,16 +1318,13 @@ namespace De1Win10
             }
 
             // remove extra elements
-            while (ProfileNameHistory.Count > 6)
-                ProfileNameHistory.RemoveAt(6);
+            while (ProfileNameHistory.Count > ProfileNameHistoryCount)
+                ProfileNameHistory.RemoveAt(ProfileNameHistoryCount);
 
             ApplicationDataContainer localSettings = ApplicationData.Current.LocalSettings;
             localSettings.Values["ProfileNameHistory0"] = ProfileNameHistory[0];
             localSettings.Values["ProfileNameHistory1"] = ProfileNameHistory[1];
             localSettings.Values["ProfileNameHistory2"] = ProfileNameHistory[2];
-            localSettings.Values["ProfileNameHistory3"] = ProfileNameHistory[3];
-            localSettings.Values["ProfileNameHistory4"] = ProfileNameHistory[4];
-            localSettings.Values["ProfileNameHistory5"] = ProfileNameHistory[5];
         }
 
         private async void BtnSetProfile_Click(object sender, RoutedEventArgs e)

@@ -19,6 +19,7 @@ namespace De1Win10
 
         List<string> BeanNameHistory = new List<string>();
         List<string> ProfileNameHistory = new List<string>();
+        const int ProfileNameHistoryCount = 3;
 
         public ObservableCollection<ProfileClass> Profiles { get; } = new ObservableCollection<ProfileClass>();
         private string ToCsvFile(string s) // make sure we do not save commas into csv, a quick hack
