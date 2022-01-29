@@ -1002,6 +1002,7 @@ namespace De1Win10
                  && DetailTime.FocusState == FocusState.Unfocused
                  && DetailGrind.FocusState == FocusState.Unfocused
                  && DetailNotes.FocusState == FocusState.Unfocused
+                 && DetailTds.FocusState == FocusState.Unfocused
                  && TxtRatio.FocusState == FocusState.Unfocused
                  && TxtBrewWeightTarget.FocusState == FocusState.Unfocused
                  && TxtBeanWeightMain.FocusState == FocusState.Unfocused

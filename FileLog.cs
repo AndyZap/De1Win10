@@ -279,6 +279,9 @@ namespace De1Win10
                 else if (line.StartsWith("\tespresso_notes "))
                     sb.AppendLine("\tespresso_notes {" + DetailNotes.Text + "}");
 
+                else if (line.StartsWith("\tdrink_tds "))
+                    sb.AppendLine("\tdrink_tds {" + DetailTds.Text + "}");
+
                 else if (line.StartsWith("\tprofile_title "))
                 {
                     string profile_ajustment = "";
