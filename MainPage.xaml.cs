@@ -554,6 +554,12 @@ namespace De1Win10
             if (message_acaia != "" || message_de1 != "")
                 UpdateStatus(message_acaia + message_de1, NotifyType.StatusMessage);
 
+            // Notify about low Acaia battery
+            if (LastSubStateEnum == De1SubStateEnum.Ready && AcaiaBatteryLevel < 50 && !AcaiaBatteryWarned)
+            {
+                UpdateStatus("Acaia battery level = " + AcaiaBatteryLevel.ToString(), NotifyType.WarningMessage);
+                AcaiaBatteryWarned = true;
+            }
 
             heartBeatTimer.Start();
         }

@@ -29,7 +29,7 @@ namespace De1Win10
         private enum AcaiaBufferStateEnum { None, Weight, Battery }
 
         private int AcaiaBatteryLevel = int.MaxValue;
-
+        private bool AcaiaBatteryWarned = false;
         private async Task<string> CreateAcaiaCharacteristics()
         {
             acaia_data_buffer.Clear();
