@@ -51,13 +51,15 @@ namespace De1Win10
 
             ApplicationDataContainer localSettings = ApplicationData.Current.LocalSettings;
 
+            /*
+            // I want to use Device Watcher all the time, seems more robust
             var val = localSettings.Values["DeviceIdAcaia"] as string;
             deviceIdAcaia = val == null ? "" : val;
 
             val = localSettings.Values["DeviceIdDe1"] as string;
-            deviceIdDe1 = val == null ? "" : val;
+            deviceIdDe1 = val == null ? "" : val; */
 
-            val = localSettings.Values["DetailBeansName"] as string;
+            var val = localSettings.Values["DetailBeansName"] as string;
             DetailBeansName.Text = val == null ? "" : val;
 
             val = localSettings.Values["DetailGrind"] as string;
@@ -534,11 +536,13 @@ namespace De1Win10
                 BtnBeansWeight.IsEnabled = true;
                 BtnTare.IsEnabled = true;
             }
-            else if (statusAcaia == StatusEnum.CharacteristicConnected)
+            else if (statusAcaia == StatusEnum.CharacteristicConnected) 
             {
-                var result = await WriteHeartBeat();
 
-                if (result != "") { FatalErrorAcaia(result); return; }
+                // do not write heart beat - seems not needed for Lunar
+                /*
+                var result = await WriteHeartBeat();
+                if (result != "") { FatalErrorAcaia(result); return; } */
             }
             else
             {
@@ -555,7 +559,7 @@ namespace De1Win10
                 UpdateStatus(message_acaia + message_de1, NotifyType.StatusMessage);
 
             // Notify about low Acaia battery
-            if (LastSubStateEnum == De1SubStateEnum.Ready && AcaiaBatteryLevel < 50 && !AcaiaBatteryWarned)
+            if (LastSubStateEnum == De1SubStateEnum.Ready && AcaiaBatteryLevel < 40 && !AcaiaBatteryWarned)
             {
                 UpdateStatus("Acaia battery level = " + AcaiaBatteryLevel.ToString(), NotifyType.WarningMessage);
                 AcaiaBatteryWarned = true;
