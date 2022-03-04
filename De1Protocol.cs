@@ -172,6 +172,7 @@ namespace De1Win10
         double MmrSteamHiStartSec = double.MaxValue;
         double MmrSteamFlow = double.MaxValue;
 
+        readonly bool SteamLog = true;
 
         private async Task<string> CreateDe1Characteristics()
         {
@@ -1241,7 +1242,7 @@ namespace De1Win10
             }
 
             // 1. Logic to START recording of Espro and Steam
-            if ((state == De1StateEnum.Espresso || (state == De1StateEnum.Steam && ChkSteamLog.IsOn))
+            if ((state == De1StateEnum.Espresso || (state == De1StateEnum.Steam && SteamLog))
                 && (substate == De1SubStateEnum.Preinfusion || substate == De1SubStateEnum.Pouring)
                 && LastSubStateEnum != De1SubStateEnum.Preinfusion
                 && LastSubStateEnum != De1SubStateEnum.Pouring
@@ -1257,7 +1258,7 @@ namespace De1Win10
             }
 
             // 1. Logic to STOP recording of Espro and Steam    -  when the machine stops from the App
-            if ((state == De1StateEnum.Espresso || (state == De1StateEnum.Steam && ChkSteamLog.IsOn))
+            if ((state == De1StateEnum.Espresso || (state == De1StateEnum.Steam && SteamLog))
                 && (LastSubStateEnum == De1SubStateEnum.Preinfusion || LastSubStateEnum == De1SubStateEnum.Pouring)
                 && substate != De1SubStateEnum.Preinfusion
                 && substate != De1SubStateEnum.Pouring
@@ -1269,7 +1270,7 @@ namespace De1Win10
             }
 
             // 2. Logic to STOP recording of Espro and Steam   -  when the machine stops from GHC
-            if ((LastStateEnum == De1StateEnum.Espresso || (LastStateEnum == De1StateEnum.Steam && ChkSteamLog.IsOn))
+            if ((LastStateEnum == De1StateEnum.Espresso || (LastStateEnum == De1StateEnum.Steam && SteamLog))
                 && (state == De1StateEnum.Idle)
                 && (StopHasBeenClicked == false)
                 )

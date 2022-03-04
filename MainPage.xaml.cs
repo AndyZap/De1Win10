@@ -45,7 +45,7 @@ namespace De1Win10
 
             heartBeatTimer = new DispatcherTimer();
             heartBeatTimer.Tick += dispatcherTimer_Tick;
-            heartBeatTimer.Interval = new TimeSpan(0, 0, 2);
+            heartBeatTimer.Interval = new TimeSpan(0, 0, 3);
 
             UpdateStatus("", NotifyType.StatusMessage);
 
@@ -95,9 +95,6 @@ namespace De1Win10
 
             val = localSettings.Values["StopAtVolume"] as string;
             TxtStopAtVolume.Text = val == null ? "0" : val;
-
-            val = localSettings.Values["ChkSteamLog"] as string;
-            ChkSteamLog.IsOn = val == null ? false : val == "true";
 
             try
             {
@@ -536,13 +533,9 @@ namespace De1Win10
             }
             else if (statusAcaia == StatusEnum.CharacteristicConnected) 
             {
-                var ts = DateTime.Now - LastHeartBeatTime;
-                if (ts.TotalSeconds > HeartBeatIntervalSec)
-                {
-                    LastHeartBeatTime = DateTime.Now;
-                    var result = await WriteHeartBeat();
-                    if (result != "") { FatalErrorAcaia(result); return; }
-                }
+                /*
+                var result = await WriteHeartBeat();
+                if (result != "") { FatalErrorAcaia(result); return; } */
             }
             else
             {
@@ -565,7 +558,19 @@ namespace De1Win10
                 AcaiaBatteryWarned = true;
             }
 
-            heartBeatTimer.Start();
+            bool start_the_timer = true;
+            if (   (statusAcaia == StatusEnum.Disabled || statusAcaia == StatusEnum.CharacteristicConnected)   // no need to acaia
+                && (statusDe1 == StatusEnum.CharacteristicConnected && MmrNotifStatus == De1MmrNotifEnum.None) // no need from DE1
+               )
+                start_the_timer = false;
+
+            if (start_the_timer)
+            {
+                heartBeatTimer.Start();
+                UpdateStatus("Timer on = " + DateTime.Now.ToLongTimeString(), NotifyType.StatusMessage);
+            }
+            else
+                UpdateStatus("Timer off = " + DateTime.Now.ToLongTimeString(), NotifyType.StatusMessage);
         }
         private async void Disconnect()
         {
@@ -776,11 +781,6 @@ namespace De1Win10
                 UpdateStatus("Disconnected", NotifyType.StatusMessage);
                 Disconnect();
             }
-        }
-        private void ChkSteamLog_Toggled(object sender, RoutedEventArgs e)
-        {
-            ApplicationDataContainer localSettings = ApplicationData.Current.LocalSettings;
-            localSettings.Values["ChkSteamLog"] = ChkSteamLog.IsOn ? "true" : "false";
         }
 
         private async void BtnSleep_Click(object sender, RoutedEventArgs e)

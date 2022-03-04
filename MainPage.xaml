@@ -163,9 +163,6 @@
                             <TextBox   Grid.Row="2" Grid.Column="5" x:Name="TxtSteamFlow" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="20,10,10,10" Text="" FontSize="24" Height="auto" Width ="auto" TextWrapping="Wrap" AutomationProperties.LiveSetting="Assertive"/>
                             <TextBlock Grid.Row="2" Grid.Column="6" VerticalAlignment="Center" Text="mL/sec"  Margin="0,10,10,10" FontSize="24"/>
                             <Button    Grid.Row="2" Grid.Column="7" x:Name="BtnQuickPurge" Content="Quick Purge" Margin="0,10,10,10" IsEnabled="False" FontSize="24" Click="BtnQuickPurge_Click" Width="200" Height="70" />
-
-                            <ToggleSwitch  Grid.Row="3" Grid.Column="0" x:Name="ChkSteamLog" Header="Steam log" Margin="20,10,20,10" VerticalAlignment="Stretch" FontSize="18" Toggled="ChkSteamLog_Toggled" Width="170"/>
-
                             <Button    Grid.Row="4" Grid.Column="0" x:Name="BtnStopLog1" Content="Stop" Margin="0,10,10,10" IsEnabled="False" FontSize="24" Click="BtnStop_Click" Width="200" Height="70" />
                         </Grid>
 
