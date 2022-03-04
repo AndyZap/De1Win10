@@ -30,6 +30,10 @@ namespace De1Win10
 
         private int AcaiaBatteryLevel = int.MaxValue;
         private bool AcaiaBatteryWarned = false;
+
+        private DateTime LastHeartBeatTime = DateTime.MinValue;
+        private double   HeartBeatIntervalSec = 20.0;
+
         private async Task<string> CreateAcaiaCharacteristics()
         {
             acaia_data_buffer.Clear();

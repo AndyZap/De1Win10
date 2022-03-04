@@ -24,7 +24,7 @@ namespace De1Win10
         private string deviceIdAcaia = String.Empty;
         private string deviceIdDe1 = String.Empty;
 
-        private BluetoothCacheMode bleCacheMode = BluetoothCacheMode.Uncached;
+        private BluetoothCacheMode bleCacheMode = BluetoothCacheMode.Cached;
 
         private BluetoothLEDevice bleDeviceAcaia = null;
         private BluetoothLEDevice bleDeviceDe1 = null;
@@ -45,21 +45,19 @@ namespace De1Win10
 
             heartBeatTimer = new DispatcherTimer();
             heartBeatTimer.Tick += dispatcherTimer_Tick;
-            heartBeatTimer.Interval = new TimeSpan(0, 0, 3);
+            heartBeatTimer.Interval = new TimeSpan(0, 0, 2);
 
             UpdateStatus("", NotifyType.StatusMessage);
 
             ApplicationDataContainer localSettings = ApplicationData.Current.LocalSettings;
 
-            /*
-            // I want to use Device Watcher all the time, seems more robust
             var val = localSettings.Values["DeviceIdAcaia"] as string;
             deviceIdAcaia = val == null ? "" : val;
 
             val = localSettings.Values["DeviceIdDe1"] as string;
-            deviceIdDe1 = val == null ? "" : val; */
+            deviceIdDe1 = val == null ? "" : val;
 
-            var val = localSettings.Values["DetailBeansName"] as string;
+            val = localSettings.Values["DetailBeansName"] as string;
             DetailBeansName.Text = val == null ? "" : val;
 
             val = localSettings.Values["DetailGrind"] as string;
@@ -538,11 +536,14 @@ namespace De1Win10
             }
             else if (statusAcaia == StatusEnum.CharacteristicConnected) 
             {
-
-                // do not write heart beat - seems not needed for Lunar
-                /*
-                var result = await WriteHeartBeat();
-                if (result != "") { FatalErrorAcaia(result); return; } */
+                var ts = DateTime.Now - LastHeartBeatTime;
+                if (ts.TotalSeconds > HeartBeatIntervalSec)
+                {
+                    LastHeartBeatTime = DateTime.Now;
+                    var result = await WriteHeartBeat();
+                    if (result != "") { FatalErrorAcaia(result); return; }
+					UpdateStatus("Sent hearbeat at " + LastHeartBeatTime.ToLongDateString(), NotifyType.StatusMessage);
+                }
             }
             else
             {
