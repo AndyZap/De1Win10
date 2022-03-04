@@ -542,7 +542,6 @@ namespace De1Win10
                     LastHeartBeatTime = DateTime.Now;
                     var result = await WriteHeartBeat();
                     if (result != "") { FatalErrorAcaia(result); return; }
-					UpdateStatus("Sent hearbeat at " + LastHeartBeatTime.ToLongDateString(), NotifyType.StatusMessage);
                 }
             }
             else
