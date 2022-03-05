@@ -24,7 +24,7 @@ namespace De1Win10
         private string deviceIdAcaia = String.Empty;
         private string deviceIdDe1 = String.Empty;
 
-        private BluetoothCacheMode bleCacheMode = BluetoothCacheMode.Cached;
+        private BluetoothCacheMode bleCacheMode = BluetoothCacheMode.Uncached;
 
         private BluetoothLEDevice bleDeviceAcaia = null;
         private BluetoothLEDevice bleDeviceDe1 = null;
@@ -49,13 +49,14 @@ namespace De1Win10
 
             ApplicationDataContainer localSettings = ApplicationData.Current.LocalSettings;
 
+            /*
             var val = localSettings.Values["DeviceIdAcaia"] as string;
             deviceIdAcaia = val == null ? "" : val;
 
             val = localSettings.Values["DeviceIdDe1"] as string;
-            deviceIdDe1 = val == null ? "" : val;
+            deviceIdDe1 = val == null ? "" : val; */
 
-            val = localSettings.Values["DetailBeansName"] as string;
+            var val = localSettings.Values["DetailBeansName"] as string;
             DetailBeansName.Text = val == null ? "" : val;
 
             val = localSettings.Values["DetailGrind"] as string;
