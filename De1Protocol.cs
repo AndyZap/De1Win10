@@ -333,9 +333,14 @@ namespace De1Win10
                 if (de1_state_result.Status != GattCommunicationStatus.Success) { return "Failed to read DE1 characteristic " + de1_state_result.Status.ToString(); }
 
                 De1StateEnum state = De1StateEnum.Idle; De1SubStateEnum substate = De1SubStateEnum.Ready;
-                if (!DecodeDe1StateInfo(de1_state_result.Value, ref state, ref substate))
-                    return "Error, expected to find one DE1 characteristics";
+                byte[] de1_state_data;
+                CryptographicBuffer.CopyToByteArray(de1_state_result.Value, out de1_state_data);
+                string result_de1_state_string = DecodeDe1StateInfo(de1_state_data, ref state, ref substate);
+                if (result_de1_state_string != "")
+                    return result_de1_state_string;
+
                 UpdateDe1StateInfo(state, substate);
+
 
 
                 // Characteristic  A00F Shot Description Header    R/W/-  --------------------------------------------------
@@ -903,24 +908,23 @@ namespace De1Win10
                 return false;
             }
         }
-        private bool DecodeDe1StateInfo(byte[] data, ref De1StateEnum state, ref De1SubStateEnum substate)
+        private string DecodeDe1StateInfo(byte[] data, ref De1StateEnum state, ref De1SubStateEnum substate)
         {
             if (data == null)
-                return false;
+                return "DecodeDe1State: received empty buffer";
 
             if (data.Length != 2)
-                return false;
+                return "DecodeDe1State: received buffer with size != 2";
 
             state = ByteToDe1State(data[0]);
             substate = ByteToDe1SubState(data[1]);
 
             if (state == De1StateEnum.Unknown || substate == De1SubStateEnum.Unknown)
             {
-                UpdateStatus("Received Unknown DE1 Status/substatus " + data[0].ToString() + " / " + data[1].ToString(), NotifyType.ErrorMessage);
-                return false;
+                return "DecodeDe1State: Received Unknown DE1 Status/substatus " + data[0].ToString() + " / " + data[1].ToString();
             }
 
-            return true;
+            return "";
         }
 
         private bool DecodeMmrNotif(byte[] data)
@@ -1197,12 +1201,6 @@ namespace De1Win10
             return true;
         }
 
-        private bool DecodeDe1StateInfo(IBuffer buffer, ref De1StateEnum state, ref De1SubStateEnum substate)
-        {
-            byte[] data;
-            CryptographicBuffer.CopyToByteArray(buffer, out data);
-            return DecodeDe1StateInfo(data, ref state, ref substate);
-        }
         private async Task<string> writeToDE(byte[] payload, De1ChrEnum chr)
         {
             try

@@ -727,8 +727,11 @@ namespace De1Win10
 
             De1StateEnum state = De1StateEnum.Sleep;
             De1SubStateEnum substate = De1SubStateEnum.Ready;
-            if (DecodeDe1StateInfo(data, ref state, ref substate))
+            string status = DecodeDe1StateInfo(data, ref state, ref substate);
+            if (status == "")
                 UpdateDe1StateInfo(state, substate);
+            else
+                UpdateStatus(status, NotifyType.WarningMessage);
         }
 
         private void CharacteristicDe1MmrNotif_ValueChanged(GattCharacteristic sender, GattValueChangedEventArgs args)
