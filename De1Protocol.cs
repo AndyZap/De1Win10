@@ -18,67 +18,63 @@ namespace De1Win10
 {
     public sealed partial class MainPage : Page
     {
-        enum De1ChrEnum { SetState, MmrNotif, MmrWrite, OtherSetn, ShotHeader, ShotFrame, Water }
+        enum De1ChrEnum 
+        { 
+            SetState, 
+            MmrNotif, 
+            MmrWrite, 
+            OtherSetn, 
+            ShotHeader, 
+            ShotFrame, 
+            Water 
+        }
         public enum De1StateEnum
         {
-            Sleep, GoingToSleep, Idle, Busy, Espresso, Steam, HotWater, ShortCal, SelfTest, LongCal, Descale,
-            FatalError, Init, NoRequest, SkipToNext, HotWaterRinse, SteamRinse, Refill, Clean, InBootLoader, AirPurge
-        }
-        public enum De1SubStateEnum { Ready, Heating, FinalHeating, Stabilising, Preinfusion, Pouring, Ending, Refill }
-
-        enum De1MmrNotifEnum { CpuBoardMachineFw, GhcInfo, SerialNum, FanTemp, IdleWaterTemp, HeaterWarmupFlow, HeaterTestFlow, HeaterTestTime,
-            SteamHiStartSec, SteamFlow, None }
-
-        private enum API_MachineStates_FromRay
-        {
-            // These are reported states guaranteed by the API. The firmware will lie like a
-            // cheap watch to maintain the illusion of these states.
-            Sleep,         // 0x0 Everything is off
-            GoingToSleep,  // 0x1
-            Idle,          // 0x2 Heaters are controlled, tank water will be heated if required.
-            Busy,          // 0x3 Firmware is doing something you can't interrupt (eg. cooling down water heater after a shot, calibrating sensors on startup).
-            Espresso,      // 0x4 Making espresso
-            Steam,         // 0x5 Making steam
-            HotWater,      // 0x6 Making hot water
-            ShortCal,      // 0x7 Running a short calibration
-            SelfTest,      // 0x8 Checking as much as possible within the firmware. Probably only used during manufacture or repair.
-            LongCal,       // 0x9 Long and involved calibration, possibly involving user interaction. (See substates below, for cases like that).
-            Descale,       // 0xA Descale the whole bang-tooty
-            FatalError,    // 0xB Something has gone horribly wrong
-            Init,          // 0xC Machine has not been run yet
-            NoRequest,     // 0xD State for T_RequestedState. Means nothing is specifically requested
-            SkipToNext,    // 0xE In Espresso, skip to next frame. Others, go to Idle if possible
-            HotWaterRinse, // 0xF Produce hot water at whatever temperature is available
+            Sleep,         // 0x0  Everything is off
+            GoingToSleep,  // 0x1  
+            Idle,          // 0x2  Heaters are controlled, tank water will be heated if required.
+            Busy,          // 0x3  Firmware is doing something you can't interrupt (eg. cooling down water heater after a shot, calibrating sensors on startup).
+            Espresso,      // 0x4  Making espresso
+            Steam,         // 0x5  Making steam
+            HotWater,      // 0x6  Making hot water
+            ShortCal,      // 0x7  Running a short calibration
+            SelfTest,      // 0x8  Checking as much as possible within the firmware. Probably only used during manufacture or repair.
+            LongCal,       // 0x9  Long and involved calibration, possibly involving user interaction. (See substates below, for cases like that).
+            Descale,       // 0xA  Descale the whole bang-tooty
+            FatalError,    // 0xB  Something has gone horribly wrong
+            Init,          // 0xC  Machine has not been run yet
+            NoRequest,     // 0xD  State for T_RequestedState. Means nothing is specifically requested
+            SkipToNext,    // 0xE  In Espresso, skip to next frame. Others, go to Idle if possible
+            HotWaterRinse, // 0xF  Produce hot water at whatever temperature is available
             SteamRinse,    // 0x10 Produce a blast of steam
             Refill,        // 0x11 Attempting, or needs, a refill.
             Clean,         // 0x12 Clean group head
             InBootLoader,  // 0x13 The main firmware has not run for some reason. Bootloader is active.
             AirPurge,      // 0x14 Air purge.
-            SchedIdle      // 0x15 Scheduled wake up idle state
-                           // Be sure to update BLERequestedState in ModelIntParameters to specify the max safe value if you add any states
+            SchedIdle,     // 0x15 Scheduled wake up idle state
+            Unknown
         }
-
-        private enum API_Substates_FromRay
-        {
-            NoState,          // 0 State is not relevant
-            HeatWaterTank,    // 1 Cold water is not hot enough. Heating hot water tank.
-            HeatWaterHeater,  // 2 Warm up hot water heater for shot.
-            StabilizeMixTemp, // 3 Stabilize mix temp and get entire water path up to temperature.
-            PreInfuse,        // 4 Espresso only. Hot Water and Steam will skip this state.
-            Pour,             // 5 Not used in Steam
-            Flush,            // 6 Espresso only, atm
-            Steaming,         // 7 Steam only
-            DescaleInit,      // Starting descale
-            DescaleFillGroup, // get some descaling solution into the group and let it sit
-            DescaleReturn,    // descaling internals
-            DescaleGroup,     // descaling group
-            DescaleSteam,     // descaling steam
-            CleanInit,        // Starting clean
-            CleanFillGroup,   // Fill the group
-            CleanSoak,        // Wait for 60 seconds so we soak the group head
-            CleanGroup,       // Flush through group
-            PausedRefill,     // Have we given up on a refill
-            PausedSteam,      // Are we paused in steam?
+        public enum De1SubStateEnum 
+        { 
+            Ready,                  // 0 
+            Heating,                // 1 
+            FinalHeating,           // 2 Warm up hot water heater for shot.
+            Stabilising,            // 3 Stabilize mix temp and get entire water path up to temperature.
+            Preinfusion,            // 4 
+            Pouring,                // 5 
+            Ending,                 // 6 
+            Steaming,               // 7 Steam only
+            DescaleInit,            // Starting descale
+            DescaleFillGroup,       // get some descaling solution into the group and let it sit
+            DescaleReturn,          // descaling internals
+            DescaleGroup,           // descaling group
+            DescaleSteam,           // descaling steam
+            CleanInit,              // Starting clean
+            CleanFillGroup,         // Fill the group
+            CleanSoak,              // Wait for 60 seconds so we soak the group head
+            CleanGroup,             // Flush through group
+            PausedRefill,           // Have we given up on a refill
+            PausedSteam,            // Are we paused in steam?
 
             // Error states
             Error_NaN = 200,        // Something died with a NaN
@@ -97,7 +93,23 @@ namespace De1Win10
             Error_Deadline = 213,   // Realtime deadline missed
             Error_HiCurrent = 214,  // Measured a current that is out of bounds.
             Error_LoCurrent = 215,  // Not enough current flowing, despite something being turned on.
-            Error_BootFill = 216    // Could not get up to pressure during boot pressure test, possibly because no water
+            Error_BootFill = 216,   // Could not get up to pressure during boot pressure test, possibly because no water
+
+            Unknown
+        }
+        enum De1MmrNotifEnum 
+        { 
+            CpuBoardMachineFw, 
+            GhcInfo, 
+            SerialNum, 
+            FanTemp, 
+            IdleWaterTemp, 
+            HeaterWarmupFlow, 
+            HeaterTestFlow, 
+            HeaterTestTime,
+            SteamHiStartSec, 
+            SteamFlow, 
+            None 
         }
 
         string SrvDe1String = "0000A000-0000-1000-8000-00805F9B34FB";
@@ -383,45 +395,76 @@ namespace De1Win10
             return "";
         }
 
-        Dictionary<byte, De1StateEnum> De1StateMapping = new Dictionary<byte, De1StateEnum>();
-        Dictionary<byte, De1SubStateEnum> De1SubStateMapping = new Dictionary<byte, De1SubStateEnum>();
-
-        private void SetupDe1StateMapping()
+        private De1StateEnum ByteToDe1State(byte b)
         {
-            De1StateMapping.Add(0, De1StateEnum.Sleep);
-            De1StateMapping.Add(1, De1StateEnum.GoingToSleep);
-            De1StateMapping.Add(2, De1StateEnum.Idle);
-            De1StateMapping.Add(3, De1StateEnum.Busy);
-            De1StateMapping.Add(4, De1StateEnum.Espresso);
-            De1StateMapping.Add(5, De1StateEnum.Steam);
-            De1StateMapping.Add(6, De1StateEnum.HotWater);
-            De1StateMapping.Add(7, De1StateEnum.ShortCal);
-            De1StateMapping.Add(8, De1StateEnum.SelfTest);
-            De1StateMapping.Add(9, De1StateEnum.LongCal);
-            De1StateMapping.Add(10, De1StateEnum.Descale);
-            De1StateMapping.Add(11, De1StateEnum.FatalError);
-            De1StateMapping.Add(12, De1StateEnum.Init);
-            De1StateMapping.Add(13, De1StateEnum.NoRequest);
-            De1StateMapping.Add(14, De1StateEnum.SkipToNext);
-            De1StateMapping.Add(15, De1StateEnum.HotWaterRinse);
-            De1StateMapping.Add(16, De1StateEnum.SteamRinse);
-            De1StateMapping.Add(17, De1StateEnum.Refill);
-            De1StateMapping.Add(18, De1StateEnum.Clean);
-            De1StateMapping.Add(19, De1StateEnum.InBootLoader);
-            De1StateMapping.Add(20, De1StateEnum.AirPurge);
+            if     (b == 0)  return De1StateEnum.Sleep;
+            else if(b == 1)  return De1StateEnum.GoingToSleep;
+            else if(b == 2)  return De1StateEnum.Idle;
+            else if(b == 3)  return De1StateEnum.Busy;
+            else if(b == 4)  return De1StateEnum.Espresso;
+            else if(b == 5)  return De1StateEnum.Steam;
+            else if(b == 6)  return De1StateEnum.HotWater;
+            else if(b == 7)  return De1StateEnum.ShortCal;
+            else if(b == 8)  return De1StateEnum.SelfTest;
+            else if(b == 9)  return De1StateEnum.LongCal;
+            else if(b == 10) return De1StateEnum.Descale;
+            else if(b == 11) return De1StateEnum.FatalError;
+            else if(b == 12) return De1StateEnum.Init;
+            else if(b == 13) return De1StateEnum.NoRequest;
+            else if(b == 14) return De1StateEnum.SkipToNext;
+            else if(b == 15) return De1StateEnum.HotWaterRinse;
+            else if(b == 16) return De1StateEnum.SteamRinse;
+            else if(b == 17) return De1StateEnum.Refill;
+            else if(b == 18) return De1StateEnum.Clean;
+            else if(b == 19) return De1StateEnum.InBootLoader;
+            else if(b == 20) return De1StateEnum.AirPurge;
+            else if(b == 21) return De1StateEnum.SchedIdle;
+            else return De1StateEnum.Unknown;
+        }
+        private De1SubStateEnum ByteToDe1SubState(byte b)
+        {
+            if      (b == 0) return De1SubStateEnum.Ready;
+            else if (b == 1) return De1SubStateEnum.Heating;
+            else if (b == 2) return De1SubStateEnum.FinalHeating;
+            else if (b == 3) return De1SubStateEnum.Stabilising;
+            else if (b == 4) return De1SubStateEnum.Preinfusion;
+            else if (b == 5) return De1SubStateEnum.Pouring;
+            else if (b == 6) return De1SubStateEnum.Ending;
+            else if (b == 7) return De1SubStateEnum.Steaming;
+            else if (b == 8) return De1SubStateEnum.DescaleInit;
+            else if (b == 9) return De1SubStateEnum.DescaleFillGroup;
+            else if (b == 10) return De1SubStateEnum.DescaleReturn;
+            else if (b == 11) return De1SubStateEnum.DescaleGroup;
+            else if (b == 12) return De1SubStateEnum.DescaleSteam;
+            else if (b == 13) return De1SubStateEnum.CleanInit;
+            else if (b == 14) return De1SubStateEnum.CleanFillGroup;
+            else if (b == 15) return De1SubStateEnum.CleanSoak;
+            else if (b == 16) return De1SubStateEnum.CleanGroup;
+            else if (b == 17) return De1SubStateEnum.PausedRefill;
+            else if (b == 18) return De1SubStateEnum.PausedSteam;
 
-            De1SubStateMapping.Add(0, De1SubStateEnum.Ready);
-            De1SubStateMapping.Add(1, De1SubStateEnum.Heating);
-            De1SubStateMapping.Add(2, De1SubStateEnum.FinalHeating);
-            De1SubStateMapping.Add(3, De1SubStateEnum.Stabilising);
-            De1SubStateMapping.Add(4, De1SubStateEnum.Preinfusion);
-            De1SubStateMapping.Add(5, De1SubStateEnum.Pouring);
-            De1SubStateMapping.Add(6, De1SubStateEnum.Ending);
-            De1SubStateMapping.Add(17, De1SubStateEnum.Refill);
+            else if (b == 200) return De1SubStateEnum.Error_NaN;
+            else if (b == 201) return De1SubStateEnum.Error_Inf;
+            else if (b == 202) return De1SubStateEnum.Error_Generic;
+            else if (b == 203) return De1SubStateEnum.Error_ACC;
+            else if (b == 204) return De1SubStateEnum.Error_TSensor;
+            else if (b == 205) return De1SubStateEnum.Error_PSensor;
+            else if (b == 206) return De1SubStateEnum.Error_WLevel;
+            else if (b == 207) return De1SubStateEnum.Error_DIP;
+            else if (b == 208) return De1SubStateEnum.Error_Assertion;
+            else if (b == 209) return De1SubStateEnum.Error_Unsafe;
+            else if (b == 210) return De1SubStateEnum.Error_InvalidParm;
+            else if (b == 211) return De1SubStateEnum.Error_Flash;
+            else if (b == 212) return De1SubStateEnum.Error_OOM;
+            else if (b == 213) return De1SubStateEnum.Error_Deadline;
+            else if (b == 214) return De1SubStateEnum.Error_HiCurrent;
+            else if (b == 215) return De1SubStateEnum.Error_LoCurrent;
+            else if (b == 216) return De1SubStateEnum.Error_BootFill;
+            else return De1SubStateEnum.Unknown;
         }
         private byte GetDe1StateAsByte(De1StateEnum state)
         {
-            if (state == De1StateEnum.Sleep) return 0;
+            if      (state == De1StateEnum.Sleep) return 0;
             else if (state == De1StateEnum.GoingToSleep) return 1;
             else if (state == De1StateEnum.Idle) return 2;
             else if (state == De1StateEnum.Busy) return 3;
@@ -442,6 +485,7 @@ namespace De1Win10
             else if (state == De1StateEnum.Clean) return 18;
             else if (state == De1StateEnum.InBootLoader) return 19;
             else if (state == De1StateEnum.AirPurge) return 20;
+            else if (state == De1StateEnum.SchedIdle) return 21;
             else
                 throw new Exception("Unknown De1StateEnum " + state.ToString());
         }
@@ -867,17 +911,16 @@ namespace De1Win10
             if (data.Length != 2)
                 return false;
 
-            try
-            {
-                state = De1StateMapping[data[0]];
-                substate = De1SubStateMapping[data[1]];
+            state = ByteToDe1State(data[0]);
+            substate = ByteToDe1SubState(data[1]);
 
-                return true;
-            }
-            catch (Exception)
+            if (state == De1StateEnum.Unknown || substate == De1SubStateEnum.Unknown)
             {
+                UpdateStatus("Received Unknown DE1 Status/substatus " + data[0].ToString() + " / " + data[1].ToString(), NotifyType.ErrorMessage);
                 return false;
             }
+
+            return true;
         }
 
         private bool DecodeMmrNotif(byte[] data)

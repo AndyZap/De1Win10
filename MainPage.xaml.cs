@@ -41,8 +41,6 @@ namespace De1Win10
         {
             this.InitializeComponent();
 
-            SetupDe1StateMapping();
-
             heartBeatTimer = new DispatcherTimer();
             heartBeatTimer.Tick += dispatcherTimer_Tick;
             heartBeatTimer.Interval = new TimeSpan(0, 0, 3);
@@ -565,12 +563,7 @@ namespace De1Win10
                 start_the_timer = false;
 
             if (start_the_timer)
-            {
                 heartBeatTimer.Start();
-                UpdateStatus("Timer on = " + DateTime.Now.ToLongTimeString(), NotifyType.StatusMessage);
-            }
-            else
-                UpdateStatus("Timer off = " + DateTime.Now.ToLongTimeString(), NotifyType.StatusMessage);
         }
         private async void Disconnect()
         {
