@@ -49,14 +49,14 @@ namespace De1Win10
 
             ApplicationDataContainer localSettings = ApplicationData.Current.LocalSettings;
 
-            /*
+            
             var val = localSettings.Values["DeviceIdAcaia"] as string;
             deviceIdAcaia = val == null ? "" : val;
 
             val = localSettings.Values["DeviceIdDe1"] as string;
-            deviceIdDe1 = val == null ? "" : val; */
+            deviceIdDe1 = val == null ? "" : val;
 
-            var val = localSettings.Values["DetailBeansName"] as string;
+            val = localSettings.Values["DetailBeansName"] as string;
             DetailBeansName.Text = val == null ? "" : val;
 
             val = localSettings.Values["DetailGrind"] as string;
